@@ -478,6 +478,18 @@ the daemon via SOCKET-FILE."
                 ('messages messages))
         (for-each display-line messages)
         (report-command-error error)
+
+        ;; Did the user swap ACTION and SERVICE?
+        (match (list action service)
+          ((_ (or 'start 'stop 'status 'doc))
+           (report-error (l10n "Did you mean 'herd ~a ~a'?")
+                         service action))
+          ((root (or 'help 'halt 'power-off 'load 'eval 'unload 'reload
+                     'daemonize 'restart))
+           (report-error (l10n "Did you mean 'herd ~a ~a'?")
+                         service action))
+          ((_ _) *unspecified*))
+
         (exit 1))
        ((? eof-object?)
         ;; When stopping shepherd, we may get an EOF in lieu of a real reply,
