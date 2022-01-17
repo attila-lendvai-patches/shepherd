@@ -1,5 +1,5 @@
 # GNU Shepherd --- Make sure shepherd doesn't fail when $HOME is not writable.
-# Copyright © 2014, 2016 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2014, 2016, 2022 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -46,7 +46,4 @@ kill -0 `cat "$pid"`
 $herd status root
 $herd stop root
 
-if kill `cat "$pid"`
-then
-    exit 1
-fi
+wait `cat "$pid"`
