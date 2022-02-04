@@ -277,8 +277,8 @@ There is NO WARRANTY, to the extent permitted by law.")))
 
 (define %user-log-dir
   ;; Default log directory if shepherd is run as a normal user.
-  (string-append (or (getenv "XDG_DATA_DIR")
-                     (string-append user-homedir "/.local/share"))
+  (string-append (or (getenv "XDG_STATE_HOME")
+                     (string-append user-homedir "/.local/state"))
                  "/shepherd"))
 
 (define %user-runtime-dir

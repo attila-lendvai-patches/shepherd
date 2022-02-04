@@ -260,7 +260,9 @@ test -f "$log"
 
 # Set XDG_CONFIG_HOME for configuration files.
 export XDG_CONFIG_HOME=$confdir
-export XDG_DATA_DIR=$datadir
+export XDG_DATA_HOME=$datadir
+# Reuse XDG_DATA_HOME as XDG_STATE_HOME for backwards compatibility.
+export XDG_STATE_HOME=$datadir
 mkdir -p $confdir/shepherd
 mkdir -p $datadir/shepherd
 mv $conf $confdir/shepherd/init.scm
