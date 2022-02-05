@@ -1,5 +1,5 @@
 ;; shepherd.scm -- The daemon shepherd.
-;; Copyright (C) 2013, 2014, 2016, 2018, 2019, 2020 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013-2014, 2016, 2018-2020, 2022 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
 ;; Copyright (C) 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 ;; Copyright (C) 2018 Danny Milosavljevic <dannym@scratchpost.org>
@@ -406,7 +406,7 @@ already ~a threads running, disabling 'signalfd' support")
 
   ;; Most likely we're receiving 'quit' from the 'stop' method of
   ;; ROOT-SERVICE.  So, if we're running as 'root', just reboot.
-  (if (zero? (getuid))
+  (if (and (zero? (getuid)) (= 1 (getpid)))
       (begin
         (local-output (l10n "Rebooting..."))
         (reboot))
