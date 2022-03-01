@@ -25,6 +25,7 @@ conf="t-conf-$$"
 log="t-log-$$"
 pid="t-pid-$$"
 service_pid="t-service-pid-$$"
+service_nofiles="t-service-nofiles-$$"
 service2_pid="t-service2-pid-$$"
 service2_started="t-service2-starts-$$"
 
@@ -49,14 +50,15 @@ cat > "$conf"<<EOF
 (default-pid-file-timeout 10)
 
 (define %command
-  '("$SHELL" "-c" "sleep 600 & echo \$! > $PWD/$service_pid"))
+  '("$SHELL" "-c" "ulimit -n >$PWD/$service_nofiles; sleep 600 & echo \$! > $PWD/$service_pid"))
 
 (register-services
  (make <service>
    ;; A service that forks into a different process.
    #:provides '(test)
    #:start (make-forkexec-constructor %command
-                                      #:pid-file "$PWD/$service_pid")
+                                      #:pid-file "$PWD/$service_pid"
+                                      #:resource-limits '((nofile 1567 1567)))
    #:stop  (make-kill-destructor)
    #:respawn? #f))
 
@@ -124,6 +126,15 @@ sleep 1;
 $herd status test2 | grep started
 test "`cat $PWD/$service2_started`" = "started
 started"
+
+
+
+# test if nofiles was set properly
+test -f "$service_nofiles"
+nofiles_value="`cat $service_nofiles`"
+test 1567 -eq $nofiles_value
+
+
 
 # Try to trigger eventual race conditions, when killing a process between fork
 # and execv calls.

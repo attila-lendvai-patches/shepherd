@@ -787,13 +787,17 @@ daemon writing FILE is running in a separate PID namespace."
                        (directory (default-service-directory))
                        (file-creation-mask #f)
                        (create-session? #t)
-                       (environment-variables (default-environment-variables)))
+                       (environment-variables (default-environment-variables))
+                       (resource-limits '()))
   "Run COMMAND as the current process from DIRECTORY, with FILE-CREATION-MASK
 if it's true, and with ENVIRONMENT-VARIABLES (a list of strings like
 \"PATH=/bin\").  File descriptors 1 and 2 are kept as is or redirected to
 LOG-FILE if it's true, whereas file descriptor 0 (standard input) points to
 /dev/null; all other file descriptors are closed prior to yielding control to
 COMMAND.  When CREATE-SESSION? is true, call 'setsid' first.
+
+Guile's SETRLIMIT procedure is applied on the entries in RESOURCE-LIMITS.  For
+example, a valid value would be '((nproc 10 100) (nofile 4096 4096)).
 
 By default, COMMAND is run as the current user.  If the USER keyword
 argument is present and not false, change to USER immediately before
@@ -807,6 +811,8 @@ false."
        ;; Become the leader of a new session and session group.
        ;; Programs such as 'mingetty' expect this.
        (setsid))
+
+     (for-each (cut apply setrlimit <>) resource-limits)
 
      (chdir directory)
      (environ environment-variables)
@@ -893,7 +899,8 @@ false."
                             (file-creation-mask #f)
                             (create-session? #t)
                             (environment-variables
-                             (default-environment-variables)))
+                             (default-environment-variables))
+                            (resource-limits '()))
   "Spawn a process that executed COMMAND as per 'exec-command', and return
 its PID."
   ;; Install the SIGCHLD handler if this is the first fork+exec-command call.
@@ -924,7 +931,8 @@ its PID."
                           #:directory directory
                           #:file-creation-mask file-creation-mask
                           #:create-session? create-session?
-                          #:environment-variables environment-variables))
+                          #:environment-variables environment-variables
+                          #:resource-limits resource-limits))
           pid))))
 
 (define* (make-forkexec-constructor command
@@ -932,15 +940,16 @@ its PID."
                                     (user #f)
                                     (group #f)
                                     (supplementary-groups '())
+                                    (log-file #f)
                                     (directory (default-service-directory))
-                                    (environment-variables
-                                     (default-environment-variables))
                                     (file-creation-mask #f)
                                     (create-session? #t)
+                                    (environment-variables
+                                     (default-environment-variables))
+                                    (resource-limits '())
                                     (pid-file #f)
                                     (pid-file-timeout
-                                     (default-pid-file-timeout))
-                                    (log-file #f))
+                                     (default-pid-file-timeout)))
   "Return a procedure that forks a child process, closes all file
 descriptors except the standard output and standard error descriptors, sets
 the current directory to @var{directory}, sets the umask to
@@ -978,7 +987,8 @@ start."
                                   #:file-creation-mask file-creation-mask
                                   #:create-session? create-session?
                                   #:environment-variables
-                                  environment-variables)))
+                                  environment-variables
+                                  #:resource-limits resource-limits)))
       (if pid-file
           (match (read-pid-file pid-file
                                 #:max-delay pid-file-timeout
