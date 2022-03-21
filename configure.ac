@@ -33,6 +33,31 @@ guileobjectdir="${libdir}/guile/$GUILE_EFFECTIVE_VERSION/site-ccache"
 AC_SUBST([guilemoduledir])
 AC_SUBST([guileobjectdir])
 
+dnl Check for extra dependencies.
+GUILE_MODULE_AVAILABLE([have_fibers], [(fibers)])
+if test "x$have_fibers" != "xyes"; then
+  AC_MSG_ERROR([Fibers is missing; please install it.])
+fi
+
+dnl Make sure Fibers does not create POSIX threads: since shepherd
+dnl forks, it must be single-threaded.
+AC_CACHE_CHECK([whether Fibers might create POSIX threads],
+  [ac_cv_fibers_creates_pthreads],
+  [GUILE_CHECK([retval],
+    [(use-modules (fibers))
+     (set! (@ (ice-9 threads) call-with-new-thread)
+       (lambda _ (throw 'new-thread!)))
+     (run-fibers (lambda () (spawn-fiber (lambda () 1)))
+                 #:parallelism 1 #:hz 0)])
+   if test "$retval" = 0; then
+     ac_cv_fibers_creates_pthreads="no"
+   else
+     ac_cv_fibers_creates_pthreads="yes"
+   fi])
+if test "x$ac_cv_fibers_creates_pthreads" = "xyes"; then
+  AC_MSG_ERROR([Fibers creates POSIX threads behind our back; aborting.])
+fi
+
 dnl
 dnl Low-level operating system interface.
 dnl

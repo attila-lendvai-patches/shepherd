@@ -20,6 +20,7 @@
 ;; along with the GNU Shepherd.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (shepherd)
+  #:use-module (fibers)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (ice-9 rdelim)   ;; Line-based I/O.
@@ -107,7 +108,11 @@ already ~a threads running, disabling 'signalfd' support")
         ((= signal SIGINT)
          (lambda _ (handle-SIGINT)))
         ((memv signal (list SIGTERM SIGHUP))
-         (lambda _ (stop root-service)))
+         (lambda _
+           (catch 'quit
+             (lambda ()
+               (stop root-service))
+             quit-exception-handler)))
         (else
          (const #f))))
 
@@ -366,12 +371,25 @@ already ~a threads running, disabling 'signalfd' support")
                   (sigaction signal (signal-handler signal)))
                 (delete SIGCHLD %precious-signals))
 
-      (run-daemon #:socket-file socket-file
-                  #:config-file config-file
-                  #:pid-file pid-file
-                  #:signal-port signal-port
-                  #:poll-services? poll-services?
-                  #:persistency persistency))))
+      ;; Run Fibers in such a way that it does not create any POSIX thread,
+      ;; because POSIX threads and 'fork' cannot be used together.
+      (run-fibers
+       (lambda ()
+         (catch 'quit
+           (lambda ()
+             (run-daemon #:socket-file socket-file
+                         #:config-file config-file
+                         #:pid-file pid-file
+                         #:signal-port signal-port
+                         #:poll-services? poll-services?
+                         #:persistency persistency))
+           (case-lambda
+             ((key value . _)
+              (primitive-exit value))
+             ((key)
+              (primitive-exit 0)))))
+       #:parallelism 1  ;don't create POSIX threads
+       #:hz 0))))       ;disable preemption, which would require POSIX threads
 
 ;; Start all of SERVICES, which is a list of canonical names (FIXME?),
 ;; but in a order where all dependencies are fulfilled before we
@@ -420,7 +438,9 @@ already ~a threads running, disabling 'signalfd' support")
       (begin
         (local-output (l10n "Rebooting..."))
         (reboot))
-      (quit)))
+      (begin
+        (local-output (l10n "Exiting."))
+        (primitive-exit 0))))              ;leave without going through Fibers
 
 (define (process-command command port)
   "Interpret COMMAND, a command sent by the user, represented as a
