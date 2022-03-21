@@ -117,6 +117,86 @@ already ~a threads running, disabling 'signalfd' support")
     ((signal-handler signal))))
 
 
+(define* (run-daemon #:key (config-file (default-config-file)) persistency
+                     socket-file pid-file signal-port poll-services?)
+  ;; This _must_ succeed.  (We could also put the `catch' around
+  ;; `main', but it is often useful to get the backtrace, and
+  ;; `caught-error' does not do this yet.)
+  (catch #t
+    (lambda ()
+      (load-in-user-module (or config-file (default-config-file))))
+    (lambda (key . args)
+      (caught-error key args)
+      (quit 1)))
+  ;; Start what was started last time.
+  (and persistency
+       (catch 'system-error
+         (lambda ()
+           (start-in-order (read (open-input-file
+                                  persistency-state-file))))
+         (lambda (key . args)
+           (apply format #f (gettext (cadr args)) (caddr args))
+           (quit 1))))
+
+  ;; Ignore SIGPIPE so that we don't die if a client closes the connection
+  ;; prematurely.
+  (sigaction SIGPIPE SIG_IGN)
+
+  (if (not socket-file)
+      ;; Get commands from the standard input port.
+      (process-textual-commands (current-input-port))
+      ;; Process the data arriving at a socket.
+      (call-with-server-socket
+       socket-file
+       (lambda (sock)
+
+         ;; Possibly write out our PID, which means we're ready to accept
+         ;; connections.  XXX: What if we daemonized already?
+         (match pid-file
+           ((? string? file)
+            (with-atomic-file-output pid-file
+              (cute display (getpid) <>)))
+           (#t (display (getpid)))
+           (_  #t))
+
+         ;; XXX: This call mostly to resolve 'handle-SIGCHLD' upfront.
+         ;; This works around Guile 3.0.2 occasionally failing with:
+         ;; "Failed to autoload handle-SIGCHLD in (ice-9 readline):"
+         (handle-SIGCHLD)
+
+         (let next-command ((ports (if signal-port
+                                       (list signal-port sock)
+                                       (list sock))))
+           (define (read-from sock)
+             (match (accept sock)
+               ((command-source . client-address)
+                (setvbuf command-source (buffering-mode block) 1024)
+                (process-connection command-source))
+               (_ #f)))
+
+           ;; When not using signalfd(2), there's always a time window
+           ;; before 'select' during which a handler async can be queued
+           ;; but not executed.  Work around it by exiting 'select' every
+           ;; few seconds.
+           (match (select ports (list) (list)
+                          (and (not signal-port)
+                               (if poll-services? 0.5 30)))
+             (((port _ ...) _ _)
+              (if (and signal-port (eq? port signal-port))
+                  (handle-signal-port port)
+                  (read-from sock)))
+             (_
+              ;; 'select' returned an empty set, probably due to EINTR.
+              ;; Explicitly call the SIGCHLD handler because we cannot be
+              ;; sure the async will be queued and executed before we call
+              ;; 'select' again.
+              (handle-SIGCHLD)))
+
+           (when poll-services?
+             (check-for-dead-services))
+           (next-command ports))))))
+
+
 ;; Main program.
 (define (main . args)
   (define poll-services?
@@ -286,82 +366,12 @@ already ~a threads running, disabling 'signalfd' support")
                   (sigaction signal (signal-handler signal)))
                 (delete SIGCHLD %precious-signals))
 
-      ;; This _must_ succeed.  (We could also put the `catch' around
-      ;; `main', but it is often useful to get the backtrace, and
-      ;; `caught-error' does not do this yet.)
-      (catch #t
-        (lambda ()
-          (load-in-user-module (or config-file (default-config-file))))
-        (lambda (key . args)
-          (caught-error key args)
-          (quit 1)))
-      ;; Start what was started last time.
-      (and persistency
-           (catch 'system-error
-             (lambda ()
-               (start-in-order (read (open-input-file
-                                      persistency-state-file))))
-             (lambda (key . args)
-               (apply format #f (gettext (cadr args)) (caddr args))
-               (quit 1))))
-
-      ;; Ignore SIGPIPE so that we don't die if a client closes the connection
-      ;; prematurely.
-      (sigaction SIGPIPE SIG_IGN)
-
-      (if (not socket-file)
-          ;; Get commands from the standard input port.
-          (process-textual-commands (current-input-port))
-          ;; Process the data arriving at a socket.
-          (call-with-server-socket
-           socket-file
-           (lambda (sock)
-
-             ;; Possibly write out our PID, which means we're ready to accept
-             ;; connections.  XXX: What if we daemonized already?
-             (match pid-file
-               ((? string? file)
-                (with-atomic-file-output pid-file
-                  (cute display (getpid) <>)))
-               (#t (display (getpid)))
-               (_  #t))
-
-             ;; XXX: This call mostly to resolve 'handle-SIGCHLD' upfront.
-             ;; This works around Guile 3.0.2 occasionally failing with:
-             ;; "Failed to autoload handle-SIGCHLD in (ice-9 readline):"
-             (handle-SIGCHLD)
-
-             (let next-command ((ports (if signal-port
-                                           (list signal-port sock)
-                                           (list sock))))
-               (define (read-from sock)
-                 (match (accept sock)
-                   ((command-source . client-address)
-                    (setvbuf command-source (buffering-mode block) 1024)
-                    (process-connection command-source))
-                   (_ #f)))
-
-               ;; When not using signalfd(2), there's always a time window
-               ;; before 'select' during which a handler async can be queued
-               ;; but not executed.  Work around it by exiting 'select' every
-               ;; few seconds.
-               (match (select ports (list) (list)
-                              (and (not signal-port)
-                                   (if poll-services? 0.5 30)))
-                 (((port _ ...) _ _)
-                  (if (and signal-port (eq? port signal-port))
-                      (handle-signal-port port)
-                      (read-from sock)))
-                 (_
-                  ;; 'select' returned an empty set, probably due to EINTR.
-                  ;; Explicitly call the SIGCHLD handler because we cannot be
-                  ;; sure the async will be queued and executed before we call
-                  ;; 'select' again.
-                  (handle-SIGCHLD)))
-
-               (when poll-services?
-                 (check-for-dead-services))
-               (next-command ports))))))))
+      (run-daemon #:socket-file socket-file
+                  #:config-file config-file
+                  #:pid-file pid-file
+                  #:signal-port signal-port
+                  #:poll-services? poll-services?
+                  #:persistency persistency))))
 
 ;; Start all of SERVICES, which is a list of canonical names (FIXME?),
 ;; but in a order where all dependencies are fulfilled before we
