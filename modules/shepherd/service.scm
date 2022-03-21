@@ -25,6 +25,7 @@
 
 (define-module (shepherd service)
   #:use-module (fibers)
+  #:use-module ((fibers scheduler) #:select (yield-current-task))
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
@@ -736,12 +737,26 @@ be used if FILE might contain a PID from another PID namespace--i.e., the
 daemon writing FILE is running in a separate PID namespace."
   (define start (current-time))
 
+  (define (sleep* n)
+    ;; In general we want to use (@ (fibers) sleep) to yield to the scheduler.
+    ;; However, this code might be non-suspendable--e.g., if the user calls
+    ;; the 'start' method right from their config file, which is loaded with
+    ;; 'primitive-load', which is a continuation barrier.  Thus, this variant
+    ;; checks whether it can suspend and picks the right 'sleep'.
+    (if (yield-current-task)
+        (begin
+          (set! sleep* (@ (fibers) sleep))
+          (sleep n))
+        (begin
+          (set! sleep* (@ (guile) sleep))
+          ((@ (guile) sleep) n))))
+
   (let loop ()
     (define (try-again)
       (and (< (current-time) (+ start max-delay))
            (begin
              ;; FILE does not exist yet, so wait and try again.
-             (sleep 1)                          ;yield to the Fibers scheduler
+             (sleep* 1)                         ;yield to the Fibers scheduler
              (loop))))
 
     (catch 'system-error

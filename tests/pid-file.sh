@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test the #:pid-file option of 'make-forkexec-constructor'.
-# Copyright © 2016, 2019, 2020 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2016, 2019, 2020, 2022 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -92,6 +92,10 @@ cat > "$conf"<<EOF
                                       #:pid-file-timeout 6)
    #:stop  (make-kill-destructor)
    #:respawn? #f))
+
+;; Start it upfront.  This ensures the whole machinery works even
+;; when called in a non-suspendable context (continuation barrier).
+(start 'test-works)
 EOF
 
 rm -f "$pid"
@@ -101,6 +105,13 @@ shepherd -I -s "$socket" -c "$conf" -l "$log" --pid="$pid" &
 while ! test -f "$pid" ; do sleep 0.3 ; done
 
 shepherd_pid="`cat $pid`"
+
+# This service should already be running.
+$herd status test-works | grep started
+test -f "$service_pid"
+kill -0 `cat "$service_pid"`
+$herd stop test-works
+rm "$service_pid"
 
 # The service is expected to fail to start.
 if $herd start test

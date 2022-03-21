@@ -39,6 +39,11 @@ if test "x$have_fibers" != "xyes"; then
   AC_MSG_ERROR([Fibers is missing; please install it.])
 fi
 
+GUILE_MODULE_AVAILABLE([have_recent_fibers], [(fibers scheduler)])
+if test "x$have_recent_fibers" != "xyes"; then
+  AC_MSG_ERROR([Fibers appears to be too old; please install version 1.1.0 or later.])
+fi
+
 dnl Make sure Fibers does not create POSIX threads: since shepherd
 dnl forks, it must be single-threaded.
 AC_CACHE_CHECK([whether Fibers might create POSIX threads],
