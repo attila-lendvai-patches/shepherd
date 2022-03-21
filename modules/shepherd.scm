@@ -51,23 +51,40 @@
       (listen sock 10)
       sock)))
 
+(define-syntax-rule (unwind-protect body ... conclude)
+  "Evaluate BODY... and return its result(s), but always evaluate CONCLUDE
+before leaving, even if an exception is raised.
+
+This is *not* implemented with 'dynamic-wind' in order to play well with
+delimited continuations and fibers."
+  (let ((conclusion (lambda () conclude)))
+    (catch #t
+      (lambda ()
+        (call-with-values
+            (lambda ()
+              body ...)
+          (lambda results
+            (conclusion)
+            (apply values results))))
+      (lambda args
+        (conclusion)
+        (apply throw args)))))
+
 (define (call-with-server-socket file-name proc)
   "Call PROC, passing it a listening socket at FILE-NAME and deleting the
 socket file at FILE-NAME upon exit of PROC.  Return the values of PROC."
   (let ((sock (open-server-socket file-name)))
-    (dynamic-wind
-      noop
-      (lambda () (proc sock))
-      (lambda ()
-        (close sock)
-        (catch-system-error (delete-file file-name))))))
+    (unwind-protect (proc sock)
+                    (begin
+                      (close sock)
+                      (catch-system-error (delete-file file-name))))))
 
 (define (maybe-signal-port signals)
   "Return a signal port for SIGNALS, using 'signalfd' on GNU/Linux, or #f if
 that is not supported."
   (catch 'system-error
     (lambda ()
-      (let ((port (signalfd -1 signals)))
+      (let ((port (non-blocking-port (signalfd -1 signals))))
         ;; As per the signalfd(2) man page, block SIGNALS.  The tricky bit is
         ;; that SIGNALS must be blocked for all the threads; new threads will
         ;; inherit the signal mask, but we must ensure that neither Guile's
@@ -169,37 +186,35 @@ already ~a threads running, disabling 'signalfd' support")
          ;; "Failed to autoload handle-SIGCHLD in (ice-9 readline):"
          (handle-SIGCHLD)
 
-         (let next-command ((ports (if signal-port
-                                       (list signal-port sock)
-                                       (list sock))))
-           (define (read-from sock)
-             (match (accept sock)
-               ((command-source . client-address)
-                (setvbuf command-source (buffering-mode block) 1024)
-                (process-connection command-source))
-               (_ #f)))
+         ;; Spawn a signal handling fiber.
+         (spawn-fiber
+          (if signal-port
+              (lambda ()
+                (let loop ()
+                  (handle-signal-port signal-port)
+                  (loop)))
+              (lambda ()
+                ;; When not using signalfd(2), there's always a time window
+                ;; before 'select' during which a handler async can be
+                ;; queued but not executed.  Work around it by exiting
+                ;; 'select' every few seconds.
+                (let loop ()
+                  (sleep (if poll-services? 0.5 30))
+                  (when poll-services?
+                    (check-for-dead-services))
+                  (loop)))))
 
-           ;; When not using signalfd(2), there's always a time window
-           ;; before 'select' during which a handler async can be queued
-           ;; but not executed.  Work around it by exiting 'select' every
-           ;; few seconds.
-           (match (select ports (list) (list)
-                          (and (not signal-port)
-                               (if poll-services? 0.5 30)))
-             (((port _ ...) _ _)
-              (if (and signal-port (eq? port signal-port))
-                  (handle-signal-port port)
-                  (read-from sock)))
-             (_
-              ;; 'select' returned an empty set, probably due to EINTR.
-              ;; Explicitly call the SIGCHLD handler because we cannot be
-              ;; sure the async will be queued and executed before we call
-              ;; 'select' again.
-              (handle-SIGCHLD)))
+         ;; Enter some sort of a REPL for commands.
+         (let next-command ()
+           (match (accept sock)
+             ((command-source . client-address)
+              (setvbuf command-source (buffering-mode block) 1024)
+              (spawn-fiber
+               (lambda ()
+                 (process-connection command-source))))
+             (_ #f))
 
-           (when poll-services?
-             (check-for-dead-services))
-           (next-command ports))))))
+           (next-command))))))
 
 
 ;; Main program.

@@ -44,6 +44,7 @@
             program-name
             report-error
             display-line
+            non-blocking-port
 
             user-homedir
             user-default-log-file
@@ -242,6 +243,12 @@ There is NO WARRANTY, to the extent permitted by law.")))
   "Display MESSAGE followed by a newline to PORT."
   (display message port)
   (newline port))
+
+(define (non-blocking-port port)
+  "Return PORT after putting it in non-blocking mode."
+  (let ((flags (fcntl port F_GETFL)))
+    (fcntl port F_SETFL (logior O_NONBLOCK flags))
+    port))
 
 
 
