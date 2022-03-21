@@ -2,6 +2,9 @@
 -*- scheme -*-
 !#
 
-(set! %load-path (cons "%modsrcdir%" %load-path))
-(set! %load-compiled-path (cons "%modbuilddir%" %load-compiled-path))
+(set! %load-path
+      (append '("%modsrcdir%" "%FIBERS_SOURCE_DIRECTORY%") %load-path))
+(set! %load-compiled-path
+      (append '("%modbuilddir%" "%FIBERS_OBJECT_DIRECTORY%") %load-compiled-path))
+
 (apply (@ (shepherd) main) (cdr (command-line)))

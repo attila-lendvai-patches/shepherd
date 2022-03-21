@@ -1,6 +1,6 @@
 # Makefile.am -- How to build and install the Shepherd.
 # Copyright © 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
-# Copyright © 2013, 2014, 2015, 2016, 2018, 2019, 2020 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2013-2016, 2018-2020, 2022 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 #
 # This file is part of the GNU Shepherd.
@@ -173,6 +173,8 @@ instantiate =						\
   -e 's,%PACKAGE_BUGREPORT%,@PACKAGE_BUGREPORT@,g'	\
   -e 's,%PACKAGE_NAME%,@PACKAGE_NAME@,g'		\
   -e 's,%PACKAGE_URL%,@PACKAGE_URL@,g'			\
+  -e 's,%FIBERS_SOURCE_DIRECTORY%,@FIBERS_SOURCE_DIRECTORY@,g' \
+  -e 's,%FIBERS_OBJECT_DIRECTORY%,@FIBERS_OBJECT_DIRECTORY@,g' \
   -e 's,%GUILE%,$(GUILE),g'
 
 # Instantiate templates.

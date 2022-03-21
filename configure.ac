@@ -58,6 +58,14 @@ if test "x$ac_cv_fibers_creates_pthreads" = "xyes"; then
   AC_MSG_ERROR([Fibers creates POSIX threads behind our back; aborting.])
 fi
 
+dnl Capture the location of Fibers' modules.
+FIBERS_SOURCE_DIRECTORY="`\
+  "$GUILE" -c '(display (dirname (search-path %load-path "fibers.scm")))'`"
+FIBERS_OBJECT_DIRECTORY="`\
+  "$GUILE" -c '(display (dirname (search-path %load-compiled-path "fibers.go")))'`"
+AC_SUBST([FIBERS_SOURCE_DIRECTORY])
+AC_SUBST([FIBERS_OBJECT_DIRECTORY])
+
 dnl
 dnl Low-level operating system interface.
 dnl
