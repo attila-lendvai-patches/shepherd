@@ -1,5 +1,5 @@
 ;; service.scm -- Representation of services.
-;; Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013-2022 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Järling <wolfgang@pro-linux.de>
 ;; Copyright (C) 2014 Alex Sassmannshausen <alex.sassmannshausen@gmail.com>
 ;; Copyright (C) 2016 Alex Kost <alezost@gmail.com>
@@ -24,6 +24,7 @@
 ;; along with the GNU Shepherd.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (shepherd service)
+  #:use-module (fibers)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
@@ -338,19 +339,14 @@ wire."
 	       (local-output (l10n "Service ~a depends on ~a.")
 			     (canonical-name obj)
 			     problem)
-               (call-with-blocked-asyncs
-                (lambda ()
-                  ;; Start the service itself.  Asyncs are blocked so that if
-                  ;; the newly-started process dies immediately, the SIGCHLD
-                  ;; handler is invoked later, once we have set the 'running'
-                  ;; field.
-                  (slot-set! obj 'running (catch #t
-                                            (lambda ()
-                                              (apply (slot-ref obj 'start)
-                                                     args))
-                                            (lambda (key . args)
-                                              (report-exception 'start obj
-                                                                key args)))))))
+               ;; Start the service itself.
+               (slot-set! obj 'running (catch #t
+                                         (lambda ()
+                                           (apply (slot-ref obj 'start)
+                                                  args))
+                                         (lambda (key . args)
+                                           (report-exception 'start obj
+                                                             key args)))))
 
 	   ;; Status message.
            (let ((running (slot-ref obj 'running)))
@@ -745,9 +741,7 @@ daemon writing FILE is running in a separate PID namespace."
       (and (< (current-time) (+ start max-delay))
            (begin
              ;; FILE does not exist yet, so wait and try again.
-             ;; XXX: Ideally we would yield to the main event loop
-             ;; and/or use inotify.
-             (sleep 1)
+             (sleep 1)                          ;yield to the Fibers scheduler
              (loop))))
 
     (catch 'system-error
