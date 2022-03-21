@@ -21,16 +21,12 @@ AC_CANONICAL_HOST
 AC_PROG_MKDIR_P
 AC_PROG_SED
 
-dnl Check for Guile 2.x+.
+dnl Check for Guile 2.2+.
 m4_pattern_forbid([^GUILE_PKG$])
-GUILE_PKG([3.0 2.2 2.0])
+GUILE_PKG([3.0 2.2])
 
 dnl Checks for programs.
 GUILE_PROGS
-
-if test "x$GUILE_EFFECTIVE_VERSION" = "x2.0"; then
-  PKG_CHECK_MODULES([GUILE], [guile-2.0 >= 2.0.13])
-fi
 
 guilemoduledir="${datarootdir}/guile/site/$GUILE_EFFECTIVE_VERSION"
 guileobjectdir="${libdir}/guile/$GUILE_EFFECTIVE_VERSION/site-ccache"

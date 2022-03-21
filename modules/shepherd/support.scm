@@ -66,22 +66,13 @@
 
             verify-dir))
 
-(define-syntax-rule (if-2.0 subsequent alternate)
-  "Expand to SUBSEQUENT when using Guile 2.0, and to ALTERNATE otherwise."
-  (cond-expand
-    ((and guile-2 (not guile-2.2)) subsequent)
-    (else alternate)))
-
 (define-syntax buffering-mode
   (syntax-rules (line block none)
     "Return the appropriate buffering mode depending on whether we're on Guile
 2.0 or later."
-    ((_ line)
-     (if-2.0 _IOLBF 'line))
-    ((_ block)
-     (if-2.0 _IOFBF 'block))
-    ((_ none)
-     (if-2.0 _IONBF 'none))))
+    ((_ line) 'line)
+    ((_ block) 'block)
+    ((_ none) 'none)))
 
 ;; Report the caught error.
 ;; FIXME: Needs some more work.
@@ -208,10 +199,6 @@ output port, and PROC's result is returned."
   ;; slip through, for instance when interpreting code.
   (unless (getenv "GUILE_WARN_DEPRECATED")
     (debug-disable 'warn-deprecated))
-
-  ;; In Guile 2.2+, the locale is installed by default.
-  (if-2.0 (false-if-exception (setlocale LC_ALL ""))
-          #t)
 
   (bindtextdomain %gettext-domain %localedir)
   (textdomain %gettext-domain)

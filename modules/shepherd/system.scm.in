@@ -1,5 +1,5 @@
 ;; system.scm -- Low-level operating system interface.
-;; Copyright (C) 2013, 2014, 2016, 2018, 2020 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013-2014, 2016, 2018, 2020, 2022 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 ;; Copyright (C) 2020 Jan (janneke) Nieuwenhuizen <janneke@gnu.org>
 ;;
@@ -251,53 +251,28 @@ current thread."
 ;;; Guile shenanigans.
 ;;;
 
-(cond-expand
-  (guile-2.2
-   (define %set-automatic-finalization-enabled?!
-     ;; When using a statically-linked Guile, for instance in the initrd, we
-     ;; cannot resolve this symbol, but most of the time we don't need it
-     ;; anyway.  Thus, delay it.
-     (let ((proc (delay
-                   (pointer->procedure int
-                                       (dynamic-func
-                                        "scm_set_automatic_finalization_enabled"
-                                        (dynamic-link))
-                                       (list int)))))
-       (lambda (enabled?)
-         "Switch on or off automatic finalization in a separate thread.
+(define %set-automatic-finalization-enabled?!
+  ;; When using a statically-linked Guile, for instance in the initrd, we
+  ;; cannot resolve this symbol, but most of the time we don't need it
+  ;; anyway.  Thus, delay it.
+  (let ((proc (delay
+                (pointer->procedure int
+                                    (dynamic-func
+                                     "scm_set_automatic_finalization_enabled"
+                                     (dynamic-link))
+                                    (list int)))))
+    (lambda (enabled?)
+      "Switch on or off automatic finalization in a separate thread.
 Turning finalization off shuts down the finalization thread as a side effect."
-         (->bool ((force proc) (if enabled? 1 0))))))
+      (->bool ((force proc) (if enabled? 1 0))))))
 
-   (define-syntax-rule (without-automatic-finalization exp ...)
-     "Turn off automatic finalization within the dynamic extent of EXP."
-     (let ((enabled? #t))
-       (dynamic-wind
-         (lambda ()
-           (set! enabled? (%set-automatic-finalization-enabled?! #f)))
-         (lambda ()
-           exp ...)
-         (lambda ()
-           (%set-automatic-finalization-enabled?! enabled?))))))
-
-  (else
-   (define-syntax-rule (without-automatic-finalization exp ...)
-     ;; Nothing to do here: Guile 2.0 does not have a separate finalization
-     ;; thread.
-     (begin exp ...))))
-
-(cond-expand
-  ((and guile-2 (not guile-2.2))
-   ;; On Guile 2.0, 'select' throws upon EINTR or EAGAIN.  The trick below
-   ;; enables the sane behavior found on 2.2/3.0.
-   (set! select
-     (let ((real-select select))
-       (lambda args
-         (catch 'system-error
-           (lambda ()
-             (apply real-select args))
-           (lambda args
-             (if (memv (system-error-errno args) (list EINTR EAGAIN))
-                 '(() () ())
-                 (apply throw args))))))))
-  (else #t))
-
+(define-syntax-rule (without-automatic-finalization exp ...)
+  "Turn off automatic finalization within the dynamic extent of EXP."
+  (let ((enabled? #t))
+    (dynamic-wind
+      (lambda ()
+        (set! enabled? (%set-automatic-finalization-enabled?! #f)))
+      (lambda ()
+        exp ...)
+      (lambda ()
+        (%set-automatic-finalization-enabled?! enabled?)))))
