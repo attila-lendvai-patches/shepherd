@@ -357,6 +357,8 @@ already ~a threads running, disabling 'signalfd' support")
                          (%make-void-port "w")
                          (current-output-port)))))
 
+      (set-port-encoding! (log-output-port) "UTF-8")
+
       ;; Start the 'root' service.
       (start root-service)
 
