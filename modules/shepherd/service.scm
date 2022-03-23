@@ -36,6 +36,7 @@
   #:use-module ((ice-9 control) #:select (call/ec))
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
+  #:autoload   (ice-9 rdelim) (read-line)
   #:autoload   (ice-9 pretty-print) (truncated-print)
   #:use-module (shepherd support)
   #:use-module (shepherd comm)
@@ -783,6 +784,45 @@ daemon writing FILE is running in a separate PID namespace."
               (try-again)
               (apply throw args)))))))
 
+(define (service-file-logger file input)
+  "Return a thunk meant to run as a fiber that reads from INPUT and logs it to
+FILE."
+  (let* ((fd     (open-fdes file (logior O_CREAT O_WRONLY O_APPEND) #o640))
+         (output (fdopen fd "al")))
+    (set-port-encoding! output "UTF-8")
+    (set-port-conversion-strategy! output 'substitute)
+    (lambda ()
+      (call-with-port output
+        (lambda (output)
+          (let loop ()
+            (match (read-line input)
+              ((? eof-object?)
+               (close-port input)
+               (close-port output))
+              (line
+               (let ((prefix (strftime default-logfile-date-format
+                                       (localtime (current-time)))))
+                 (format output "~a~a~%" prefix line)
+                 (loop))))))))))
+
+(define (service-builtin-logger command input)
+  "Return a thunk meant to run as a fiber that reads from INPUT and logs to
+'log-output-port'."
+  (lambda ()
+    (let loop ()
+      (match (read-line input)
+        ((? eof-object?)
+         (close-port input))
+        (line
+         (let ((prefix (strftime (%current-logfile-date-format)
+                                 (localtime (current-time)))))
+           ;; TODO: Print the PID of COMMAND.  The actual PID is potentially
+           ;; not known until after 'read-pid-file' has completed, so it would
+           ;; need to be communicated.
+           (format (log-output-port) "~a[~a] ~a~%"
+                   prefix command line))
+         (loop))))))
+
 (define (format-supplementary-groups supplementary-groups)
   (list->vector (map (lambda (group) (group:gid (getgr group)))
                      supplementary-groups)))
@@ -793,6 +833,7 @@ daemon writing FILE is running in a separate PID namespace."
                        (group #f)
                        (supplementary-groups '())
                        (log-file #f)
+                       (log-port #f)
                        (directory (default-service-directory))
                        (file-creation-mask #f)
                        (create-session? #t)
@@ -801,9 +842,10 @@ daemon writing FILE is running in a separate PID namespace."
   "Run COMMAND as the current process from DIRECTORY, with FILE-CREATION-MASK
 if it's true, and with ENVIRONMENT-VARIABLES (a list of strings like
 \"PATH=/bin\").  File descriptors 1 and 2 are kept as is or redirected to
-LOG-FILE if it's true, whereas file descriptor 0 (standard input) points to
-/dev/null; all other file descriptors are closed prior to yielding control to
-COMMAND.  When CREATE-SESSION? is true, call 'setsid' first.
+either LOG-PORT or LOG-FILE if it's true, whereas file descriptor 0 (standard
+input) points to /dev/null; all other file descriptors are closed prior to
+yielding control to COMMAND.  When CREATE-SESSION? is true, call 'setsid'
+first.
 
 Guile's SETRLIMIT procedure is applied on the entries in RESOURCE-LIMITS.  For
 example, a valid value would be '((nproc 10 100) (nofile 4096 4096)).
@@ -835,17 +877,22 @@ false."
        ;; it for something unrelated, which can confuse some packages.
        (dup2 (open-fdes "/dev/null" O_RDONLY) 0)
 
-       (when log-file
+       (when (or log-port log-file)
          (catch #t
            (lambda ()
              ;; Redirect stout and stderr to use LOG-FILE.
              (catch-system-error (close-fdes 1))
              (catch-system-error (close-fdes 2))
-             (dup2 (open-fdes log-file (logior O_CREAT O_WRONLY O_APPEND) #o640) 1)
+             (dup2 (if log-file
+                       (open-fdes log-file (logior O_CREAT O_WRONLY O_APPEND)
+                                  #o640)
+                       (fileno log-port))
+                   1)
              (dup2 1 2))
            (lambda (key . args)
-             (format (current-error-port)
-                     "failed to open log-file ~s:~%" log-file)
+             (when log-file
+               (format (current-error-port)
+                       "failed to open log-file ~s:~%" log-file))
              (print-exception (current-error-port) #f key args)
              (primitive-exit 1))))
 
@@ -904,6 +951,7 @@ false."
                             (group #f)
                             (supplementary-groups '())
                             (log-file #f)
+                            (log-encoding "UTF-8")
                             (directory (default-service-directory))
                             (file-creation-mask #f)
                             (create-session? #t)
@@ -922,27 +970,49 @@ its PID."
   ;; handler, which stops shepherd, is called.  To avoid this, block signals
   ;; so that the child process never executes those handlers.
   (with-blocked-signals %precious-signals
-    (let ((pid (primitive-fork)))
-      (if (zero? pid)
-          (begin
-            ;; First restore the default handlers.
-            (for-each (cut sigaction <> SIG_DFL) %precious-signals)
+    (match (pipe)
+      ((log-input . log-output)
+       (let ((pid (primitive-fork)))
+         (if (zero? pid)
+             (begin
+               ;; First restore the default handlers.
+               (for-each (cut sigaction <> SIG_DFL) %precious-signals)
 
-            ;; Unblock any signals that have been blocked by the parent
-            ;; process.
-            (unblock-signals %precious-signals)
+               ;; Unblock any signals that have been blocked by the parent
+               ;; process.
+               (unblock-signals %precious-signals)
 
-            (exec-command command
-                          #:user user
-                          #:group group
-                          #:supplementary-groups supplementary-groups
-                          #:log-file log-file
-                          #:directory directory
-                          #:file-creation-mask file-creation-mask
-                          #:create-session? create-session?
-                          #:environment-variables environment-variables
-                          #:resource-limits resource-limits))
-          pid))))
+               (close-port log-input)
+               (exec-command command
+                             #:user user
+                             #:group group
+                             #:supplementary-groups supplementary-groups
+                             #:log-port log-output
+                             #:directory directory
+                             #:file-creation-mask file-creation-mask
+                             #:create-session? create-session?
+                             #:environment-variables environment-variables
+                             #:resource-limits resource-limits))
+             (let ((log-input (non-blocking-port log-input)))
+               (close-port log-output)
+
+               (when log-encoding
+                 (set-port-encoding! log-input log-encoding))
+
+               ;; Do not crash when LOG-INPUT contains data that does not
+               ;; conform LOG-ENCODING.  XXX: The 'escape strategy would be
+               ;; nicer but it's not implemented in (ice-9 suspendable-ports):
+               ;; <https://issues.guix.gnu.org/54538>.
+               (set-port-conversion-strategy! log-input 'substitute)
+
+               (spawn-fiber
+                (if log-file
+                    (service-file-logger log-file log-input)
+                    (service-builtin-logger (match command
+                                              ((command . _)
+                                               (basename command)))
+                                            log-input)))
+               pid)))))))
 
 (define* (make-forkexec-constructor command
                                     #:key

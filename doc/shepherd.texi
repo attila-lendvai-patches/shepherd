@@ -6,7 +6,7 @@
 
 @include version.texi
 @set OLD-YEARS 2002, 2003
-@set NEW-YEARS 2013, 2016, 2018, 2019, 2020
+@set NEW-YEARS 2013, 2016, 2018, 2019, 2020, 2022
 
 @copying
 Copyright @copyright{} @value{OLD-YEARS} Wolfgang J@"ahrling@*
@@ -960,7 +960,7 @@ procedures.
   [#:user #f] @
   [#:group #f] @
   [#:supplementary-groups '()] @
-  [#:log-file #f] @
+  [#:log-file #f] [#:log-port #f] @
   [#:directory (default-service-directory)] @
   [#:file-creation-mask #f] [#:create-session? #t] @
   [#:resource-limits '()] @
@@ -969,6 +969,7 @@ procedures.
   [#:user #f] @
   [#:group #f] @
   [#:supplementary-groups '()] @
+  [#:log-file #f] [#:log-encoding "UTF-8"] @
   [#:directory (default-service-directory)] @
   [#:file-creation-mask #f] [#:create-session? #t] @
   [#:resource-limits '()] @
@@ -976,7 +977,8 @@ procedures.
 Run @var{command} as the current process from @var{directory}, with
 @var{file-creation-mask} if it's true, with @var{rlimits}, and with
 @var{environment-variables} (a list of strings like @code{"PATH=/bin"}.)
-File descriptors 1 and 2 are kept as is or redirected to @var{log-file}
+File descriptors 1 and 2 are kept as is or redirected to
+either @var{log-port} or @var{log-file}
 if it's true, whereas file descriptor 0
 (standard input) points to @file{/dev/null}; all other file descriptors
 are closed prior to yielding control to @var{command}.  When
