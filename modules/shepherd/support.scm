@@ -292,22 +292,26 @@ There is NO WARRANTY, to the extent permitted by law.")))
 TARGET should be a string representing a filepath + name."
   (with-output-to-file target
     (lambda ()
-      (display (string-append
-                ";; init.scm -- default shepherd configuration file.
-
+      (display
+       (string-append
+        ;; TRANSLATORS: Please keep double semicolons at the beginning of each
+        ;; line: they introduce comments in the Scheme language.  Also, keep
+        ;; "shepherd" untranslated.  Thank you!  :-)
+        (l10n ";; init.scm -- default shepherd configuration file.\n")
+        "\n"
+        (l10n "\
 ;; Services known to shepherd:
 ;; Add new services (defined using 'make <service>') to shepherd here by
-;; providing them as arguments to 'register-services'.
-""(register-services)
-
-;; Send shepherd into the background
-""(action 'shepherd 'daemonize)
-
+;; providing them as arguments to 'register-services'.\n")
+        "(register-services)\n\n"
+        (l10n "\
+;; Send shepherd into the background\n")
+        "(action 'shepherd 'daemonize)\n\n"
+        (l10n "\
 ;; Services to start when shepherd starts:
 ;; Add the name of each service that should be started to the list
-;; below passed to 'for-each'.
-""(for-each start '())
-")))))
+;; below passed to 'for-each'.\n")
+        "(for-each start '())\n")))))
 
 ;; Logging.
 (define (user-default-log-file)
