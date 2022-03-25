@@ -666,6 +666,17 @@ As for other services, the @code{start} method of a one-shot service must
 return a truth value to indicate success, and false to indicate failure.
 
 @item
+@vindex transient? (slot of <service>)
+@cindex transient services
+The @code{transient?} slot determines whether the service is a
+@dfn{transient service}.  A transient service is automatically
+unregistered when it terminates, be it because its @code{stop} method is
+called or because its associated process terminates.
+
+This is useful in the uncommon case of synthesized services that may not
+be restarted once they have completed.
+
+@item
 @vindex start (slot of <service>)
 @cindex Starting a service
 @cindex Service constructor

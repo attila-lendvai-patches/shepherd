@@ -47,6 +47,7 @@
             canonical-name
             running?
             one-shot?
+            transient?
             action-list
             lookup-action
             defines-action?
@@ -175,6 +176,11 @@ respawned, shows that it has been respawned more than TIMES in SECONDS."
   (one-shot? #:init-keyword #:one-shot?
              #:init-value #f
              #:getter one-shot?)
+  ;; If true, the service is "transient": it is unregistered as soon as it
+  ;; terminates, unless it is respawned.
+  (transient? #:init-keyword #:transient?
+              #:init-value #f
+              #:getter transient?)
   ;; If `#t', then assume the `running' slot specifies a PID and
   ;; respawn it if that process terminates.  Otherwise `#f'.
   (respawn? #:init-keyword #:respawn?
@@ -442,6 +448,12 @@ is not already running, and will return SERVICE's canonical name in a list."
                                  name)
                    (local-output (l10n "Service ~a has been stopped.")
                                  name))
+
+               (when (transient? service)
+                 (hashq-remove! %services (canonical-name service))
+                 (local-output (l10n "Transient service ~a unregistered.")
+                               (canonical-name service)))
+
                (cons name stopped-dependents)))))))
 
 ;; Call action THE-ACTION with ARGS.
@@ -1242,7 +1254,12 @@ then disable it."
                       (canonical-name serv))
         (when (respawn? serv)
           (local-output (l10n "  (Respawning too fast.)")))
-        (slot-set! serv 'enabled? #f))))
+        (slot-set! serv 'enabled? #f)
+
+        (when (transient? serv)
+          (hashq-remove! %services (canonical-name serv))
+          (local-output (l10n "Transient service ~a terminated, now unregistered.")
+                        (canonical-name serv))))))
 
 ;; Add NEW-SERVICES to the list of known services.
 (define (register-services . new-services)

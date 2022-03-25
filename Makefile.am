@@ -228,6 +228,7 @@ TESTS =						\
   tests/status-sexp.sh				\
   tests/forking-service.sh			\
   tests/one-shot.sh				\
+  tests/transient.sh				\
   tests/signals.sh
 
 TEST_EXTENSIONS = .sh
