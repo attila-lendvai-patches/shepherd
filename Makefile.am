@@ -229,6 +229,7 @@ TESTS =						\
   tests/forking-service.sh			\
   tests/one-shot.sh				\
   tests/transient.sh				\
+  tests/inetd.sh				\
   tests/signals.sh
 
 TEST_EXTENSIONS = .sh

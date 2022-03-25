@@ -88,6 +88,8 @@
             read-pid-file
             make-system-constructor
             make-system-destructor
+            make-inetd-constructor
+            make-inetd-destructor
 
             check-for-dead-services
             root-service
@@ -845,6 +847,7 @@ FILE."
                        (supplementary-groups '())
                        (log-file #f)
                        (log-port #f)
+                       (input-port #f)
                        (directory (default-service-directory))
                        (file-creation-mask #f)
                        (create-session? #t)
@@ -854,9 +857,9 @@ FILE."
 if it's true, and with ENVIRONMENT-VARIABLES (a list of strings like
 \"PATH=/bin\").  File descriptors 1 and 2 are kept as is or redirected to
 either LOG-PORT or LOG-FILE if it's true, whereas file descriptor 0 (standard
-input) points to /dev/null; all other file descriptors are closed prior to
-yielding control to COMMAND.  When CREATE-SESSION? is true, call 'setsid'
-first.
+input) points to INPUT-PORT or /dev/null; all other file descriptors are
+closed prior to yielding control to COMMAND.  When CREATE-SESSION? is true,
+call 'setsid' first.
 
 Guile's SETRLIMIT procedure is applied on the entries in RESOURCE-LIMITS.  For
 example, a valid value would be '((nproc 10 100) (nofile 4096 4096)).
@@ -882,11 +885,14 @@ false."
      ;; Close all the file descriptors except stdout and stderr.
      (let ((max-fd (max-file-descriptors)))
 
-       ;; Redirect stdin to use /dev/null
+       ;; Redirect stdin.
        (catch-system-error (close-fdes 0))
        ;; Make sure file descriptor zero is used, so we don't end up reusing
        ;; it for something unrelated, which can confuse some packages.
-       (dup2 (open-fdes "/dev/null" O_RDONLY) 0)
+       (dup2 (if input-port
+                 (fileno input-port)
+                 (open-fdes "/dev/null" O_RDONLY))
+             0)
 
        (when (or log-port log-file)
          (catch #t
@@ -1115,6 +1121,173 @@ as argument, where SIGNAL defaults to `SIGTERM'."
 (define (make-system-destructor . command)
   (lambda (ignored . args)
     (not (zero? (status:exit-val (system (apply string-append command)))))))
+
+
+;;;
+;;; Inetd-style services.
+;;;
+
+(define* (make-inetd-forkexec-constructor command connection
+                                          #:key
+                                          (user #f)
+                                          (group #f)
+                                          (supplementary-groups '())
+                                          (directory (default-service-directory))
+                                          (file-creation-mask #f)
+                                          (create-session? #t)
+                                          (environment-variables
+                                           (default-environment-variables))
+                                          (resource-limits '()))
+  (lambda ()
+    ;; XXX: This is partly copied from 'make-forkexec-constructor'.
+    ;; Install the SIGCHLD handler if this is the first fork+exec-command call.
+    (unless %sigchld-handler-installed?
+      (sigaction SIGCHLD handle-SIGCHLD SA_NOCLDSTOP)
+      (set! %sigchld-handler-installed? #t))
+
+    (with-blocked-signals %precious-signals
+      (let ((pid (primitive-fork)))
+        (if (zero? pid)
+            (begin
+              ;; First restore the default handlers.
+              (for-each (cut sigaction <> SIG_DFL) %precious-signals)
+
+              ;; Unblock any signals that have been blocked by the parent
+              ;; process.
+              (unblock-signals %precious-signals)
+
+              (exec-command command
+                            #:input-port connection
+                            #:log-port connection
+                            #:user user
+                            #:group group
+                            #:supplementary-groups supplementary-groups
+                            #:directory directory
+                            #:file-creation-mask file-creation-mask
+                            #:create-session? create-session?
+                            #:environment-variables
+                            environment-variables
+                            #:resource-limits resource-limits))
+            (begin
+              (close-port connection)
+              pid))))))
+
+(define (socket-address->string address)
+  "Return a human-readable representation of ADDRESS, an object as returned by
+'make-socket-address'."
+  (let ((family (sockaddr:fam address)))
+    (cond ((= AF_INET family)
+           (string-append (inet-ntop AF_INET (sockaddr:addr address))
+                          ":" (number->string (sockaddr:port address))))
+          ((= AF_INET6 family)
+           (string-append "[" (inet-ntop AF_INET (sockaddr:addr address)) "]"
+                          ":" (number->string (sockaddr:port address))))
+          ((= AF_UNIX family)
+           (sockaddr:path address))
+          (else
+           (object->string address)))))
+
+(define (inetd-variables server client)
+  "Return environment variables that inetd would defined for a connection of
+@var{client} to @var{server} (info \"(inetutils) Inetd Environment\")."
+  (let ((family (sockaddr:fam server)))
+    (if (memv family (list AF_INET AF_INET6))
+        (list (string-append "TCPLOCALIP="
+                             (inet-ntop family (sockaddr:addr server)))
+              (string-append "TCPLOCALPORT="
+                             (number->string (sockaddr:port server)))
+              (string-append "TCPREMOTEIP="
+                             (inet-ntop (sockaddr:fam client)
+                                        (sockaddr:addr client)))
+              (string-append "TCPREMOTEPORT"
+                             (number->string (sockaddr:port client))))
+        '())))
+
+(define* (make-inetd-constructor command address
+                                 #:key
+                                 (service-name-stem
+                                  (match command
+                                    ((program . _)
+                                     (basename program))))
+                                 (requirements '())
+                                 (socket-style SOCK_STREAM)
+                                 (listen-backlog 10)
+                                 ;; TODO: Add #:max-connections.
+                                 (user #f)
+                                 (group #f)
+                                 (supplementary-groups '())
+                                 (directory (default-service-directory))
+                                 (file-creation-mask #f)
+                                 (create-session? #t)
+                                 (environment-variables
+                                  (default-environment-variables))
+                                 (resource-limits '()))
+  "Return a procedure that opens a socket listening to @var{address}, an
+object as returned by @code{make-socket-address}, and accepting connections in
+the background; the @var{listen-backlog} argument is passed to @var{accept}.
+Upon a client connection, a transient service running @var{command} is
+spawned.  The remaining arguments are as for
+@code{make-forkexec-constructor}."
+  (define child-service-name
+    (let ((counter 1))
+      (lambda ()
+        (define name
+          (string->symbol
+           (string-append service-name-stem "-" (number->string counter))))
+        (set! counter (+ 1 counter))
+        name)))
+
+  (lambda args
+    (let ((sock (non-blocking-port
+                 (socket (sockaddr:fam address) socket-style 0))))
+      (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
+      (when (= AF_UNIX (sockaddr:fam address))
+        (mkdir-p (dirname (sockaddr:path address)))
+        (catch-system-error (delete-file (sockaddr:path address))))
+      (bind sock address)
+      (listen sock listen-backlog)
+      (spawn-fiber
+       (lambda ()
+         (let loop ()
+           (match (accept sock)
+             ((connection . client-address)
+              (local-output
+               (l10n "Accepted connection on ~a from ~:[~a~;~*local process~].")
+               (socket-address->string address)
+               (= AF_UNIX (sockaddr:fam client-address))
+               (socket-address->string client-address))
+              (letrec* ((name (child-service-name))
+                        (service
+                         (make <service>
+                           #:provides (list name)
+                           #:requires requirements
+                           #:respawn? #f
+                           #:transient? #t
+                           #:start (make-inetd-forkexec-constructor
+                                    command connection
+                                    #:user user
+                                    #:group group
+                                    #:supplementary-groups
+                                    supplementary-groups
+                                    #:directory directory
+                                    #:file-creation-mask file-creation-mask
+                                    #:create-session? create-session?
+                                    #:environment-variables
+                                    (append (inetd-variables address
+                                                             client-address)
+                                        environment-variables)
+                                    #:resource-limits resource-limits)
+                           #:stop (make-kill-destructor))))
+                (register-services service)
+                (start service))))
+           (loop))))
+      sock)))
+
+(define (make-inetd-destructor)
+  "Return a procedure that terminates an inetd service."
+  (lambda (sock)
+    (close-port sock)
+    #f))
 
 ;; A group of service-names which can be provided (i.e. services
 ;; providing them get started) and unprovided (same for stopping)

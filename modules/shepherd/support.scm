@@ -23,6 +23,7 @@
 (define-module (shepherd support)
   #:use-module (shepherd config)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:export (buffering-mode
 
             caught-error

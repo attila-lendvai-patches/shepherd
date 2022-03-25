@@ -971,7 +971,7 @@ procedures.
   [#:user #f] @
   [#:group #f] @
   [#:supplementary-groups '()] @
-  [#:log-file #f] [#:log-port #f] @
+  [#:log-file #f] [#:log-port #f] [#:input-port #f] @
   [#:directory (default-service-directory)] @
   [#:file-creation-mask #f] [#:create-session? #t] @
   [#:resource-limits '()] @
@@ -991,7 +991,7 @@ Run @var{command} as the current process from @var{directory}, with
 File descriptors 1 and 2 are kept as is or redirected to
 either @var{log-port} or @var{log-file}
 if it's true, whereas file descriptor 0
-(standard input) points to @file{/dev/null}; all other file descriptors
+(standard input) points to @var{input-port} or @file{/dev/null}; all other file descriptors
 are closed prior to yielding control to @var{command}.  When
 @var{create-session?} is true, call @code{setsid} first
 (@pxref{Processes, @code{setsid},, guile, GNU Guile Reference Manual}).
@@ -1024,6 +1024,46 @@ This parameter (@pxref{Parameters,,, guile, GNU Guile Reference Manual})
 specified the default PID file timeout in seconds, when
 @code{#:pid-file} is used (see above).  It defaults to 5 seconds.
 @end defvr
+
+@cindex on-demand, starting services
+@cindex inetd-style services
+One may also define services meant to be started @emph{on demand}.  In
+that case, shepherd listens for incoming connections on behalf of the
+program that handles them; when it accepts an incoming connection, it
+starts the program to handle them.  The main benefit is that such
+services do not consume resources until they are actually used, and they
+do not slow down startup.
+
+These services are implemented following the protocol of the venerable
+inetd ``super server'' (@pxref{inetd invocation, inetd,, inetutils, GNU
+Inetutils}).  Many network daemons can be invoked in ``inetd mode'';
+this is the case, for instance, of @command{sshd}, the secure shell
+server of the OpenSSH project.  The Shepherd lets you define inetd-style
+services, specifically those in @code{nowait} mode where the daemon is
+passed the newly-accepted socket connection while @command{shepherd} is
+in charge of listening.
+
+@deffn {procedure} make-inetd-constructor @var{command} @var{address}
+  [#:service-name-stem _] [#:requirements '()] @
+  [#:socket-style SOCK_STREAM] [#:listen-backlog 10] @
+  [#:user #f] @
+  [#:group #f] @
+  [#:supplementary-groups '()] @
+  [#:directory (default-service-directory)] @
+  [#:file-creation-mask #f] [#:create-session? #t] @
+  [#:resource-limits '()] @
+  [#:environment-variables (default-environment-variables)]
+Return a procedure that opens a socket listening to @var{address}, an
+object as returned by @code{make-socket-address}, and accepting connections in
+the background; the @var{listen-backlog} argument is passed to @var{accept}.
+Upon a client connection, a transient service running @var{command} is
+spawned.  The remaining arguments are as for
+@code{make-forkexec-constructor}.
+@end deffn
+
+@deffn {procedure} make-inetd-destructor
+Return a procedure that terminates an inetd service.
+@end deffn
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
