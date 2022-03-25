@@ -87,7 +87,6 @@
             read-pid-file
             make-system-constructor
             make-system-destructor
-            make-init.d-service
 
             check-for-dead-services
             root-service
@@ -1104,16 +1103,6 @@ as argument, where SIGNAL defaults to `SIGTERM'."
 (define (make-system-destructor . command)
   (lambda (ignored . args)
     (not (zero? (status:exit-val (system (apply string-append command)))))))
-
-;; Create service with constructor and destructor being set to typical
-;; init.d scripts.
-(define (make-init.d-service name . stuff)
-  (let ((cmd (string-append "/etc/init.d/" name)))
-    (apply make <service>
-	   #:provides (list (string->symbol name))
-	   #:start (make-system-constructor cmd " start")
-	   #:stop (make-system-destructor cmd " stop")
-	   stuff)))
 
 ;; A group of service-names which can be provided (i.e. services
 ;; providing them get started) and unprovided (same for stopping)
