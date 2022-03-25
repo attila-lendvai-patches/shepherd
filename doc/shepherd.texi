@@ -427,7 +427,7 @@ When running as root, the default behavior is to connect to
 @file{/dev/log}, the @dfn{syslog} socket (@pxref{Overview of Syslog,,,
 libc, The GNU C Library Reference Manual}).  A syslog daemon,
 @command{syslogd}, is expected to read messages from there
-(@pxref{syslogd invocation, syslogd,, libc, GNU Inetutils}).
+(@pxref{syslogd invocation, syslogd,, inetutils, GNU Inetutils}).
 
 When @file{/dev/log} is unavailable, for instance because
 @command{syslogd} is not running, as is the case during system startup
