@@ -292,9 +292,15 @@ wire."
 (define-method (canonical-name (obj <service>))
   (car (provided-by obj)))
 
+;; Return the "running value" of OBJ.
+(define-method (service-running-value (obj <service>))
+  (match (slot-ref obj 'running)
+    ((? procedure? proc) (proc))
+    (value value)))
+
 ;; Return whether the service is currently running.
 (define-method (running? (obj <service>))
-  (and (slot-ref obj 'running) #t))
+  (and (service-running-value obj) #t))
 
 ;; Return a list of all actions implemented by OBJ. 
 (define-method (action-list (obj <service>))
@@ -326,18 +332,18 @@ wire."
   (cond ((running? obj)
 	 (local-output (l10n "Service ~a is already running.")
 		       (canonical-name obj))
-         (slot-ref obj 'running))
+         (service-running-value obj))
 	((not (enabled? obj))
 	 (local-output (l10n "Service ~a is currently disabled.")
 		       (canonical-name obj))
-         (slot-ref obj 'running))
+         (service-running-value obj))
 	((let ((conflicts (conflicts-with-running obj)))
 	   (or (null? conflicts)
 	       (local-output (l10n "Service ~a conflicts with running services ~a.")
 			     (canonical-name obj)
 			     (map canonical-name conflicts)))
 	   (not (null? conflicts)))
-	 (slot-ref obj 'running))
+	 (service-running-value obj))
 	(else
 	 ;; It is not running and does not conflict with anything
 	 ;; that's running, so we can go on and launch it.
@@ -358,7 +364,7 @@ wire."
                                                              key args)))))
 
 	   ;; Status message.
-           (let ((running (slot-ref obj 'running)))
+           (let ((running (service-running-value obj)))
              (when (one-shot? obj)
                (slot-set! obj 'running #f))
              (local-output (if running
@@ -424,7 +430,7 @@ is not already running, and will return SERVICE's canonical name in a list."
                (catch #t
                  (lambda ()
                    (apply (slot-ref service 'stop)
-                          (slot-ref service 'running)
+                          (service-running-value service)
                           args))
                  (lambda (key . args)
                    ;; Special case: 'root' may quit.
@@ -497,7 +503,7 @@ is not already running, and will return SERVICE's canonical name in a list."
     ;; it provides generally useful functionality and information.
     (catch #t
       (lambda ()
-        (apply proc (slot-ref obj 'running) args))
+        (apply proc (service-running-value obj) args))
       (lambda (key . args)
         ;; Special case: 'root' may quit.
         (and (eq? root-service obj)
@@ -583,7 +589,7 @@ clients."
             ;; that whole thing is valid read syntax; we do not want things
             ;; like #<undefined> to be sent to the client.
             (enabled? ,(enabled? service))
-            (running ,(result->sexp (slot-ref service 'running)))
+            (running ,(result->sexp (service-running-value service)))
             (conflicts ,(map canonical-name (conflicts-with service)))
             (last-respawns ,(slot-ref service 'last-respawns))
             ,@(if (slot-ref service 'one-shot?)
@@ -1383,7 +1389,7 @@ otherwise by updating its state."
       ((pid . _)
        (let ((serv (find-service (lambda (serv)
                                    (and (enabled? serv)
-                                        (match (slot-ref serv 'running)
+                                        (match (service-running-value serv)
                                           ((? number? pid*)
                                            (= pid pid*))
                                           (_ #f)))))))
@@ -1577,7 +1583,7 @@ where prctl/PR_SET_CHILD_SUBREAPER is unsupported."
     (catch-system-error (kill pid 0) #t))
 
   (for-each-service (lambda (service)
-                      (let ((running (slot-ref service 'running)))
+                      (let ((running (service-running-value service)))
                         (when (and (integer? running)
                                    (not (process-exists? running)))
                           (local-output (l10n "PID ~a (~a) is dead!")
