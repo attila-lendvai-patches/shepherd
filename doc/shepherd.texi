@@ -861,6 +861,15 @@ current value of the @code{running} slot of the service.
 Start a registered service providing @var{obj}.
 @end deffn
 
+@deffn {procedure} start-in-the-background @var{services}
+Start the services named by @var{services}, a list of symbols, in the
+background.  In other words, this procedure returns immediately without
+waiting until all of @var{services} have been started.
+
+This procedure can be useful in a configuration file because it lets you
+interact right away with shepherd using the @command{herd} command.
+@end deffn
+
 @deffn {method} stop (obj <symbol>)
 Stop a registered service providing @var{obj}.
 @end deffn

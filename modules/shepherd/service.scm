@@ -58,6 +58,7 @@
             enable
             disable
             start
+            start-in-the-background
             stop
             action
             enforce
@@ -678,6 +679,23 @@ results."
                (apply action service the-action args))
              which-services))))
 
+(define (start-in-the-background services)
+  "Start the services named by @var{services}, a list of symbols, in the
+background.  In other words, this procedure returns immediately without
+waiting until all of @var{services} have been started.
+
+This procedure can be useful in a configuration file because it lets you
+interact right away with shepherd using the @command{herd} command."
+  (spawn-fiber
+   (lambda ()
+     (for-each (lambda (service)
+                 ;; Keep going if one of SERVICES fails to start.
+                 (guard (c ((service-error? c)
+                            (local-output
+                             (l10n "Failed to start ~a in the background.")
+                             service)))
+                   (start service)))
+               services))))
 
 
 
