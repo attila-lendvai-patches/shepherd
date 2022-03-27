@@ -1066,6 +1066,82 @@ spawned.  The remaining arguments are as for
 Return a procedure that terminates an inetd service.
 @end deffn
 
+@cindex systemd-style services
+@cindex on-demand, starting services
+@cindex socket activation, starting services
+@cindex starting services, via socket activation
+The last type is @dfn{systemd-style services}.  Like inetd-style
+services, those are started on demand when an incoming connection
+arrives, but using the protocol devised by the systemd service manager
+and referred to as
+@uref{https://www.freedesktop.org/software/systemd/man/daemon.html#Socket-Based%20Activation,
+@dfn{socket activation}}.  The main difference with inetd-style services
+is that shepherd hands over the listening socket(s) to the daemon; the
+daemon is then responsible for accepting incoming connections.  A
+handful of environment variables are set in the daemon's execution
+environment (see below), which usually checks them using the libsystemd
+or libelogind
+@uref{https://www.freedesktop.org/software/systemd/man/sd_listen_fds.html,
+client library helper functions}.
+
+Listening endpoints for such services are described as records built
+using the @code{endpoint} procedure:
+
+@deffn {procedure} endpoint @var{address} [#:name "unknown"] @
+  [#:style SOCK_STREAM] [backlog 128] @
+  [#:socket-owner (getuid)] [#:socket-group (getgid)] @
+  [#:socket-directory-permissions #o755]
+Return a new endpoint called @var{name} of @var{address}, an address as
+return by @code{make-socket-address}, with the given @var{style} and
+@var{backlog}.
+
+When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
+@var{socket-group} are strings or integers that specify its ownership and that
+of its parent directory; @var{socket-directory-permissions} specifies the
+permissions for its parent directory.
+@end deffn
+
+The constructor and destructor for systemd-style daemons are described
+below.
+
+@deffn {procedure} make-systemd-destructor @var{command} @var{endpoints} @
+  [#:user #f] @
+  [#:group #f] @
+  [#:supplementary-groups '()] @
+  [#:directory (default-service-directory)] @
+  [#:file-creation-mask #f] [#:create-session? #t] @
+  [#:resource-limits '()] @
+  [#:environment-variables (default-environment-variables)]
+Return a procedure that starts @var{command}, a program and list of
+argument, as a systemd-style service listening on @var{endpoints}, a list of
+@code{<endpoint>} objects.
+
+@var{command} is started on demand on the first connection attempt on one of
+@var{endpoints}.  It is passed the listening sockets for @var{endpoints} in
+file descriptors 3 and above; as such, it is equivalent to an @code{Accept=no}
+@uref{https://www.freedesktop.org/software/systemd/man/systemd.socket.html,systemd
+socket unit}.  The following environment variables are set in its environment:
+
+@table @env
+@item LISTEN_PID
+It is set to the PID of the newly spawned process.
+
+@item LISTEN_FDS
+It contains the number of sockets available starting from file descriptor
+3---i.e., the length of @var{endpoints}.
+
+@item LISTEN_FDNAMES
+The colon-separated list of endpoint names.
+@end table
+
+This must be paired with @code{make-systemd-destructor}.
+@end deffn
+
+@deffn {procedure} make-systemd-destructor
+Return a procedure that terminates a systemd-style service as created by
+@code{make-systemd-constructor}.
+@end deffn
+
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 @node Service Examples

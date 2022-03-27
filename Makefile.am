@@ -230,6 +230,7 @@ TESTS =						\
   tests/one-shot.sh				\
   tests/transient.sh				\
   tests/inetd.sh				\
+  tests/systemd.sh				\
   tests/signals.sh
 
 TEST_EXTENSIONS = .sh

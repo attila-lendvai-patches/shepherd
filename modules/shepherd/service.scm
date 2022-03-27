@@ -25,7 +25,7 @@
 
 (define-module (shepherd service)
   #:use-module (fibers)
-  #:use-module ((fibers scheduler) #:select (yield-current-task))
+  #:use-module (fibers scheduler)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
@@ -36,6 +36,7 @@
   #:use-module ((ice-9 control) #:select (call/ec))
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
+  #:autoload   (ice-9 ports internal) (port-read-wait-fd)
   #:autoload   (ice-9 rdelim) (read-line)
   #:autoload   (ice-9 pretty-print) (truncated-print)
   #:use-module (shepherd support)
@@ -90,6 +91,18 @@
             make-system-destructor
             make-inetd-constructor
             make-inetd-destructor
+
+            endpoint
+            endpoint?
+            endpoint-name
+            endpoint-address
+            endpoint-style
+            endpoint-backlog
+            endpoint-socket-owner
+            endpoint-socket-group
+            endpoint-socket-directory-permissions
+            make-systemd-constructor
+            make-systemd-destructor
 
             check-for-dead-services
             root-service
@@ -854,6 +867,7 @@ FILE."
                        (log-file #f)
                        (log-port #f)
                        (input-port #f)
+                       (extra-ports '())
                        (directory (default-service-directory))
                        (file-creation-mask #f)
                        (create-session? #t)
@@ -863,9 +877,11 @@ FILE."
 if it's true, and with ENVIRONMENT-VARIABLES (a list of strings like
 \"PATH=/bin\").  File descriptors 1 and 2 are kept as is or redirected to
 either LOG-PORT or LOG-FILE if it's true, whereas file descriptor 0 (standard
-input) points to INPUT-PORT or /dev/null; all other file descriptors are
-closed prior to yielding control to COMMAND.  When CREATE-SESSION? is true,
-call 'setsid' first.
+input) points to INPUT-PORT or /dev/null.
+
+EXTRA-PORTS are made available starting from file descriptor 3 onwards; all
+other file descriptors are closed prior to yielding control to COMMAND.  When
+CREATE-SESSION? is true, call 'setsid' first.
 
 Guile's SETRLIMIT procedure is applied on the entries in RESOURCE-LIMITS.  For
 example, a valid value would be '((nproc 10 100) (nofile 4096 4096)).
@@ -911,7 +927,18 @@ false."
                                   #o640)
                        (fileno log-port))
                    1)
-             (dup2 1 2))
+             (dup2 1 2)
+
+             ;; Make EXTRA-PORTS available starting from file descriptor 3.
+             (let loop ((fd    3)
+                        (ports extra-ports))
+               (match ports
+                 (() #t)
+                 ((port rest ...)
+                  (catch-system-error (close-fdes fd))
+                  (dup2 (fileno port) fd)
+                  (loop (+ 1 fd) rest)))))
+
            (lambda (key . args)
              (when log-file
                (format (current-error-port)
@@ -950,7 +977,7 @@ false."
      ;; finalization thread since we will close its pipe, leading to
      ;; "error in the finalization thread: Bad file descriptor".
      (without-automatic-finalization
-      (let loop ((i 3))
+      (let loop ((i (+ 3 (length extra-ports))))
         (when (< i max-fd)
           (catch-system-error (close-fdes i))
           (loop (+ i 1))))
@@ -975,14 +1002,18 @@ false."
                             (supplementary-groups '())
                             (log-file #f)
                             (log-encoding "UTF-8")
+                            (extra-ports '())
                             (directory (default-service-directory))
                             (file-creation-mask #f)
                             (create-session? #t)
                             (environment-variables
                              (default-environment-variables))
+                            (listen-pid-variable? #f)
                             (resource-limits '()))
-  "Spawn a process that executed COMMAND as per 'exec-command', and return
-its PID."
+  "Spawn a process that executes @var{command} as per @code{exec-command}, and
+return its PID.  When @var{listen-pid-variable?} is true, augment
+@var{environment-variables} with a definition of the @env{LISTEN_PID}
+environment variable used for systemd-style \"socket activation\"."
   ;; Install the SIGCHLD handler if this is the first fork+exec-command call.
   (unless %sigchld-handler-installed?
     (sigaction SIGCHLD handle-SIGCHLD SA_NOCLDSTOP)
@@ -1011,10 +1042,16 @@ its PID."
                              #:group group
                              #:supplementary-groups supplementary-groups
                              #:log-port log-output
+                             #:extra-ports extra-ports
                              #:directory directory
                              #:file-creation-mask file-creation-mask
                              #:create-session? create-session?
-                             #:environment-variables environment-variables
+                             #:environment-variables
+                             (if listen-pid-variable?
+                                 (cons (string-append "LISTEN_PID="
+                                                      (number->string (getpid)))
+                                       environment-variables)
+                                 environment-variables)
                              #:resource-limits resource-limits))
              (let ((log-input (non-blocking-port log-input)))
                (close-port log-output)
@@ -1295,6 +1332,180 @@ spawned.  The remaining arguments are as for
     (close-port sock)
     #f))
 
+
+;;;
+;;; systemd-style services.
+;;;
+
+;; Endpoint of a systemd-style service.
+(define-record-type <endpoint>
+  (make-endpoint name address style backlog owner group permissions)
+  endpoint?
+  (name        endpoint-name)                          ;string
+  (address     endpoint-address)                       ;socket address
+  (style       endpoint-style)                         ;SOCK_STREAM, etc.
+  (backlog     endpoint-backlog)                       ;integer
+  (owner       endpoint-socket-owner)                  ;integer
+  (group       endpoint-socket-group)                  ;integer
+  (permissions endpoint-socket-directory-permissions)) ;integer
+
+(define* (endpoint address
+                   #:key (name "unknown") (style SOCK_STREAM)
+                   (backlog 128)
+                   (socket-owner (getuid)) (socket-group (getgid))
+                   (socket-directory-permissions #o755))
+  "Return a new endpoint called @var{name} of @var{address}, an address as
+return by @code{make-socket-address}, with the given @var{style} and
+@var{backlog}.
+
+When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
+@var{socket-group} are strings or integers that specify its ownership and that
+of its parent directory; @var{socket-directory-permissions} specifies the
+permissions for its parent directory."
+  (make-endpoint name address style backlog
+                 socket-owner socket-group
+                 socket-directory-permissions))
+
+(define (wait-for-readable ports)
+  "Suspend the current task until one of @var{ports} is available for
+reading."
+  (suspend-current-task
+   (lambda (sched k)
+     (for-each (lambda (port)
+                 (schedule-task-when-fd-readable sched
+                                                 (port-read-wait-fd port)
+                                                 k))
+               ports))))
+
+(define* (make-systemd-constructor command endpoints
+                                   #:key
+                                   (user #f)
+                                   (group #f)
+                                   (supplementary-groups '())
+                                   (log-file #f)
+                                   (directory (default-service-directory))
+                                   (file-creation-mask #f)
+                                   (create-session? #t)
+                                   (environment-variables
+                                    (default-environment-variables))
+                                   (resource-limits '()))
+  "Return a procedure that starts @var{command}, a program and list of
+argument, as a systemd-style service listening on @var{endpoints}, a list of
+@code{<endpoint>} objects.
+
+@var{command} is started on demand on the first connection attempt on one of
+@var{endpoints}.  It is passed the listening sockets for @var{endpoints} in
+file descriptors 3 and above; as such, it is equivalent to an @code{Accept=no}
+@uref{https://www.freedesktop.org/software/systemd/man/systemd.socket.html,systemd
+socket unit}.  The following environment variables are set in its environment:
+
+@table @env
+@item LISTEN_PID
+It is set to the PID of the newly spawned process.
+
+@item LISTEN_FDS
+It contains the number of sockets available starting from file descriptor
+3---i.e., the length of @var{endpoints}.
+
+@item LISTEN_FDNAMES
+The colon-separated list of endpoint names.
+@end table
+
+This must be paired with @code{make-systemd-destructor}."
+  (lambda args
+    (define (endpoint->listening-socket endpoint)
+      ;; Return a listening socket for ENDPOINT.
+      (match endpoint
+        (($ <endpoint> name address style backlog
+                       owner group permissions)
+         (let* ((sock    (non-blocking-port
+                          (socket (sockaddr:fam address) style 0)))
+                (owner   (if (integer? owner)
+                             owner
+                             (passwd:uid (getpwnam owner))))
+                (group   (if (integer? group)
+                             group
+                             (group:gid (getgrnam group)))))
+           (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
+           (when (= AF_UNIX (sockaddr:fam address))
+             (mkdir-p (dirname (sockaddr:path address)) permissions)
+             (chown (dirname (sockaddr:path address)) owner group)
+             (catch-system-error (delete-file (sockaddr:path address))))
+
+           (bind sock address)
+           (listen sock backlog)
+
+           (when (= AF_UNIX (sockaddr:fam address))
+             (chown sock owner group)
+             (chmod sock #o666))
+
+           sock))))
+
+    (define (open-sockets addresses)
+      (let loop ((endpoints endpoints)
+                 (result   '()))
+        (match endpoints
+          (()
+           (reverse result))
+          ((head tail ...)
+           (let ((sock (catch 'system-error
+                         (lambda ()
+                           (endpoint->listening-socket head))
+                         (lambda args
+                           ;; When opening one socket fails, abort the whole
+                           ;; process.
+                           (for-each (match-lambda
+                                       ((_ . socket) (close-port socket)))
+                                     result)
+                           (apply throw args)))))
+             (loop tail
+                   `((,(endpoint-name head) . ,sock) ,@result)))))))
+
+    (let* ((sockets   (open-sockets endpoints))
+           (ports     (match sockets
+                        (((names . ports) ...)
+                         ports)))
+           (variables (list (string-append "LISTEN_FDS="
+                                           (number->string (length sockets)))
+                            (string-append "LISTEN_FDNAMES="
+                                           (string-join
+                                            (map endpoint-name endpoints)))))
+           (running   sockets))
+      (spawn-fiber
+       (lambda ()
+         (wait-for-readable ports)
+         (local-output (l10n "Spawning systemd-style service ~a.")
+                       (match command
+                         ((program . _) program)))
+         (let ((pid (fork+exec-command command
+                                       #:extra-ports ports
+                                       #:user user
+                                       #:group group
+                                       #:supplementary-groups
+                                       supplementary-groups
+                                       #:log-file log-file
+                                       #:directory directory
+                                       #:file-creation-mask file-creation-mask
+                                       #:create-session? create-session?
+                                       #:environment-variables
+                                       (append variables environment-variables)
+                                       #:listen-pid-variable? #t
+                                       #:resource-limits resource-limits)))
+           (set! running pid)
+           (for-each close-port ports))))
+      (lambda () running))))
+
+(define (make-systemd-destructor)
+  "Return a procedure that terminates a systemd-style service as created by
+@code{make-systemd-constructor}."
+  (let ((destroy (make-kill-destructor)))
+    (match-lambda
+      ((? integer? pid)
+       (destroy pid))
+      (((_ . (? port? socks)) ...)
+       (for-each close-port socks)))))
+
+
 ;; A group of service-names which can be provided (i.e. services
 ;; providing them get started) and unprovided (same for stopping)
 ;; together.  Not comparable with a real runlevel at all, but can be
@@ -1307,6 +1518,7 @@ spawned.  The remaining arguments are as for
 	     (for-each stop '(SYM ...))
 	     #f)
     ADDITIONS ...))
+
 
 
 
