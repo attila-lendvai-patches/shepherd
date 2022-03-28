@@ -509,7 +509,7 @@ would write them on the 'herd' command line."
              (process-command (shepherd-command (string->symbol action)
                                                 (string->symbol service)
                                                 #:arguments arguments)
-                              port))
+                              (current-output-port)))
             (_
              (local-output (l10n "invalid command line") line)))
           (loop (read-line port))))))
