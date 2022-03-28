@@ -81,6 +81,7 @@
             required-by
             handle-unknown
 
+            default-service-termination-handler
             default-environment-variables
             make-forkexec-constructor
             make-kill-destructor
@@ -177,6 +178,32 @@ respawned, shows that it has been respawned more than TIMES in SECONDS."
            (and (> (+ last-respawn seconds) now)
                 (loop (- times 1) rest)))))))
 
+(define (default-service-termination-handler service status)
+  "Handle the termination of @var{service} by respawning it if applicable.
+Log abnormal termination reported by @var{status}."
+  (unless (zero? status)
+    ;; Most likely something went wrong; log it.
+    (cond ((status:exit-val status)
+           =>
+           (lambda (code)
+             (local-output (l10n "Service ~a (PID ~a) exited with ~a.")
+                           (canonical-name service)
+                           (slot-ref service 'running) code)))
+          ((status:term-sig status)
+           =>
+           (lambda (signal)
+             (local-output (l10n "Service ~a (PID ~a) terminated with signal ~a.")
+                           (canonical-name service)
+                           (slot-ref service 'running) signal)))
+          ((status:stop-sig status)
+           =>
+           (lambda (signal)
+             (local-output (l10n "Service ~a (PID ~a) stopped with signal ~a.")
+                           (canonical-name service)
+                           (slot-ref service 'running) signal)))))
+
+  (respawn-service service))
+
 (define-class <service> ()
   ;; List of provided service-symbols.  The first one is also called
   ;; the `canonical name' and must be unique to this service.
@@ -226,6 +253,10 @@ respawned, shows that it has been respawned more than TIMES in SECONDS."
   ;; currently.  Otherwise, it is the value that was returned by the
   ;; procedure in the `start' slot when the service was started.
   (running #:init-value #f)
+  ;; Procedure called to notify that the process associated with this service
+  ;; (whose PID is in the 'running' slot) has terminated.
+  (handle-termination #:init-keyword #:handle-termination
+                      #:init-value default-service-termination-handler)
   ;; A description of the service.
   (docstring #:init-keyword #:docstring
 	     #:init-value "[No description].")
@@ -1616,7 +1647,7 @@ otherwise by updating its state."
       ((0 . _)
        ;; Nothing left to wait for.
        #t)
-      ((pid . _)
+      ((pid . status)
        (let ((serv (find-service (lambda (serv)
                                    (and (enabled? serv)
                                         (match (service-running-value serv)
@@ -1627,11 +1658,18 @@ otherwise by updating its state."
          ;; SERV can be #f for instance when this code runs just after a
          ;; service's 'stop' method killed its process and completed.
          (when serv
-           (respawn-service serv))
+           (handle-service-termination serv status))
 
          ;; As noted in libc's manual (info "(libc) Process Completion"),
          ;; loop so we don't miss any terminated child process.
          (loop))))))
+
+(define (handle-service-termination service status)
+  "Handle the termination of the process associated with @var{service}, whose
+PID is in its @code{running} slot; @var{status} is the process's exit status
+as returned by @code{waitpid}.  This procedure is called right after the
+process has terminated."
+  ((slot-ref service 'handle-termination) service status))
 
 (define (respawn-service serv)
   "Respawn a service that has stopped running unexpectedly. If we have

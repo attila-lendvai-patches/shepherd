@@ -705,6 +705,18 @@ service at a later point.  The default value is a procedure that
 returns @code{#f} and performs no further actions.
 
 @item
+@vindex handle-termination (slot of <service>)
+@cindex Termination of a service's process.
+The @code{handle-termination} slot contains the procedure to call when
+the process associated with a service---the process whose PID appears in
+the @code{running} slot---terminates.  It is passed the service and its
+exit status, an integer as returned by @code{waitpid} (@pxref{Processes,
+@code{waitpid},, guile, GNU Guile Reference Manual}).
+
+The default handler is the @code{default-service-termination-handler}
+procedure, which respawns the service if applicable.
+
+@item
 @vindex actions (slot of <service>)
 @cindex Actions of services
 @cindex Service actions
