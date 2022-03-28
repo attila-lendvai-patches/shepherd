@@ -72,7 +72,18 @@ delimited continuations and fibers."
 (define (call-with-server-socket file-name proc)
   "Call PROC, passing it a listening socket at FILE-NAME and deleting the
 socket file at FILE-NAME upon exit of PROC.  Return the values of PROC."
-  (let ((sock (open-server-socket file-name)))
+  (let ((sock (catch 'system-error
+                (lambda ()
+                  (open-server-socket file-name))
+                (lambda args
+                  (match args
+                    ((key proc . _)
+                     (report-error (l10n "while opening socket '~a': ~a: ~a~%")
+                                   file-name proc
+                                   (strerror (system-error-errno args)))
+                     ;; Stop services that were started from the config file
+                     ;; and quit.
+                     (stop 'root)))))))
     (unwind-protect (proc sock)
                     (begin
                       (close sock)
