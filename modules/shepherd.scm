@@ -24,7 +24,6 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (ice-9 rdelim)   ;; Line-based I/O.
-  #:autoload   (ice-9 readline) (activate-readline) ;for interactive use
   #:use-module ((ice-9 threads) #:select (all-threads))
   #:use-module (oop goops)      ;; Defining classes and methods.
   #:use-module (srfi srfi-1)    ;; List library.
@@ -181,11 +180,6 @@ already ~a threads running, disabling 'signalfd' support")
            (#t (display (getpid)))
            (_  #t))
 
-         ;; XXX: This call mostly to resolve 'handle-SIGCHLD' upfront.
-         ;; This works around Guile 3.0.2 occasionally failing with:
-         ;; "Failed to autoload handle-SIGCHLD in (ice-9 readline):"
-         (handle-SIGCHLD)
-
          ;; Spawn a signal handling fiber.
          (spawn-fiber
           (if signal-port
@@ -317,20 +311,8 @@ already ~a threads running, disabling 'signalfd' support")
 		    (l10n "get commands from socket FILE or from stdin (-)")
 		    #:action (lambda (file)
 			       (set! socket-file
-				     (if (not (string=? file "-"))
-					 file
-				       ;; We will read commands
-				       ;; from stdin, thus we
-				       ;; enable readline if it is
-				       ;; a non-dumb terminal.
-				       (and (isatty? (current-input-port))
-					    (not (string=? (getenv "TERM")
-							   "dumb"))
-					    (begin
-					      (activate-readline)
-					      ;; Finally, indicate that
-					      ;; we use no socket.
-					      #f)))))))
+				     (and (not (string=? file "-"))
+					  file)))))
     ;; We do this early so that we can abort early if necessary.
     (and socket-file
          (verify-dir (dirname socket-file) #:secure? secure))
