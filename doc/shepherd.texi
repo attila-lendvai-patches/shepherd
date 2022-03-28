@@ -1068,6 +1068,8 @@ in charge of listening.
 @deffn {procedure} make-inetd-constructor @var{command} @var{address}
   [#:service-name-stem _] [#:requirements '()] @
   [#:socket-style SOCK_STREAM] [#:listen-backlog 10] @
+  [#:socket-owner (getuid)] [#:socket-group (getgid)] @
+  [#:socket-directory-permissions #o755] @
   [#:max-connections (default-inetd-max-connections)] @
   [#:user #f] @
   [#:group #f] @
@@ -1079,6 +1081,12 @@ in charge of listening.
 Return a procedure that opens a socket listening to @var{address}, an
 object as returned by @code{make-socket-address}, and accepting connections in
 the background; the @var{listen-backlog} argument is passed to @var{accept}.
+
+When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
+@var{socket-group} are strings or integers that specify its ownership and that
+of its parent directory; @var{socket-directory-permissions} specifies the
+permissions for its parent directory.
+
 Upon a client connection, a transient service running @var{command} is
 spawned.  Only up to @var{max-connections} simultaneous connections are
 accepted; when that threshold is reached, new connections are immediately

@@ -1309,6 +1309,9 @@ as argument, where SIGNAL defaults to `SIGTERM'."
                                      (basename program))))
                                  (requirements '())
                                  (socket-style SOCK_STREAM)
+                                 (socket-owner (getuid))
+                                 (socket-group (getgid))
+                                 (socket-directory-permissions #o755)
                                  (listen-backlog 10)
                                  (max-connections
                                   (default-inetd-max-connections))
@@ -1324,6 +1327,12 @@ as argument, where SIGNAL defaults to `SIGTERM'."
   "Return a procedure that opens a socket listening to @var{address}, an
 object as returned by @code{make-socket-address}, and accepting connections in
 the background; the @var{listen-backlog} argument is passed to @var{accept}.
+
+When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
+@var{socket-group} are strings or integers that specify its ownership and that
+of its parent directory; @var{socket-directory-permissions} specifies the
+permissions for its parent directory.
+
 Upon a client connection, a transient service running @var{command} is
 spawned.  Only up to @var{max-connections} simultaneous connections are
 accepted; when that threshold is reached, new connections are immediately
@@ -1378,13 +1387,26 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
       (start service)))
 
   (lambda args
-    (let ((sock (non-blocking-port
-                 (socket (sockaddr:fam address) socket-style 0))))
+    (let ((sock  (non-blocking-port
+                  (socket (sockaddr:fam address) socket-style 0)))
+          (owner (if (integer? socket-owner)
+                     socket-owner
+                     (passwd:uid (getpwnam socket-owner))))
+          (group (if (integer? socket-group)
+                     socket-group
+                     (group:gid (getgrnam socket-group)))))
       (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
+
       (when (= AF_UNIX (sockaddr:fam address))
-        (mkdir-p (dirname (sockaddr:path address)))
+        (mkdir-p (dirname (sockaddr:path address))
+                 socket-directory-permissions)
+        (chown (dirname (sockaddr:path address)) owner group)
         (catch-system-error (delete-file (sockaddr:path address))))
       (bind sock address)
+      (when (= AF_UNIX (sockaddr:fam address))
+        (chown sock owner group)
+        (chmod sock #o666))
+
       (listen sock listen-backlog)
       (spawn-fiber
        (lambda ()
