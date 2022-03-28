@@ -207,7 +207,10 @@ output port, and PROC's result is returned."
   (setvbuf (current-error-port) (buffering-mode line)))
 
 ;; Localized version of STR.
-(define l10n gettext)
+(define-syntax l10n
+  (syntax-rules ()
+    ((_ str) (gettext str))
+    ((_ singular plural n) (ngettext singular plural n))))
 
 ;; Display some text and a newline.
 (define-syntax-rule (local-output format-string args ...)
