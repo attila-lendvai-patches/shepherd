@@ -91,6 +91,7 @@
             read-pid-file
             make-system-constructor
             make-system-destructor
+            default-inetd-max-connections
             make-inetd-constructor
             make-inetd-destructor
 
@@ -1295,6 +1296,11 @@ as argument, where SIGNAL defaults to `SIGTERM'."
                              (number->string (sockaddr:port client))))
         '())))
 
+(define default-inetd-max-connections
+  ;; Default maximum number of simultaneous connections for an inetd-style
+  ;; service.
+  (make-parameter 100))
+
 (define* (make-inetd-constructor command address
                                  #:key
                                  (service-name-stem
@@ -1304,7 +1310,8 @@ as argument, where SIGNAL defaults to `SIGTERM'."
                                  (requirements '())
                                  (socket-style SOCK_STREAM)
                                  (listen-backlog 10)
-                                 ;; TODO: Add #:max-connections.
+                                 (max-connections
+                                  (default-inetd-max-connections))
                                  (user #f)
                                  (group #f)
                                  (supplementary-groups '())
@@ -1318,8 +1325,11 @@ as argument, where SIGNAL defaults to `SIGTERM'."
 object as returned by @code{make-socket-address}, and accepting connections in
 the background; the @var{listen-backlog} argument is passed to @var{accept}.
 Upon a client connection, a transient service running @var{command} is
-spawned.  The remaining arguments are as for
-@code{make-forkexec-constructor}."
+spawned.  Only up to @var{max-connections} simultaneous connections are
+accepted; when that threshold is reached, new connections are immediately
+closed.
+
+The remaining arguments are as for @code{make-forkexec-constructor}."
   (define child-service-name
     (let ((counter 1))
       (lambda ()
@@ -1328,6 +1338,44 @@ spawned.  The remaining arguments are as for
            (string-append service-name-stem "-" (number->string counter))))
         (set! counter (+ 1 counter))
         name)))
+
+  (define connection-count
+    ;; Number of active connections.
+    0)
+
+  (define (handle-child-termination service status)
+    (set! connection-count (- connection-count 1))
+    (local-output (l10n "~a connection still in use after ~a termination."
+                        "~a connections still in use after ~a termination."
+                        connection-count)
+                  connection-count (canonical-name service))
+    (default-service-termination-handler service status))
+
+  (define (spawn-child-service connection client-address)
+    (let* ((name    (child-service-name))
+           (service (make <service>
+                      #:provides (list name)
+                      #:requires requirements
+                      #:respawn? #f
+                      #:transient? #t
+                      #:start (make-inetd-forkexec-constructor
+                               command connection
+                               #:user user
+                               #:group group
+                               #:supplementary-groups
+                               supplementary-groups
+                               #:directory directory
+                               #:file-creation-mask file-creation-mask
+                               #:create-session? create-session?
+                               #:environment-variables
+                               (append (inetd-variables address
+                                                        client-address)
+                                   environment-variables)
+                               #:resource-limits resource-limits)
+                      #:handle-termination handle-child-termination
+                      #:stop (make-kill-destructor))))
+      (register-services service)
+      (start service)))
 
   (lambda args
     (let ((sock (non-blocking-port
@@ -1343,35 +1391,23 @@ spawned.  The remaining arguments are as for
          (let loop ()
            (match (accept sock)
              ((connection . client-address)
-              (local-output
-               (l10n "Accepted connection on ~a from ~:[~a~;~*local process~].")
-               (socket-address->string address)
-               (= AF_UNIX (sockaddr:fam client-address))
-               (socket-address->string client-address))
-              (letrec* ((name (child-service-name))
-                        (service
-                         (make <service>
-                           #:provides (list name)
-                           #:requires requirements
-                           #:respawn? #f
-                           #:transient? #t
-                           #:start (make-inetd-forkexec-constructor
-                                    command connection
-                                    #:user user
-                                    #:group group
-                                    #:supplementary-groups
-                                    supplementary-groups
-                                    #:directory directory
-                                    #:file-creation-mask file-creation-mask
-                                    #:create-session? create-session?
-                                    #:environment-variables
-                                    (append (inetd-variables address
-                                                             client-address)
-                                        environment-variables)
-                                    #:resource-limits resource-limits)
-                           #:stop (make-kill-destructor))))
-                (register-services service)
-                (start service))))
+              (if (>= connection-count max-connections)
+                  (begin
+                    (local-output
+                     (l10n "Maximum number of ~a clients reached; \
+rejecting connection from ~:[~a~;~*local process~].")
+                     (socket-address->string address)
+                     (= AF_UNIX (sockaddr:fam client-address))
+                     (socket-address->string client-address))
+                    (close-port connection))
+                  (begin
+                    (set! connection-count (+ 1 connection-count))
+                    (local-output
+                     (l10n "Accepted connection on ~a from ~:[~a~;~*local process~].")
+                     (socket-address->string address)
+                     (= AF_UNIX (sockaddr:fam client-address))
+                     (socket-address->string client-address))
+                    (spawn-child-service connection client-address)))))
            (loop))))
       sock)))
 

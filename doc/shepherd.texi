@@ -1068,6 +1068,7 @@ in charge of listening.
 @deffn {procedure} make-inetd-constructor @var{command} @var{address}
   [#:service-name-stem _] [#:requirements '()] @
   [#:socket-style SOCK_STREAM] [#:listen-backlog 10] @
+  [#:max-connections (default-inetd-max-connections)] @
   [#:user #f] @
   [#:group #f] @
   [#:supplementary-groups '()] @
@@ -1079,8 +1080,11 @@ Return a procedure that opens a socket listening to @var{address}, an
 object as returned by @code{make-socket-address}, and accepting connections in
 the background; the @var{listen-backlog} argument is passed to @var{accept}.
 Upon a client connection, a transient service running @var{command} is
-spawned.  The remaining arguments are as for
-@code{make-forkexec-constructor}.
+spawned.  Only up to @var{max-connections} simultaneous connections are
+accepted; when that threshold is reached, new connections are immediately
+closed.
+
+The remaining arguments are as for @code{make-forkexec-constructor}.
 @end deffn
 
 @deffn {procedure} make-inetd-destructor

@@ -50,7 +50,8 @@ cat > "$conf" <<EOF
    #:provides '(test-inetd-unix)
    #:start (make-inetd-constructor %command
                                    (make-socket-address AF_UNIX
-                                                        "$service_socket"))
+                                                        "$service_socket")
+                                   #:max-connections 5)
    #:stop  (make-inetd-destructor)))
 
 (start 'test-inetd)
@@ -111,6 +112,29 @@ done
 $herd stop test-inetd-unix
 ! converse_with_echo_server \
   "(make-socket-address AF_UNIX \"$service_socket\")"
+
+# Check the maximum connection limit.
+$herd start test-inetd-unix
+guile -c "
+  (use-modules (ice-9 rdelim) (ice-9 match))
+  (define address (make-socket-address AF_UNIX \"$service_socket\"))
+  (let loop ((i 10)
+             (sockets '()))
+    (if (zero? i)
+        ;; shepherd should close the extra sockets immediately.
+        (unless (equal? (append (make-list 5 the-eof-object)
+                                (make-list 5 \"hello\"))
+                        (pk 'read (map read-line sockets)))
+          (exit 1))
+        (let ((sock (socket AF_UNIX SOCK_STREAM 0)))
+          (connect sock address)
+          (loop (- i 1) (cons sock sockets)))))"
+
+converse_with_echo_server \
+  "(make-socket-address AF_UNIX \"$service_socket\")"
+
+$herd stop test-inetd-unix
+$herd status
 
 # At this point, shepherd should have INITIAL_FD_COUNT - 1 file descriptors
 # opened.
