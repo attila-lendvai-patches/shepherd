@@ -445,7 +445,8 @@ already ~a threads running, disabling 'signalfd' support")
   "Interpret COMMAND, a command sent by the user, represented as a
 <shepherd-command> object.  Send the reply to PORT."
   (match command
-    (($ <shepherd-command> the-action service-symbol (args ...) dir)
+    (($ <shepherd-command> the-action service-symbol (args ...)
+                           directory)             ;ignored
 
      ;; We have to catch `quit' so that we can send the terminator
      ;; line to herd before we actually quit.
@@ -478,15 +479,14 @@ already ~a threads running, disabling 'signalfd' support")
                                    port)))
 
              (define result
-               (with-directory-excursion dir
-                 (case the-action
-                   ((start) (apply start service-symbol args))
-                   ((stop) (apply stop service-symbol args))
-                   ((enforce) (apply enforce service-symbol args))
+               (case the-action
+                 ((start) (apply start service-symbol args))
+                 ((stop) (apply stop service-symbol args))
+                 ((enforce) (apply enforce service-symbol args))
 
-                   ;; Actions which have the semantics of `action' are
-                   ;; handled there.
-                   (else (apply action service-symbol the-action args)))))
+                 ;; Actions which have the semantics of `action' are
+                 ;; handled there.
+                 (else (apply action service-symbol the-action args))))
 
              (write-reply (command-reply command result #f (get-messages))
                           port))))

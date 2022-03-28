@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test basic communication capabilities.
-# Copyright © 2013, 2014, 2016, 2017, 2018, 2019 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2013-2014, 2016-2019, 2022 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2016 Mathieu Lirzin <mthl@gnu.org>
 # Copyright © 2014 Alex Sassmannshausen <alex.sassmannshausen@gmail.com>
 #
@@ -183,8 +183,7 @@ EOF
 if $herd status test-loaded
 then false; else true; fi
 
-# Pass a relative file name and makes sure it's properly resolved.
-(cd "$confdir" && herd -s "../$socket" load root "some-conf.scm")
+$herd load root "$confdir/some-conf.scm"
 rm "$confdir/some-conf.scm"
 
 # The new service should be loaded now.
