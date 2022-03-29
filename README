@@ -15,13 +15,10 @@ daemon-managing daemon.
 
 ** Requirements
 
-This program requires Guile (the GNU Ubiquitous Intelligent Language
-for Extension), version 2.0.13 or later (including 2.2.x).  It uses
-GOOPS, but as GOOPS is part of Guile, a normal Guile installation is
-sufficient.  It also uses readline, though it does not really depend
-on it.
+The GNU Shepherd depends on the following pieces of software:
 
-GNU Make is required to build the Shepherd.
+  - GNU Guile 3.0.x or 2.2.x, https://gnu.org/software/guile
+  - Fibers 1.1.0 or later, https://github.com/wingo/fibers
 
 ** Getting started
 
