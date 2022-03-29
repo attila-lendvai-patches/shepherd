@@ -69,11 +69,7 @@ The GNU Shepherd is developed jointly with the GNU Guix project.  Both
 are essential components in putting the pieces together to build the GNU
 system.  Join us now!
 
-** Bugs and Limitations
-
-There is no localization done yet.  Code from the user configuration is
-allowed to mess up with everything.  Runlevels do not work yet.  A few
-bugs are already marked in the source code.
+** Reporting bugs
 
 Send bug reports to <bug-guix@gnu.org>, with "Shepherd" and the version
 number in the Subject line.
