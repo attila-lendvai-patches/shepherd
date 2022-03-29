@@ -54,7 +54,10 @@ This program can be distributed under the terms of the GNU General
 Public License, version 3 or any later version, see the file `COPYING'
 for details.  The Texinfo manual can be distributed under the terms of
 the GNU Free Documentation License, version 1.3 or any later version,
-see the manual for details.
+see the manual for details.  Note that for any copyright year range
+specified as YYYY-ZZZZ in this package, the range specifies every single
+year in that closed interval.
+
 
 The GNU Shepherd home page is at:
 
