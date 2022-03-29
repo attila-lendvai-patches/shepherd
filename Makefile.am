@@ -126,7 +126,6 @@ dist_man8_MANS = doc/halt.8 doc/reboot.8
 EXTRA_DIST +=					\
   build-aux/config.rpath			\
   ChangeLog-2003				\
-  QUESTIONS					\
   $(templates)					\
   doc/examples/README				\
   doc/examples/_unknown.scm			\
