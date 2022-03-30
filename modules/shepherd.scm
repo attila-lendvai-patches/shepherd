@@ -20,7 +20,8 @@
 ;; along with the GNU Shepherd.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (shepherd)
-  #:use-module (fibers)
+  #:use-module ((fibers)
+                #:hide (sleep))                   ;avoid Guile warning
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (ice-9 rdelim)   ;; Line-based I/O.
@@ -38,6 +39,7 @@
   #:export (main))
 
 
+(define sleep (@ (fibers) sleep))
 
 (define (open-server-socket file-name)
   "Open a socket at FILE-NAME, and listen for connections there."

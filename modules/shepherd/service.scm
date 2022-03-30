@@ -24,7 +24,8 @@
 ;; along with the GNU Shepherd.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (shepherd service)
-  #:use-module (fibers)
+  #:use-module ((fibers)
+                #:hide (sleep))
   #:use-module (fibers scheduler)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
@@ -130,6 +131,9 @@
             action-runtime-error-arguments
 
             condition->sexp))
+
+
+(define sleep (@ (fibers) sleep))
 
 ;; Keep track of lazy initialization of SIGCHLD handler
 (define %sigchld-handler-installed? #f)
