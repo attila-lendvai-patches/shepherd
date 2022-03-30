@@ -34,7 +34,7 @@ herd="herd -s $socket"
 function cleanup
 {
     cat $log || true
-    rm -f $socket $conf $log $service2_started
+    rm -f $socket $conf $log $service2_started $service_nofiles
     test -f $pid && kill "`cat $pid`" || true
     rm -f $pid
     test -f $service_pid && kill "`cat $service_pid`" || true
