@@ -474,8 +474,25 @@ Synonym for @code{--silent}.
 
 @cindex herd
 The @command{herd} command is a generic client program to control a
-running instance of @command{shepherd} (@pxref{Invoking shepherd}).  It has the
-following synopsis:
+running instance of @command{shepherd} (@pxref{Invoking shepherd}).
+When running as root, it communicates with the @dfn{system
+instance}---the process with PID@tie{}1; when running as a normal user,
+it communicates with the @dfn{user's instance}, which is a regular,
+unprivileged process managing the user's own services.  For example, the
+following command displays the status of all the @dfn{system services}:
+
+@example
+sudo herd status
+@end example
+
+Conversely, the command below displays the status of @dfn{user
+services}, assuming a user @command{shepherd} is running:
+
+@example
+herd status
+@end example
+
+The command has the following synopsis:
 
 @example
 herd [@var{option}@dots{}] @var{action} [@var{service} [@var{arg}@dots{}]]
