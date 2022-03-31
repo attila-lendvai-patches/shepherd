@@ -2018,15 +2018,22 @@ if previously spawned children terminate.  Therefore, this action should
 usually only be used (if at all) *before* children get spawned for which
 we want to receive these signals."
       (lambda (running)
-        (case (getpid)
-          ((1)
-           (local-output (l10n "Running as PID 1, so not daemonizing.")))
-          (else
-           (if (zero? (primitive-fork))
-               (begin
-                 (catch-system-error (prctl PR_SET_CHILD_SUBREAPER 1))
-                 #t)
-               (primitive-exit 0))))))
+        (cond ((= 1 (getpid))
+               (local-output (l10n "Running as PID 1, so not daemonizing.")))
+              ((fold-services (lambda (service found?)
+                                (or found?
+                                    (and (running? service)
+                                         (not (eq? service root-service)))))
+                              #f)
+               (local-output
+                (l10n "Services already running, so not daemonizing."))
+               #f)
+              (else
+               (if (zero? (primitive-fork))
+                   (begin
+                     (catch-system-error (prctl PR_SET_CHILD_SUBREAPER 1))
+                     #t)
+                   (primitive-exit 0))))))
      (persistency
       "Save the current state of running and non-running services.
 This status gets written into a file on termination, so that we can
