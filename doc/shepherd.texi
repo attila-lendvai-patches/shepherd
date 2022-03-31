@@ -1351,13 +1351,6 @@ Fork and go into the background.  This should be called before
 respawnable services are started, as otherwise we would not get the
 @code{SIGCHLD} signals when they terminate.
 
-@item enable-persistency
-When terminating, save the list of running services in a file.
-@c FIXME-CRITICAL: How can we specify which one?
-
-@item disable-persistency
-Don't save the list of running services when terminating.
-
 @end table
 
 @cindex unknown service
