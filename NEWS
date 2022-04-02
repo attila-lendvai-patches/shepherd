@@ -3,13 +3,33 @@
 #+STARTUP: content hidestars
 
 Copyright © 2002, 2003 Wolfgang Jährling
-Copyright © 2013, 2014, 2016, 2018, 2019, 2020 Ludovic Courtès <ludo@gnu.org>
+Copyright © 2013-2014, 2016, 2018-2020, 2022 Ludovic Courtès <ludo@gnu.org>
 
   Copying and distribution of this file, with or without modification,
   are permitted in any medium without royalty provided the copyright
   notice and this notice are preserved.
 
 Please send Shepherd bug reports to bug-guix@gnu.org.
+
+* Changes in version 0.9.0
+** The Shepherd now depends on Fibers 1.1.0 or later
+** ‘shepherd’ no longer blocks when waiting for PID files, etc.
+** Services without #:log-file have their output written to syslog
+** Services with #:log-file have their output timestamped
+** New ‘make-inetd-constructor’ procedure for inetd-style services
+** New ‘make-systemd-constructor’ for systemd-style “socket activation”
+** New ‘start-in-the-background’ procedure
+** Services can now be “transient” (see the manual for details)
+** New #:supplementary-groups parameter for ‘make-forkexec-constructor’
+** New #:create-session? parameter for ‘make-forkexec-constructor’
+** New #:resource-limits parameter for ‘make-forkexec-constructor’
+** Log file of unprivileged ‘shepherd’ is now under $XDG_DATA_DIR
+** Do not reboot upon ‘quit’ when running as root but not PID 1
+** Improved documentation and examples
+** The Shepherd can no longer be built with Guile 2.0
+** Work around Guile 3.0.[5-7] compiler bug
+   (<https://bugs.gnu.org/47172>)
+** Updated translations: TODO
 
 * Changes in version 0.8.1
 ** Fix race condition that could lead shepherd to stop itself
