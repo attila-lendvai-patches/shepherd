@@ -1197,33 +1197,115 @@ Return a procedure that terminates a systemd-style service as created by
 @node Service Examples
 @section Service Examples
 
-FIXME: This needs a lot of work.
+The configuration file of the @command{shepherd} command
+(@pxref{Invoking shepherd}) defines, registers, and possibly starts
+@dfn{services}.  Each service specifies other services it depends on and
+how it is started and stopped.  The configuration file contains Scheme
+code that uses the programming interface of the @code{(shepherd
+service)} module (@pxref{Services}).
 
-You can create a service and then register it this way:
+Let's assume you want to define and register a service to start mcron,
+the daemon that periodically executes jobs in the background
+(@pxref{Introduction,,, mcron, GNU mcron Manual}).  That service is
+started by invoking the @command{mcron} command, after which
+@command{shepherd} should monitor the running process, possibly
+re-spawning it if it stops unexpectedly.  Here's the configuration file
+for this one service:
 
 @lisp
-(define apache (make <service>
-                     #:provides '(apache)
-                     #:start (...)
-                     #:stop (...)))
-(register-services apache)
-@end lisp
-
-However, as you usually won't need a variable for the service, you can
-pass it directly to @code{register-services}.  Here is an example that
-also specifies some more initial values for the slots:
-
-@lisp
-(register-services
+(define mcron
   (make <service>
-        #:provides '(apache-2.0 apache httpd)
-        #:requires '()
-        #:start (...)
-        #:stop (...)
-        #:actions (make-actions
-                   (reload-modules (...))
-                   (restart (...)))))
+    #:provides '(mcron)
+    ;; Run /usr/bin/mcron without any command-line arguments.
+    #:start (make-forkexec-constructor '("/usr/bin/mcron"))
+    #:stop (make-kill-destructor)
+    #:respawn? #t))
+
+(register-services mcron)
 @end lisp
+
+You can write the snippet above in the default configuration
+file---@file{~/.config/shepherd/init.scm} if you run @command{shepherd}
+as an unprivileged user.  When you launch it, @command{shepherd} will
+evaluate that configuration; thus it will define and register the
+@code{mcron} service, but it will @emph{not} start it.  To start the
+service, run:
+
+@example
+herd start mcron
+@end example
+
+Alternatively, if you want @code{mcron} to be started automatically when
+@command{shepherd} starts, you can add this snippet at the end of the
+configuration file:
+
+@lisp
+(start-in-the-background '(mcron))
+@end lisp
+
+Now let's take another example: @command{sshd}, the secure shell daemon
+of @uref{https://www.openssh.com,the OpenSSH project}.  We will pass
+@command{sshd} the @option{-D} option so that it does not ``detach'',
+making it easy for @command{shepherd} to monitor its process; we also
+tell @command{shepherd} to check its @dfn{PID file} to determine once it
+has started and is ready to accept connections:
+
+@lisp
+(define sshd
+  (make <service>
+    #:provides '(sshd ssh-daemon)  ;for convenience, give it two names
+    #:start (make-forkexec-constructor
+             '("/usr/sbin/sshd" "-D")
+             #:pid-file "/etc/ssh/sshd.pid")
+    #:stop (make-kill-destructor)
+    #:respawn? #t))
+
+(register-services sshd)
+(start-in-the-background '(sshd))
+@end lisp
+
+@cindex inetd mode, example
+Alternatively, we can start @command{sshd} in @dfn{inetd mode}: in that
+case, @command{shepherd} listens for connection and spawns
+@command{sshd} only upon incoming connections.  The inetd mode is
+enabled by passing the @option{-i} command-line option:
+
+@lisp
+(define sshd
+  (make <service>
+    #:provides '(sshd ssh-daemon)
+    #:start (make-inetd-constructor
+             '("/usr/sbin/sshd" "-D" "-i")
+             (make-socket-address AF_INET INADDR_ANY 22)
+             #:max-connections 10)
+    #:stop (make-kill-destructor)
+    #:respawn? #t))
+
+(register-services sshd)
+(start-in-the-background '(sshd))
+@end lisp
+
+The @code{make-socket-address} procedure call above returns the
+@dfn{listening address} (@pxref{Network Socket Address,,, guile, GNU
+Guile Reference Manual}).  In this case, it specifies that
+@command{shepherd} will accept connections coming from any network
+interface (``0.0.0.0'' in IPv4 notation) on port 22.  When a client
+connects, @command{shepherd} accepts it and spawns @command{sshd -D -i}
+as a new @dfn{transient service}, passing it the client connection.  The
+@code{#:max-connections} parameter instructs @command{shepherd} to
+accept at most 10 simultaneous client connections.
+
+In these examples, we haven't discussed dependencies among
+services---the @code{#:requires} keyword of @code{<service>}---nor did
+we discuss systemd-style services.  These are extensions of what we've
+seen so far.  @xref{Services}, for details.
+
+If you use Guix System, you will see that it contains a wealth of
+Shepherd service definitions.  The nice thing is that those give you a
+@emph{complete view} of what goes into the service---not just how the
+service is started and stopped, but also what software package is used
+and what configuration file is provided.  @xref{Shepherd Services,,,
+guix, GNU Guix Reference Manual}, for more info.
 
 @node Managing User Services
 @section Managing User Services
