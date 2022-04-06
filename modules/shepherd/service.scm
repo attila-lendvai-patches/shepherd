@@ -193,19 +193,19 @@ Log abnormal termination reported by @var{status}."
            (lambda (code)
              (local-output (l10n "Service ~a (PID ~a) exited with ~a.")
                            (canonical-name service)
-                           (slot-ref service 'running) code)))
+                           (service-running-value service) code)))
           ((status:term-sig status)
            =>
            (lambda (signal)
              (local-output (l10n "Service ~a (PID ~a) terminated with signal ~a.")
                            (canonical-name service)
-                           (slot-ref service 'running) signal)))
+                           (service-running-value service) signal)))
           ((status:stop-sig status)
            =>
            (lambda (signal)
              (local-output (l10n "Service ~a (PID ~a) stopped with signal ~a.")
                            (canonical-name service)
-                           (slot-ref service 'running) signal)))))
+                           (service-running-value service) signal)))))
 
   (respawn-service service))
 
