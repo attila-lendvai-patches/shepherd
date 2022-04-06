@@ -150,6 +150,20 @@ install-exec-hook: install-executable-symlinks install-crash-handler
 	         -i $$script ;						\
 	done
 
+# Download PO files (translations).
+download-po-files:
+	for lang in `grep -v '^[[:blank:]]*#' < "$(top_srcdir)/po/LINGUAS"`; do	\
+	  if wget -nv -O "$(top_srcdir)/po/$$lang.po.tmp"			\
+	    "https://translationproject.org/latest/shepherd/$$lang.po" ;	\
+	  then									\
+	    mv "$(top_srcdir)/po/$$lang.po"{.tmp,} ;				\
+	  else									\
+	    rm "$(top_srcdir)/po/$$lang.po.tmp"	;				\
+	  fi ;									\
+	done
+
+.PHONY: download-po-files
+
 # Install 'shutdown' as a symlink to 'halt; XXX: someday we'll do
 # better.
 install-executable-symlinks:
