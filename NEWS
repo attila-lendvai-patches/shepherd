@@ -29,7 +29,7 @@ Please send Shepherd bug reports to bug-guix@gnu.org.
 ** The Shepherd can no longer be built with Guile 2.0
 ** Work around Guile 3.0.[5-7] compiler bug
    (<https://bugs.gnu.org/47172>)
-** Updated translations: TODO
+** Updated translations: da, de, sv, uk
 
 * Changes in version 0.8.1
 ** Fix race condition that could lead shepherd to stop itself
