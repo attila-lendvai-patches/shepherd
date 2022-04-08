@@ -1154,7 +1154,7 @@ permissions for its parent directory.
 The constructor and destructor for systemd-style daemons are described
 below.
 
-@deffn {procedure} make-systemd-destructor @var{command} @var{endpoints} @
+@deffn {procedure} make-systemd-constructor @var{command} @var{endpoints} @
   [#:user #f] @
   [#:group #f] @
   [#:supplementary-groups '()] @
