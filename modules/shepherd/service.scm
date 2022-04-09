@@ -644,6 +644,9 @@ clients."
             (last-respawns ,(slot-ref service 'last-respawns))
             ,@(if (slot-ref service 'one-shot?)
                   '((one-shot? #t))
+                  '())
+            ,@(if (slot-ref service 'transient?)
+                  '((transient? #t))
                   '())))
 
 (define-method (result->sexp (service <service>))
