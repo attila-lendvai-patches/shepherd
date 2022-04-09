@@ -1,5 +1,5 @@
 ;; herd.scm -- The program to herd the Shepherd.
-;; Copyright (C) 2013, 2014, 2016, 2018, 2019, 2021 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013-2014, 2016, 2018-2019, 2021-2022 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
 ;;
 ;; This file is part of the GNU Shepherd.
@@ -92,10 +92,12 @@ of pairs."
   (match service
     (('service ('version 0 _ ...) properties ...)
      (alist-let* properties (provides requires running respawn? enabled?
-                             conflicts last-respawns one-shot?)
+                             conflicts last-respawns one-shot? transient?)
        (format #t (l10n "Status of ~a:~%") (first provides))
        (cond (running
-              (format #t (l10n "  It is started.~%"))
+              (if transient?
+                  (format #t (l10n "  It is started and transient.~%"))
+                  (format #t (l10n "  It is started.~%")))
 
               ;; TRANSLATORS: The "~s" bit is most of the time a placeholder
               ;; for the PID (an integer) of the running process, and
