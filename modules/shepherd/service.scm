@@ -876,9 +876,9 @@ daemon writing FILE is running in a separate PID namespace."
               (try-again)
               (apply throw args)))))))
 
-(define (service-file-logger file input)
-  "Return a thunk meant to run as a fiber that reads from INPUT and logs it to
-FILE."
+(define (%service-file-logger file input)
+  "Like 'service-file-logger', but doesn't handle the case in which FILE does
+not exist."
   (let* ((fd     (open-fdes file (logior O_CREAT O_WRONLY O_APPEND) #o640))
          (output (fdopen fd "al")))
     (set-port-encoding! output "UTF-8")
@@ -896,6 +896,19 @@ FILE."
                                        (localtime (current-time)))))
                  (format output "~a~a~%" prefix line)
                  (loop))))))))))
+
+(define (service-file-logger file input)
+  "Return a thunk meant to run as a fiber that reads from INPUT and logs it to
+FILE."
+  (catch 'system-error
+    (lambda ()
+      (%service-file-logger file input))
+    (lambda args
+      (if (= ENOENT (system-error-errno args))
+          (begin
+            (mkdir-p (dirname file))
+            (%service-file-logger file input))
+          (apply throw args)))))
 
 (define (service-builtin-logger command input)
   "Return a thunk meant to run as a fiber that reads from INPUT and logs to
