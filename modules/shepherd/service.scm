@@ -734,7 +734,10 @@ interact right away with shepherd using the @command{herd} command."
                              (l10n "Failed to start ~a in the background.")
                              service)))
                    (start service)))
-               services))))
+               services)))
+
+  ;; 'spawn-fiber' returns zero values, which can confuse callees; return one.
+  *unspecified*)
 
 
 
