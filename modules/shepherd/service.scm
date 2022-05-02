@@ -1422,29 +1422,34 @@ rejecting connection from ~:[~a~;~*local process~].")
         (loop))))
 
   (lambda args
-    (let ((sock  (non-blocking-port
-                  (socket (sockaddr:fam address) socket-style 0)))
-          (owner (if (integer? socket-owner)
+    (let ((owner (if (integer? socket-owner)
                      socket-owner
                      (passwd:uid (getpwnam socket-owner))))
           (group (if (integer? socket-group)
                      socket-group
-                     (group:gid (getgrnam socket-group)))))
-      (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
+                     (group:gid (getgrnam socket-group))))
+          (sock  (socket (sockaddr:fam address) socket-style 0)))
+      (catch #t
+        (lambda ()
+          (non-blocking-port sock)
+          (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
 
-      (when (= AF_UNIX (sockaddr:fam address))
-        (mkdir-p (dirname (sockaddr:path address))
-                 socket-directory-permissions)
-        (chown (dirname (sockaddr:path address)) owner group)
-        (catch-system-error (delete-file (sockaddr:path address))))
-      (bind sock address)
-      (when (= AF_UNIX (sockaddr:fam address))
-        (chown sock owner group)
-        (chmod sock #o666))
+          (when (= AF_UNIX (sockaddr:fam address))
+            (mkdir-p (dirname (sockaddr:path address))
+                     socket-directory-permissions)
+            (chown (dirname (sockaddr:path address)) owner group)
+            (catch-system-error (delete-file (sockaddr:path address))))
+          (bind sock address)
+          (when (= AF_UNIX (sockaddr:fam address))
+            (chown sock owner group)
+            (chmod sock #o666))
 
-      (listen sock listen-backlog)
-      (spawn-fiber (accept-clients sock))
-      sock)))
+          (listen sock listen-backlog)
+          (spawn-fiber (accept-clients sock))
+          sock)
+        (lambda args
+          (close-port sock)
+          (apply throw args))))))
 
 (define (make-inetd-destructor)
   "Return a procedure that terminates an inetd service."
