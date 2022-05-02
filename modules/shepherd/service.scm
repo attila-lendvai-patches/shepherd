@@ -1396,6 +1396,31 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
       (register-services service)
       (start service)))
 
+  (define (accept-clients sock)
+    ;; Return a thunk that accepts client connections from SOCK.
+    (lambda ()
+      (let loop ()
+        (match (accept sock)
+          ((connection . client-address)
+           (if (>= connection-count max-connections)
+               (begin
+                 (local-output
+                  (l10n "Maximum number of ~a clients reached; \
+rejecting connection from ~:[~a~;~*local process~].")
+                  (socket-address->string address)
+                  (= AF_UNIX (sockaddr:fam client-address))
+                  (socket-address->string client-address))
+                 (close-port connection))
+               (begin
+                 (set! connection-count (+ 1 connection-count))
+                 (local-output
+                  (l10n "Accepted connection on ~a from ~:[~a~;~*local process~].")
+                  (socket-address->string address)
+                  (= AF_UNIX (sockaddr:fam client-address))
+                  (socket-address->string client-address))
+                 (spawn-child-service connection client-address)))))
+        (loop))))
+
   (lambda args
     (let ((sock  (non-blocking-port
                   (socket (sockaddr:fam address) socket-style 0)))
@@ -1418,29 +1443,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
         (chmod sock #o666))
 
       (listen sock listen-backlog)
-      (spawn-fiber
-       (lambda ()
-         (let loop ()
-           (match (accept sock)
-             ((connection . client-address)
-              (if (>= connection-count max-connections)
-                  (begin
-                    (local-output
-                     (l10n "Maximum number of ~a clients reached; \
-rejecting connection from ~:[~a~;~*local process~].")
-                     (socket-address->string address)
-                     (= AF_UNIX (sockaddr:fam client-address))
-                     (socket-address->string client-address))
-                    (close-port connection))
-                  (begin
-                    (set! connection-count (+ 1 connection-count))
-                    (local-output
-                     (l10n "Accepted connection on ~a from ~:[~a~;~*local process~].")
-                     (socket-address->string address)
-                     (= AF_UNIX (sockaddr:fam client-address))
-                     (socket-address->string client-address))
-                    (spawn-child-service connection client-address)))))
-           (loop))))
+      (spawn-fiber (accept-clients sock))
       sock)))
 
 (define (make-inetd-destructor)
