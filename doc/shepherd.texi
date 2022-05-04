@@ -761,24 +761,6 @@ later a time in seconds since the Epoch.  The first element is the one
 that contains the oldest one, the last one the newest.
 
 @item
-@vindex stop-delay? (slot of <service>)
-@code{stop-delay?} being false causes the @code{stop} slot to be
-unused; instead, stopping the service will just cause the
-@code{waiting-for-termination?} slot be set to @code{#t}.
-
-@item
-@vindex waiting-for-termination? (slot of <service>)
-@code{waiting-for-termination?} cannot be initialized with a keyword
-and should not be used by others, it is only used internally for
-respawnable services when the @code{stop-delay?} slot contains a true
-value.  @code{waiting-for-termination?} contains @code{#t} if the
-service is still running, but the user requested that it be stopped,
-in which case if the service terminates the next time, the respawn
-handler will not start it again.
-
-otherwise @code{#f}.
-
-@item
 @vindex replacement (slot of <service>)
 @code{replacement} specifies a service to be used to replace this one
 when it is stopped.  This service will continue to function normally

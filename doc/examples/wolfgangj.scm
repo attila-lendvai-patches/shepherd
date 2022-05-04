@@ -60,7 +60,7 @@
       #:respawn? #t
       #:start (make-forkexec-constructor getty "38400"
                                          (cat "tty" (number->string num)))
-      #:stop-delay? #t)))
+      #:stop (make-kill-destructor))))
 
 ;; Number of terminals created by default.
 (define default-terms 3)

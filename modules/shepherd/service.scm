@@ -275,14 +275,6 @@ Log abnormal termination reported by @var{status}."
   ;; also possible to enable or disable it manually.
   (enabled? #:init-value #t
 	    #:getter enabled?)
-  ;; Some services should not be directly stopped, but should not be
-  ;; respawned anymore instead.  This field indicates that we are in
-  ;; the phase after the stop but before the termination.
-  (waiting-for-termination? #:init-value #f)
-  ;; This causes the above to be used.  When this is `#t', there is no
-  ;; need for a destructor (i.e. no value in the `stop' slot).
-  (stop-delay? #:init-keyword #:stop-delay?
-	       #:init-value #f)
   ;; The times of the last respawns, most recent first.
   (last-respawns #:init-form '())
   ;; A replacement for when this service is stopped.
@@ -464,59 +456,50 @@ is not already running, and will return SERVICE's canonical name in a list."
         (local-output (l10n "Service ~a is not running.")
                       (canonical-name service))
         (list (canonical-name service)))
-      (if (slot-ref service 'stop-delay?)
-          (begin
-            (slot-set! service 'waiting-for-termination? #t)
-            (local-output (l10n "Service ~a pending to be stopped.")
-                          (canonical-name service))
-            (list (canonical-name service)))
-          (let* ((name (canonical-name service))
-                 (dependents (fold-services (lambda (other lst)
-                                              (if (and (running? other)
-                                                       (required-by? service other))
-                                                  (cons other lst)
-                                                  lst))
-                                            '()))
-                 ;; Note: 'fold-services' introduces a continuation barrier,
-                 ;; which is why we're not using it when calling 'stop'.
-                 (stopped-dependents (append-map stop dependents)))
-            ;; Stop the service itself.
-            (catch #t
-              (lambda ()
-                (let ((running (service-running-value service)))
-                  ;; Mark SERVICE as already stopped to prevent the respawn
-                  ;; machinery from firing upon SIGCHLD.
-                  (slot-set! service 'running #f)
+      (let ((name (canonical-name service))
+            (stopped-dependents (fold-services (lambda (other acc)
+                                                 (if (and (running? other)
+                                                          (required-by? service other))
+                                                     (append (stop other) acc)
+                                                     acc))
+                                               '())))
+        ;; Stop the service itself.
+        (catch #t
+          (lambda ()
+            (apply (slot-ref service 'stop)
+                   (service-running-value service)
+                   args))
+          (lambda (key . args)
+            ;; Special case: 'root' may quit.
+            (and (eq? root-service service)
+                 (eq? key 'quit)
+                 (apply quit args))
+            (caught-error key args)))
 
-                  (apply (slot-ref service 'stop) running args)))
-              (lambda (key . args)
-                ;; Special case: 'root' may quit.
-                (and (eq? root-service service)
-                     (eq? key 'quit)
-                     (apply quit args))
-                (caught-error key args)))
+        ;; SERVICE is no longer running.
+        (slot-set! service 'running #f)
 
-            ;; Reset the list of respawns.
-            (slot-set! service 'last-respawns '())
+        ;; Reset the list of respawns.
+        (slot-set! service 'last-respawns '())
 
-            ;; Replace the service with its replacement, if it has one
-            (let ((replacement (slot-ref service 'replacement)))
-              (when replacement
-                (replace-service service replacement)))
+        ;; Replace the service with its replacement, if it has one
+        (let ((replacement (slot-ref service 'replacement)))
+          (when replacement
+            (replace-service service replacement)))
 
-            ;; Status message.
-            (if (running? service)
-                (local-output (l10n "Service ~a could not be stopped.")
-                              name)
-                (local-output (l10n "Service ~a has been stopped.")
-                              name))
+        ;; Status message.
+        (if (running? service)
+            (local-output (l10n "Service ~a could not be stopped.")
+                          name)
+            (local-output (l10n "Service ~a has been stopped.")
+                          name))
 
-            (when (transient? service)
-              (hashq-remove! %services (canonical-name service))
-              (local-output (l10n "Transient service ~a unregistered.")
-                            (canonical-name service)))
+        (when (transient? service)
+          (hashq-remove! %services (canonical-name service))
+          (local-output (l10n "Transient service ~a unregistered.")
+                        (canonical-name service)))
 
-            (cons name stopped-dependents)))))
+        (cons name stopped-dependents))))
 
 ;; Call action THE-ACTION with ARGS.
 (define-method (action (obj <service>) the-action . args)
@@ -1965,22 +1948,14 @@ then disable it."
            (not (respawn-limit-hit? (slot-ref serv 'last-respawns)
                                     (car respawn-limit)
                                     (cdr respawn-limit))))
-      (if (not (slot-ref serv 'waiting-for-termination?))
-          (begin
-            ;; Everything is okay, start it.
-            (local-output (l10n "Respawning ~a.")
-                          (canonical-name serv))
-            (slot-set! serv 'last-respawns
-                       (cons (current-time)
-                             (slot-ref serv 'last-respawns)))
-            (start serv))
-          ;; We have just been waiting for the
-          ;; termination.  The `running' slot has already
-          ;; been set to `#f' by `stop'.
-          (begin
-            (local-output (l10n "Service ~a terminated.")
-                          (canonical-name serv))
-            (slot-set! serv 'waiting-for-termination? #f)))
+      (begin
+        ;; Everything is okay, start it.
+        (local-output (l10n "Respawning ~a.")
+                      (canonical-name serv))
+        (slot-set! serv 'last-respawns
+                   (cons (current-time)
+                         (slot-ref serv 'last-respawns)))
+        (start serv))
       (begin
         (local-output (l10n "Service ~a has been disabled.")
                       (canonical-name serv))
