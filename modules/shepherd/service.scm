@@ -352,7 +352,7 @@ wire."
 (define-method (running? (obj <service>))
   (and (service-running-value obj) #t))
 
-;; Return a list of all actions implemented by OBJ. 
+;; Return a list of all actions implemented by OBJ.
 (define-method (action-list (obj <service>))
   (map action-name (slot-ref obj 'actions)))
 
@@ -1594,7 +1594,8 @@ This must be paired with @code{make-systemd-destructor}."
                                            (number->string (length sockets)))
                             (string-append "LISTEN_FDNAMES="
                                            (string-join
-                                            (map endpoint-name endpoints)))))
+                                            (map endpoint-name endpoints)
+                                            ":"))))
            (running   sockets))
       (spawn-fiber
        (lambda ()
