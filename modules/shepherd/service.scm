@@ -1283,7 +1283,7 @@ as argument, where SIGNAL defaults to `SIGTERM'."
            (string-append (inet-ntop AF_INET (sockaddr:addr address))
                           ":" (number->string (sockaddr:port address))))
           ((= AF_INET6 family)
-           (string-append "[" (inet-ntop AF_INET (sockaddr:addr address)) "]"
+           (string-append "[" (inet-ntop AF_INET6 (sockaddr:addr address)) "]"
                           ":" (number->string (sockaddr:port address))))
           ((= AF_UNIX family)
            (sockaddr:path address))
