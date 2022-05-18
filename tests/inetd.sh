@@ -49,6 +49,28 @@ cat > "$conf" <<EOF
                                                $PORT))))
    #:stop  (make-inetd-destructor))
  (make <service>
+   #:provides '(test-inetd6)
+   #:start (make-inetd-constructor %command
+                                   (list
+                                    (endpoint (make-socket-address
+                                               AF_INET
+                                               INADDR_LOOPBACK
+                                               $PORT))
+                                    (endpoint (make-socket-address
+                                               AF_INET6
+                                               IN6ADDR_LOOPBACK
+                                               $PORT))))
+   #:stop  (make-inetd-destructor))
+ (make <service>
+   #:provides '(test-inetd-v6-only)
+   #:start (make-inetd-constructor %command
+                                   (list
+                                    (endpoint (make-socket-address
+                                               AF_INET6
+                                               IN6ADDR_LOOPBACK
+                                               $PORT))))
+   #:stop  (make-inetd-destructor))
+ (make <service>
    #:provides '(test-inetd-unix)
    #:start (make-inetd-constructor %command
                                    (list
@@ -81,6 +103,7 @@ test $($herd status | grep '\+' | wc -l) -eq 2
 converse_with_echo_server ()
 {
     guile -c "(use-modules (ice-9 match) (ice-9 rdelim))
+      (define IN6ADDR_LOOPBACK 1)
       (define address $1)
       (define sock (socket (sockaddr:fam address) SOCK_STREAM 0))
       (connect sock address)
@@ -98,9 +121,44 @@ do
 	"(make-socket-address AF_INET INADDR_LOOPBACK $PORT)"
 done
 
+# Unavailable on IPv6.
+! converse_with_echo_server \
+    "(make-socket-address AF_INET6 IN6ADDR_LOOPBACK $PORT)"
+
 $herd stop test-inetd
 ! converse_with_echo_server \
   "(make-socket-address AF_INET INADDR_LOOPBACK $PORT)"
+
+if guile -c '(socket AF_INET6 SOCK_STREAM 0)'; then
+    # Test IPv6 support.
+    $herd start test-inetd6
+
+    converse_with_echo_server \
+	"(make-socket-address AF_INET6 IN6ADDR_LOOPBACK $PORT)"
+    converse_with_echo_server \
+	"(make-socket-address AF_INET INADDR_LOOPBACK $PORT)"
+
+    $herd stop test-inetd6
+
+    ! converse_with_echo_server \
+	"(make-socket-address AF_INET6 IN6ADDR_LOOPBACK $PORT)"
+    ! converse_with_echo_server \
+	"(make-socket-address AF_INET INADDR_LOOPBACK $PORT)"
+
+    $herd start test-inetd-v6-only
+
+    converse_with_echo_server \
+	"(make-socket-address AF_INET6 IN6ADDR_LOOPBACK $PORT)"
+    ! converse_with_echo_server \
+	"(make-socket-address AF_INET INADDR_LOOPBACK $PORT)"
+
+    $herd stop test-inetd-v6-only
+
+    ! converse_with_echo_server \
+	"(make-socket-address AF_INET6 IN6ADDR_LOOPBACK $PORT)"
+    ! converse_with_echo_server \
+	"(make-socket-address AF_INET INADDR_LOOPBACK $PORT)"
+fi
 
 # Now test inetd on a Unix-domain socket.
 

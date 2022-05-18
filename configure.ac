@@ -141,6 +141,18 @@ AC_SUBST([SIG_BLOCK])
 AC_SUBST([SIG_UNBLOCK])
 AC_SUBST([SIG_SETMASK])
 
+dnl Check for constants not exported by Guile as of 3.0.8.
+AC_MSG_CHECKING([<netinet/in.h> constants])
+AC_COMPUTE_INT([IPPROTO_IPV6], [IPPROTO_IPV6], [
+  #include <sys/socket.h>
+  #include <netinet/in.h>])
+AC_COMPUTE_INT([IPV6_V6ONLY], [IPV6_V6ONLY], [
+  #include <sys/socket.h>
+  #include <netinet/in.h>])
+AC_MSG_RESULT([done])
+AC_SUBST([IPPROTO_IPV6])
+AC_SUBST([IPV6_V6ONLY])
+
 AC_MSG_CHECKING([whether to build crash handler])
 case "$host_os" in
   linux-gnu*)  build_crash_handler=yes;;

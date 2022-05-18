@@ -25,6 +25,17 @@ For compatibility with 0.9.0, if the second argument to
 list of endpoints.  This behavior will be preserved for at least the whole
 0.9.x series.
 
+** ‘AF_INET6’ endpoints are now interpreted as IPv6-only
+
+In 0.9.0, using an ‘AF_INET6’ endpoint for ‘make-systemd-constructor’ would
+usually have the effect of making the service available on both IPv6 and IPv4.
+This is due to the default behavior of Linux, which is to bind IPv6 addresses
+as IPv4 as well (the default behavior can be changed by running
+‘sysctl net.ipv6.bindv6only 1’).
+
+‘AF_INET6’ endpoints are now interpreted as IPv6-only.  Thus, if a service is
+to be made available both as IPv6 and IPv4, two endpoints must be used.
+
 ** ‘shepherd’ reports whether a service is transient
 ** ‘herd status’ shows whether a service is transient
 ** Fix possible file descriptor leak in ‘make-inetd-constructor’

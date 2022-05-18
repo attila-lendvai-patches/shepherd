@@ -1093,6 +1093,20 @@ Return a new endpoint called @var{name} of @var{address}, an address as
 return by @code{make-socket-address}, with the given @var{style} and
 @var{backlog}.
 
+When @var{address} is of type @code{AF_INET6}, the endpoint is
+@emph{IPv6-only}.  Thus, if you want a service available both on IPv4
+and IPv6, you need two endpoints.  For example, below is a list of
+endpoints to listen on port 4444 on all the network interfaces, both in
+IPv4 and IPv6 (``0.0.0.0'' for IPv4 and ``::0'' for IPv6):
+
+@lisp
+(list (endpoint (make-socket-address AF_INET INADDR_ANY 4444))
+      (endpoint (make-socket-address AF_INET6 IN6ADDR_ANY 4444)))
+@end lisp
+
+This is the list you would pass to @code{make-inetd-constructor} or
+@code{make-systemd-constructor}---see below.
+
 When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
 @var{socket-group} are strings or integers that specify its ownership and that
 of its parent directory; @var{socket-directory-permissions} specifies the

@@ -1251,6 +1251,10 @@ as argument, where SIGNAL defaults to `SIGTERM'."
 return by @code{make-socket-address}, with the given @var{style} and
 @var{backlog}.
 
+When @var{address} is of type @code{AF_INET6}, the endpoint is
+@emph{IPv6-only}.  Thus, if you want a service available both on IPv4 and
+IPv6, you need two endpoints.
+
 When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
 @var{socket-group} are strings or integers that specify its ownership and that
 of its parent directory; @var{socket-directory-permissions} specifies the
@@ -1273,6 +1277,11 @@ permissions for its parent directory."
                          group
                          (group:gid (getgrnam group)))))
        (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
+       (when (= AF_INET6 (sockaddr:fam address))
+         ;; Interpret AF_INET6 endpoints as IPv6-only.  This is contrary to
+         ;; the Linux defaults where listening on an IPv6 address also listens
+         ;; on its IPv4 counterpart.
+         (ipv6-only sock))
        (when (= AF_UNIX (sockaddr:fam address))
          (mkdir-p (dirname (sockaddr:path address)) permissions)
          (chown (dirname (sockaddr:path address)) owner group)
@@ -1308,6 +1317,16 @@ thrown an previously-opened sockets are closed."
                                  result)
                        (apply throw args)))))
          (loop tail (cons sock result)))))))
+
+(define-syntax-rule (define-as-needed name value)
+  (unless (defined? 'name)
+    (module-define! (current-module) 'name value)
+    (module-export! (current-module) '(name))))
+
+;; These values are not defined as of Guile 3.0.8.  Provide them as a
+;; convenience.
+(define-as-needed IN6ADDR_LOOPBACK 1)
+(define-as-needed IN6ADDR_ANY 0)
 
 
 ;;;

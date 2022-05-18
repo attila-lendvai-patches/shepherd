@@ -32,6 +32,7 @@
             prctl
             PR_SET_CHILD_SUBREAPER
             getpgid
+            ipv6-only
             SFD_CLOEXEC
             signalfd
             consume-signalfd-siginfo
@@ -140,6 +141,16 @@ ctrlaltdel(8) and see kernel/reboot.c in Linux."
                    (list (strerror err))
                    (list err))
             result)))))
+
+(define (ipv6-only port)
+  "Make PORT, a file port backed by a socket, IPv6-only (using the IPV6_V6ONLY
+socket option) and return PORT.
+
+This is useful when willing to make a listening socket that operates on IPv6
+only (by default, Linux binds AF_INET6 addresses on IPv4 as well)."
+  ;; As of Guile 3.0.8, IPPROTO_IPV6 and IPV6_V6ONLY are not exported.
+  (setsockopt port @IPPROTO_IPV6@ @IPV6_V6ONLY@ 1)
+  port)
 
 (define (allocate-sigset)
   (bytevector->pointer (make-bytevector @SIZEOF_SIGSET_T@)))
