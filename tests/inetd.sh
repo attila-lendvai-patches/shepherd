@@ -42,15 +42,18 @@ cat > "$conf" <<EOF
  (make <service>
    #:provides '(test-inetd)
    #:start (make-inetd-constructor %command
-                                   (make-socket-address AF_INET
-                                                        INADDR_LOOPBACK
-                                                        $PORT))
+                                   (list
+                                    (endpoint (make-socket-address
+                                               AF_INET
+                                               INADDR_LOOPBACK
+                                               $PORT))))
    #:stop  (make-inetd-destructor))
  (make <service>
    #:provides '(test-inetd-unix)
    #:start (make-inetd-constructor %command
-                                   (make-socket-address AF_UNIX
-                                                        "$service_socket")
+                                   (list
+                                    (endpoint (make-socket-address
+                                               AF_UNIX "$service_socket")))
                                    #:max-connections 5)
    #:stop  (make-inetd-destructor)))
 
