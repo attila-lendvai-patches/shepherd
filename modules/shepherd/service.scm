@@ -1227,6 +1227,90 @@ as argument, where SIGNAL defaults to `SIGTERM'."
 
 
 ;;;
+;;; Server endpoints.
+;;;
+
+;; Endpoint of a systemd-style or inetd-style service.
+(define-record-type <endpoint>
+  (make-endpoint name address style backlog owner group permissions)
+  endpoint?
+  (name        endpoint-name)                          ;string
+  (address     endpoint-address)                       ;socket address
+  (style       endpoint-style)                         ;SOCK_STREAM, etc.
+  (backlog     endpoint-backlog)                       ;integer
+  (owner       endpoint-socket-owner)                  ;integer
+  (group       endpoint-socket-group)                  ;integer
+  (permissions endpoint-socket-directory-permissions)) ;integer
+
+(define* (endpoint address
+                   #:key (name "unknown") (style SOCK_STREAM)
+                   (backlog 128)
+                   (socket-owner (getuid)) (socket-group (getgid))
+                   (socket-directory-permissions #o755))
+  "Return a new endpoint called @var{name} of @var{address}, an address as
+return by @code{make-socket-address}, with the given @var{style} and
+@var{backlog}.
+
+When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
+@var{socket-group} are strings or integers that specify its ownership and that
+of its parent directory; @var{socket-directory-permissions} specifies the
+permissions for its parent directory."
+  (make-endpoint name address style backlog
+                 socket-owner socket-group
+                 socket-directory-permissions))
+
+(define (endpoint->listening-socket endpoint)
+  "Return a listening socket for ENDPOINT."
+  (match endpoint
+    (($ <endpoint> name address style backlog
+                   owner group permissions)
+     (let* ((sock    (non-blocking-port
+                      (socket (sockaddr:fam address) style 0)))
+            (owner   (if (integer? owner)
+                         owner
+                         (passwd:uid (getpwnam owner))))
+            (group   (if (integer? group)
+                         group
+                         (group:gid (getgrnam group)))))
+       (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
+       (when (= AF_UNIX (sockaddr:fam address))
+         (mkdir-p (dirname (sockaddr:path address)) permissions)
+         (chown (dirname (sockaddr:path address)) owner group)
+         (catch-system-error (delete-file (sockaddr:path address))))
+
+       (bind sock address)
+       (listen sock backlog)
+
+       (when (= AF_UNIX (sockaddr:fam address))
+         (chown sock owner group)
+         (chmod sock #o666))
+
+       sock))))
+
+(define (open-sockets endpoints)
+  "Return a list of listening sockets corresponding to ENDPOINTS, in the same
+order as ENDPOINTS.  If opening of binding one of them fails, an exception is
+thrown an previously-opened sockets are closed."
+  (let loop ((endpoints endpoints)
+             (result   '()))
+    (match endpoints
+      (()
+       (reverse result))
+      ((head tail ...)
+       (let ((sock (catch 'system-error
+                     (lambda ()
+                       (endpoint->listening-socket head))
+                     (lambda args
+                       ;; When opening one socket fails, abort the whole
+                       ;; process.
+                       (for-each (match-lambda
+                                   ((_ . socket) (close-port socket)))
+                                 result)
+                       (apply throw args)))))
+         (loop tail (cons sock result)))))))
+
+
+;;;
 ;;; Inetd-style services.
 ;;;
 
@@ -1311,18 +1395,13 @@ as argument, where SIGNAL defaults to `SIGTERM'."
   ;; service.
   (make-parameter 100))
 
-(define* (make-inetd-constructor command address
+(define* (make-inetd-constructor command endpoints
                                  #:key
                                  (service-name-stem
                                   (match command
                                     ((program . _)
                                      (basename program))))
                                  (requirements '())
-                                 (socket-style SOCK_STREAM)
-                                 (socket-owner (getuid))
-                                 (socket-group (getgid))
-                                 (socket-directory-permissions #o755)
-                                 (listen-backlog 10)
                                  (max-connections
                                   (default-inetd-max-connections))
                                  (user #f)
@@ -1333,15 +1412,17 @@ as argument, where SIGNAL defaults to `SIGTERM'."
                                  (create-session? #t)
                                  (environment-variables
                                   (default-environment-variables))
-                                 (resource-limits '()))
-  "Return a procedure that opens a socket listening to @var{address}, an
-object as returned by @code{make-socket-address}, and accepting connections in
-the background; the @var{listen-backlog} argument is passed to @var{accept}.
+                                 (resource-limits '())
 
-When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
-@var{socket-group} are strings or integers that specify its ownership and that
-of its parent directory; @var{socket-directory-permissions} specifies the
-permissions for its parent directory.
+                                 ;; Deprecated.
+                                 (socket-style SOCK_STREAM)
+                                 (socket-owner (getuid))
+                                 (socket-group (getgid))
+                                 (socket-directory-permissions #o755)
+                                 (listen-backlog 10))
+  "Return a procedure that opens sockets listening to @var{endpoints}, a list
+of objects as returned by @code{endpoint}, and accepting connections in the
+background.
 
 Upon a client connection, a transient service running @var{command} is
 spawned.  Only up to @var{max-connections} simultaneous connections are
@@ -1370,7 +1451,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
                   connection-count (canonical-name service))
     (default-service-termination-handler service status))
 
-  (define (spawn-child-service connection client-address)
+  (define (spawn-child-service connection server-address client-address)
     (let* ((name    (child-service-name))
            (service (make <service>
                       #:provides (list name)
@@ -1387,7 +1468,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
                                #:file-creation-mask file-creation-mask
                                #:create-session? create-session?
                                #:environment-variables
-                               (append (inetd-variables address
+                               (append (inetd-variables server-address
                                                         client-address)
                                    environment-variables)
                                #:resource-limits resource-limits)
@@ -1396,7 +1477,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
       (register-services service)
       (start service)))
 
-  (define (accept-clients sock)
+  (define (accept-clients server-address sock)
     ;; Return a thunk that accepts client connections from SOCK.
     (lambda ()
       (let loop ()
@@ -1407,7 +1488,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
                  (local-output
                   (l10n "Maximum number of ~a clients reached; \
 rejecting connection from ~:[~a~;~*local process~].")
-                  (socket-address->string address)
+                  (socket-address->string server-address)
                   (= AF_UNIX (sockaddr:fam client-address))
                   (socket-address->string client-address))
                  (close-port connection))
@@ -1415,81 +1496,41 @@ rejecting connection from ~:[~a~;~*local process~].")
                  (set! connection-count (+ 1 connection-count))
                  (local-output
                   (l10n "Accepted connection on ~a from ~:[~a~;~*local process~].")
-                  (socket-address->string address)
+                  (socket-address->string server-address)
                   (= AF_UNIX (sockaddr:fam client-address))
                   (socket-address->string client-address))
-                 (spawn-child-service connection client-address)))))
+                 (spawn-child-service connection
+                                      server-address client-address)))))
         (loop))))
 
   (lambda args
-    (let ((owner (if (integer? socket-owner)
-                     socket-owner
-                     (passwd:uid (getpwnam socket-owner))))
-          (group (if (integer? socket-group)
-                     socket-group
-                     (group:gid (getgrnam socket-group))))
-          (sock  (socket (sockaddr:fam address) socket-style 0)))
-      (catch #t
-        (lambda ()
-          (non-blocking-port sock)
-          (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
-
-          (when (= AF_UNIX (sockaddr:fam address))
-            (mkdir-p (dirname (sockaddr:path address))
-                     socket-directory-permissions)
-            (chown (dirname (sockaddr:path address)) owner group)
-            (catch-system-error (delete-file (sockaddr:path address))))
-          (bind sock address)
-          (when (= AF_UNIX (sockaddr:fam address))
-            (chown sock owner group)
-            (chmod sock #o666))
-
-          (listen sock listen-backlog)
-          (spawn-fiber (accept-clients sock))
-          sock)
-        (lambda args
-          (close-port sock)
-          (apply throw args))))))
+    (let* ((endpoints (match endpoints
+                        (((? endpoint?) ...) endpoints)
+                        (address (list (endpoint address
+                                                 #:style socket-style
+                                                 #:backlog listen-backlog
+                                                 #:socket-owner socket-owner
+                                                 #:socket-group socket-group
+                                                 #:socket-directory-permissions
+                                                 socket-directory-permissions)))))
+           (sockets   (open-sockets endpoints)))
+      (for-each (lambda (endpoint socket)
+                  (spawn-fiber
+                   (accept-clients (endpoint-address endpoint)
+                                   socket)))
+                endpoints sockets)
+      sockets)))
 
 (define (make-inetd-destructor)
   "Return a procedure that terminates an inetd service."
-  (lambda (sock)
-    (close-port sock)
+  (lambda (sockets)
+    (for-each close-port sockets)
     #f))
 
 
 ;;;
 ;;; systemd-style services.
 ;;;
-
-;; Endpoint of a systemd-style service.
-(define-record-type <endpoint>
-  (make-endpoint name address style backlog owner group permissions)
-  endpoint?
-  (name        endpoint-name)                          ;string
-  (address     endpoint-address)                       ;socket address
-  (style       endpoint-style)                         ;SOCK_STREAM, etc.
-  (backlog     endpoint-backlog)                       ;integer
-  (owner       endpoint-socket-owner)                  ;integer
-  (group       endpoint-socket-group)                  ;integer
-  (permissions endpoint-socket-directory-permissions)) ;integer
-
-(define* (endpoint address
-                   #:key (name "unknown") (style SOCK_STREAM)
-                   (backlog 128)
-                   (socket-owner (getuid)) (socket-group (getgid))
-                   (socket-directory-permissions #o755))
-  "Return a new endpoint called @var{name} of @var{address}, an address as
-return by @code{make-socket-address}, with the given @var{style} and
-@var{backlog}.
-
-When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
-@var{socket-group} are strings or integers that specify its ownership and that
-of its parent directory; @var{socket-directory-permissions} specifies the
-permissions for its parent directory."
-  (make-endpoint name address style backlog
-                 socket-owner socket-group
-                 socket-directory-permissions))
 
 (define (wait-for-readable ports)
   "Suspend the current task until one of @var{ports} is available for
@@ -1538,58 +1579,10 @@ The colon-separated list of endpoint names.
 
 This must be paired with @code{make-systemd-destructor}."
   (lambda args
-    (define (endpoint->listening-socket endpoint)
-      ;; Return a listening socket for ENDPOINT.
-      (match endpoint
-        (($ <endpoint> name address style backlog
-                       owner group permissions)
-         (let* ((sock    (non-blocking-port
-                          (socket (sockaddr:fam address) style 0)))
-                (owner   (if (integer? owner)
-                             owner
-                             (passwd:uid (getpwnam owner))))
-                (group   (if (integer? group)
-                             group
-                             (group:gid (getgrnam group)))))
-           (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
-           (when (= AF_UNIX (sockaddr:fam address))
-             (mkdir-p (dirname (sockaddr:path address)) permissions)
-             (chown (dirname (sockaddr:path address)) owner group)
-             (catch-system-error (delete-file (sockaddr:path address))))
-
-           (bind sock address)
-           (listen sock backlog)
-
-           (when (= AF_UNIX (sockaddr:fam address))
-             (chown sock owner group)
-             (chmod sock #o666))
-
-           sock))))
-
-    (define (open-sockets addresses)
-      (let loop ((endpoints endpoints)
-                 (result   '()))
-        (match endpoints
-          (()
-           (reverse result))
-          ((head tail ...)
-           (let ((sock (catch 'system-error
-                         (lambda ()
-                           (endpoint->listening-socket head))
-                         (lambda args
-                           ;; When opening one socket fails, abort the whole
-                           ;; process.
-                           (for-each (match-lambda
-                                       ((_ . socket) (close-port socket)))
-                                     result)
-                           (apply throw args)))))
-             (loop tail
-                   `((,(endpoint-name head) . ,sock) ,@result)))))))
-
-    (let* ((sockets   (open-sockets endpoints))
-           (ports     (match sockets
-                        (((names . ports) ...)
-                         ports)))
+    (let* ((ports     (open-sockets endpoints))
+           (sockets   (map (lambda (endpoint socket)
+                             (cons (endpoint-name endpoint) socket))
+                           endpoints ports))
            (variables (list (string-append "LISTEN_FDS="
                                            (number->string (length sockets)))
                             (string-append "LISTEN_FDNAMES="

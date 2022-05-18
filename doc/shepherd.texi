@@ -1082,11 +1082,28 @@ services, specifically those in @code{nowait} mode where the daemon is
 passed the newly-accepted socket connection while @command{shepherd} is
 in charge of listening.
 
-@deffn {procedure} make-inetd-constructor @var{command} @var{address}
-  [#:service-name-stem _] [#:requirements '()] @
-  [#:socket-style SOCK_STREAM] [#:listen-backlog 10] @
+Listening endpoints for such services are described as records built
+using the @code{endpoint} procedure:
+
+@deffn {procedure} endpoint @var{address} [#:name "unknown"] @
+  [#:style SOCK_STREAM] [#:backlog 128] @
   [#:socket-owner (getuid)] [#:socket-group (getgid)] @
-  [#:socket-directory-permissions #o755] @
+  [#:socket-directory-permissions #o755]
+Return a new endpoint called @var{name} of @var{address}, an address as
+return by @code{make-socket-address}, with the given @var{style} and
+@var{backlog}.
+
+When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
+@var{socket-group} are strings or integers that specify its ownership and that
+of its parent directory; @var{socket-directory-permissions} specifies the
+permissions for its parent directory.
+@end deffn
+
+The inetd service constructor takes a command and a list of such
+endpoints:
+
+@deffn {procedure} make-inetd-constructor @var{command} @var{endpoints}
+  [#:service-name-stem _] [#:requirements '()] @
   [#:max-connections (default-inetd-max-connections)] @
   [#:user #f] @
   [#:group #f] @
@@ -1095,14 +1112,9 @@ in charge of listening.
   [#:file-creation-mask #f] [#:create-session? #t] @
   [#:resource-limits '()] @
   [#:environment-variables (default-environment-variables)]
-Return a procedure that opens a socket listening to @var{address}, an
-object as returned by @code{make-socket-address}, and accepting connections in
-the background; the @var{listen-backlog} argument is passed to @var{accept}.
-
-When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
-@var{socket-group} are strings or integers that specify its ownership and that
-of its parent directory; @var{socket-directory-permissions} specifies the
-permissions for its parent directory.
+Return a procedure that opens sockets listening to @var{endpoints}, a list
+of objects as returned by @code{endpoint}, and accepting connections in the
+background.
 
 Upon a client connection, a transient service running @var{command} is
 spawned.  Only up to @var{max-connections} simultaneous connections are
@@ -1133,24 +1145,6 @@ environment (see below), which usually checks them using the libsystemd
 or libelogind
 @uref{https://www.freedesktop.org/software/systemd/man/sd_listen_fds.html,
 client library helper functions}.
-
-Listening endpoints for such services are described as records built
-using the @code{endpoint} procedure:
-
-@deffn {procedure} endpoint @var{address} [#:name "unknown"] @
-  [#:style SOCK_STREAM] [#:backlog 128] @
-  [#:socket-owner (getuid)] [#:socket-group (getgid)] @
-  [#:socket-directory-permissions #o755]
-Return a new endpoint called @var{name} of @var{address}, an address as
-return by @code{make-socket-address}, with the given @var{style} and
-@var{backlog}.
-
-When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
-@var{socket-group} are strings or integers that specify its ownership and that
-of its parent directory; @var{socket-directory-permissions} specifies the
-permissions for its parent directory.
-@end deffn
-
 The constructor and destructor for systemd-style daemons are described
 below.
 

@@ -12,6 +12,19 @@ Copyright © 2013-2014, 2016, 2018-2020, 2022 Ludovic Courtès <ludo@gnu.org>
 Please send Shepherd bug reports to bug-guix@gnu.org.
 
 * Changes in version 0.9.1
+** ‘make-inetd-constructor’ now accepts a list of endpoints
+
+In 0.9.0, ‘make-inetd-constructor’ would take a single address as returned by
+‘make-socket-address’.  This was insufficiently flexible since it didn’t let
+you have an inetd service with multiple endpoints.  ‘make-inetd-constructor’
+now takes a list of endpoints, similar to what ‘make-systemd-constructor’
+already did.
+
+For compatibility with 0.9.0, if the second argument to
+‘make-systemd-constructor’ is an address, it is automatically converted to a
+list of endpoints.  This behavior will be preserved for at least the whole
+0.9.x series.
+
 ** ‘shepherd’ reports whether a service is transient
 ** ‘herd status’ shows whether a service is transient
 ** Fix possible file descriptor leak in ‘make-inetd-constructor’
