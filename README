@@ -1,0 +1,4 @@
+This “orphan” branch contains the keyring of the Guix project: the
+OpenPGP public keys of all the GNU Shepherd committers ever.  It is used
+authenticate this repository, using ‘guix git authenticate’.  We only
+ever add new keys here.
