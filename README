@@ -6,9 +6,8 @@ The GNU Daemon Shepherd or GNU Shepherd is a service manager written in
 Guile that looks after the herd of system services, providing a
 replacement for the service-managing capabilities of SysV-init (or any
 other init) with a dependency-based system with a convenient interface.
-It is intended for use on GNU/Hurd, but it is supposed to work on every
-POSIX-like system where Guile is available.  In particular, it has been
-tested on GNU/Linux.
+It is intended for use on GNU/Linux and GNU/Hurd, but it is supposed to work
+on every POSIX-like system where Guile is available.
 
 In a previous life, the GNU Shepherd was known as GNU dmd, the
 daemon-managing daemon.
