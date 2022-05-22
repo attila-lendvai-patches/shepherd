@@ -158,6 +158,9 @@ if guile -c '(socket AF_INET6 SOCK_STREAM 0)'; then
 	"(make-socket-address AF_INET6 IN6ADDR_LOOPBACK $PORT)"
     ! converse_with_echo_server \
 	"(make-socket-address AF_INET INADDR_LOOPBACK $PORT)"
+
+    # Note: The following test below would hang with Fibers 1.1.0, due to
+    # <https://github.com/wingo/fibers/pull/57>.
 fi
 
 # Now test inetd on a Unix-domain socket.
