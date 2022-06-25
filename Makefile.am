@@ -230,6 +230,7 @@ SUFFIXES = .go
 
 TESTS =						\
   tests/basic.sh				\
+  tests/starting-status.sh			\
   tests/replacement.sh				\
   tests/respawn.sh				\
   tests/respawn-throttling.sh			\

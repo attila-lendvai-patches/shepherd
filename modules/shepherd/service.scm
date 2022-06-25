@@ -28,6 +28,7 @@
                 #:hide (sleep))
   #:use-module (fibers channels)
   #:use-module (fibers operations)
+  #:use-module (fibers conditions)
   #:use-module (fibers scheduler)
   #:use-module (fibers timers)
   #:use-module (oop goops)
@@ -35,7 +36,7 @@
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-34)
-  #:use-module (srfi srfi-35)
+  #:use-module ((srfi srfi-35) #:hide (make-condition))
   #:use-module (rnrs io ports)
   #:use-module ((ice-9 control) #:select (call/ec))
   #:use-module (ice-9 match)
@@ -397,30 +398,40 @@ wire."
 	 (let ((problem
 		;; Resolve all dependencies.
 		(find (negate start) (required-by obj))))
-	   (if problem
-	       (local-output (l10n "Service ~a depends on ~a.")
-			     (canonical-name obj)
-			     problem)
-               ;; Start the service itself.
-               (let ((running (catch #t
-                                (lambda ()
-                                  (apply (slot-ref obj 'start) args))
-                                (lambda (key . args)
-                                  (report-exception 'start obj key args)))))
-                 (put-message (current-monitor-channel)
-                              `(set-running ,obj ,running))))
+           (define running
+	     (if problem
+	         (local-output (l10n "Service ~a depends on ~a.")
+			       (canonical-name obj)
+			       problem)
+                 ;; Start the service itself.
+                 (let ((reply (make-channel)))
+                   (put-message (current-monitor-channel) `(start ,obj ,reply))
+                   (match (get-message reply)
+                     (#f
+                      ;; We lost the race: OBJ is already running.
+                      (service-running-value obj))
+                     ((? channel? notification)
+                      ;; We won the race: we're responsible for starting OBJ
+                      ;; and sending its running value on NOTIFICATION.
+                      (let ((running (catch #t
+                                       (lambda ()
+                                         (apply (slot-ref obj 'start) args))
+                                       (lambda (key . args)
+                                         (report-exception 'start obj key args)))))
+                        (put-message notification running)
+                        running))))))
 
 	   ;; Status message.
-           (let ((running (service-running-value obj)))
-             (when (one-shot? obj)
-               (put-message (current-monitor-channel)
-                            `(notify-termination ,obj)))
-             (local-output (if running
-			       (l10n "Service ~a has been started.")
-                               (l10n "Service ~a could not be started."))
-			   (canonical-name obj))
+           (when (one-shot? obj)
+             (put-message (current-monitor-channel)
+                          `(notify-termination ,obj)))
 
-             running)))))
+           (local-output (if running
+			     (l10n "Service ~a has been started.")
+                             (l10n "Service ~a could not be started."))
+			 (canonical-name obj))
+
+           running))))
 
 (define (replace-service old-service new-service)
   "Replace OLD-SERVICE with NEW-SERVICE in the services registry.  This
@@ -666,8 +677,12 @@ clients."
 (define (service-monitor channel)
   "Encapsulate shepherd state (registered and running services) and serve
 requests arriving on @var{channel}."
+  (define *service-started* (list 'service 'started!))
+  (define (started-message? obj) (eq? *service-started* obj))
+
   (let loop ((registered vlist-null)
-             (running vlist-null))
+             (running vlist-null)
+             (starting vlist-null))
     (define (unregister services)
       ;; Return REGISTERED minus SERVICE.
       (vhash-fold (lambda (name service result)
@@ -690,35 +705,36 @@ requests arriving on @var{channel}."
        (let ((name (canonical-name service)))
          (match (vhash-assq name registered)
            (#f
-            (loop (register service) running))
+            (loop (register service) running starting))
            ((_ . old)
             (if (vhash-assq old running)
                 (begin
                   (slot-set! old 'replacement service)
-                  (loop registered running))
+                  (loop registered running starting))
                 (loop (register service (unregister (list old)))
-                      running))))))
+                      running starting))))))
       (('unregister services)                     ;no reply
        (match (filter (cut vhash-assq <> running) services)
          (()
-          (loop (unregister services) running))
+          (loop (unregister services) running starting))
          (lst                                     ;
           (local-output
            (l10n "Cannot unregister service ~a, which is still running"
                  "Cannot unregister services~{ ~a,~} which are still running"
                  (length lst))
            (map canonical-name lst))
-          (loop registered running))))
+          (loop registered running starting))))
       (('unregister-all)                          ;no reply
        (let ((root (cdr (vhash-assq 'root registered))))
          (loop (fold (cut vhash-consq <> root <>)
                      vlist-null
                      (provided-by root))
-               (vhash-consq root #t running))))
+               (vhash-consq root #t running)
+               starting)))
       (('lookup name reply)
        (put-message reply
                     (vhash-foldq* cons '() name registered))
-       (loop registered running))
+       (loop registered running starting))
       (('service-list reply)
        (let ((names (delete-duplicates
                      (vhash-fold (lambda (key _ result)
@@ -734,19 +750,69 @@ requests arriving on @var{channel}."
                                           result))
                             '()
                             names))
-         (loop registered running)))
+         (loop registered running starting)))
       (('running service reply)
        (put-message reply
                     (match (vhash-assq service running)
                       (#f #f)
                       ((_ . value) value)))
-       (loop registered running))
-      (('set-running service value)               ;no reply
-       (loop registered
-             (vhash-consq service value running)))
+       (loop registered running starting))
+      (('start service reply)
+       ;; Attempt to start SERVICE, blocking if it is already being started.
+       ;; Send #f on REPLY if SERVICE was already running or being started;
+       ;; otherwise send a channel on which to send SERVICE's value one it has
+       ;; been started.
+       (cond ((vhash-assq service running)
+              =>
+              ;; SERVICE is already running: send #f on REPLY.
+              (lambda (pair)
+                (match pair
+                  ((_ . value)
+                   (put-message reply #f)
+                   (loop registered running starting)))))
+             ((vhash-assq service starting)
+              =>
+              ;; SERVICE is being started: wait until it has started and then
+              ;; send #f on REPLY.
+              (lambda (pair)
+                (match pair
+                  ((_ . condition)
+                   (spawn-fiber
+                    (lambda ()
+                      (wait condition)
+                      (put-message reply #f)))
+                   (loop registered running starting)))))
+             (else
+              ;; Become the one who starts SERVICE.
+              (let ((condition (make-condition))
+                    (notification (make-channel)))
+                (spawn-fiber
+                 (lambda ()
+                   (let ((running (get-message notification)))
+                     (local-output (l10n "Service ~a started.")
+                                   (canonical-name service))
+                     (put-message channel
+                                  (list *service-started* service running)))))
+                (local-output (l10n "Starting service ~a...")
+                              (canonical-name service))
+                (put-message reply notification)
+                (loop registered running
+                      (vhash-consq service condition starting))))))
+      (((? started-message?) service value)       ;no reply
+       (local-output (l10n "Service ~a running with value ~s.")
+                     (canonical-name service) value)
+       (match (vhash-assq service starting)
+         ((_ . condition)
+          (signal-condition! condition)
+          (loop registered
+                (if (or (one-shot? service) (not value))
+                    running
+                    (vhash-consq service value running))
+                (vhash-delq service starting)))))
       (('notify-termination service)              ;no reply
        (loop registered
-             (vhash-delq service running))))))    ;XXX: complexity
+             (vhash-delq service running)         ;XXX: complexity
+             starting)))))
 
 (define (spawn-service-monitor)
   "Spawn a new service monitor fiber and return a channel to send it requests."
