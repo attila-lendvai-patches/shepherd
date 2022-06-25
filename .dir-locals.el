@@ -12,6 +12,7 @@
  (scheme-mode
   . ((indent-tabs-mode . nil)
      (eval . (put 'with-blocked-signals 'scheme-indent-function 1))
-     (eval . (put 'with-process-monitor 'scheme-indent-function 0))))
+     (eval . (put 'with-process-monitor 'scheme-indent-function 0))
+     (eval . (put 'with-service-monitor 'scheme-indent-function 0))))
  (texinfo-mode    . ((indent-tabs-mode . nil)
                      (fill-column . 72))))

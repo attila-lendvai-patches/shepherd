@@ -381,9 +381,6 @@ already ~a threads running, disabling 'signalfd' support")
 
       (set-port-encoding! (log-output-port) "UTF-8")
 
-      ;; Start the 'root' service.
-      (start root-service)
-
       (when (= 1 (getpid))
         ;; When running as PID 1, disable hard reboots upon ctrl-alt-del.
         ;; Instead, the kernel will send us SIGINT so that we can gracefully
@@ -414,36 +411,41 @@ already ~a threads running, disabling 'signalfd' support")
       ;; because POSIX threads and 'fork' cannot be used together.
       (run-fibers
        (lambda ()
-         (catch 'quit
-           (lambda ()
-             (with-process-monitor
+         (with-service-monitor
 
-               ;; Replace the default 'system*' binding with one that
-               ;; cooperates instead of blocking on 'waitpid'.
-               (let ((real-system* system*))
-                 (set! system* spawn-command)
+          ;; Register and start the 'root' service.
+          (register-services root-service)
+          (start root-service)
 
-                 ;; Restore 'system*' after fork.
-                 (set! primitive-fork
-                       (let ((real-fork primitive-fork))
-                         (lambda ()
-                           (let ((result (real-fork)))
-                             (when (zero? result)
-                               (set! primitive-fork real-fork)
-                               (set! system* real-system*))
-                             result)))))
+          (catch 'quit
+            (lambda ()
+              (with-process-monitor
+                ;; Replace the default 'system*' binding with one that
+                ;; cooperates instead of blocking on 'waitpid'.
+                (let ((real-system* system*))
+                  (set! system* spawn-command)
 
-               (run-daemon #:socket-file socket-file
-                           #:config-file config-file
-                           #:pid-file pid-file
-                           #:signal-port signal-port
-                           #:poll-services? poll-services?
-                           #:persistency persistency)))
-           (case-lambda
-             ((key value . _)
-              (primitive-exit value))
-             ((key)
-              (primitive-exit 0)))))
+                  ;; Restore 'system*' after fork.
+                  (set! primitive-fork
+                        (let ((real-fork primitive-fork))
+                          (lambda ()
+                            (let ((result (real-fork)))
+                              (when (zero? result)
+                                (set! primitive-fork real-fork)
+                                (set! system* real-system*))
+                              result)))))
+
+                (run-daemon #:socket-file socket-file
+                            #:config-file config-file
+                            #:pid-file pid-file
+                            #:signal-port signal-port
+                            #:poll-services? poll-services?
+                            #:persistency persistency)))
+            (case-lambda
+              ((key value . _)
+               (primitive-exit value))
+              ((key)
+               (primitive-exit 0))))))
        #:parallelism 1  ;don't create POSIX threads
        #:hz 0))))       ;disable preemption, which would require POSIX threads
 

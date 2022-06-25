@@ -56,6 +56,7 @@
             action-list
             lookup-action
             defines-action?
+            with-service-monitor
 
             action?
 
@@ -189,7 +190,7 @@ respawned, shows that it has been respawned more than TIMES in SECONDS."
            (and (> (+ last-respawn seconds) now)
                 (loop (- times 1) rest)))))))
 
-(define (default-service-termination-handler service status)
+(define (default-service-termination-handler service pid status)
   "Handle the termination of @var{service} by respawning it if applicable.
 Log abnormal termination reported by @var{status}."
   (unless (zero? status)
@@ -198,20 +199,18 @@ Log abnormal termination reported by @var{status}."
            =>
            (lambda (code)
              (local-output (l10n "Service ~a (PID ~a) exited with ~a.")
-                           (canonical-name service)
-                           (service-running-value service) code)))
+                           (canonical-name service) pid code)))
           ((status:term-sig status)
            =>
            (lambda (signal)
              (local-output (l10n "Service ~a (PID ~a) terminated with signal ~a.")
-                           (canonical-name service)
-                           (service-running-value service) signal)))
+                           (canonical-name service) pid signal)))
           ((status:stop-sig status)
            =>
            (lambda (signal)
              (local-output (l10n "Service ~a (PID ~a) stopped with signal ~a.")
                            (canonical-name service)
-                           (service-running-value service) signal)))))
+                           pid signal)))))
 
   (respawn-service service))
 
@@ -260,12 +259,8 @@ Log abnormal termination reported by @var{status}."
   ;; on this.
   (actions #:init-keyword #:actions
 	   #:init-form (make-actions))
-  ;; If this is `#f', it means that the service is not running
-  ;; currently.  Otherwise, it is the value that was returned by the
-  ;; procedure in the `start' slot when the service was started.
-  (running #:init-value #f)
   ;; Procedure called to notify that the process associated with this service
-  ;; (whose PID is in the 'running' slot) has terminated.
+  ;; has terminated.
   (handle-termination #:init-keyword #:handle-termination
                       #:init-value default-service-termination-handler)
   ;; A description of the service.
@@ -340,11 +335,15 @@ wire."
 (define-method (canonical-name (obj <service>))
   (car (provided-by obj)))
 
-;; Return the "running value" of OBJ.
-(define-method (service-running-value (obj <service>))
-  (match (slot-ref obj 'running)
-    ((? procedure? proc) (proc))
-    (value value)))
+(define service-running-value
+  (let ((reply (make-channel)))
+    (lambda (service)
+      "Return the \"running value\" of SERVICE."
+      (put-message (current-monitor-channel)
+                   `(running ,service ,reply))
+      (match (get-message reply)
+        ((? procedure? proc) (proc))
+        (value value)))))
 
 ;; Return whether the service is currently running.
 (define-method (running? (obj <service>))
@@ -403,18 +402,19 @@ wire."
 			     (canonical-name obj)
 			     problem)
                ;; Start the service itself.
-               (slot-set! obj 'running (catch #t
-                                         (lambda ()
-                                           (apply (slot-ref obj 'start)
-                                                  args))
-                                         (lambda (key . args)
-                                           (report-exception 'start obj
-                                                             key args)))))
+               (let ((running (catch #t
+                                (lambda ()
+                                  (apply (slot-ref obj 'start) args))
+                                (lambda (key . args)
+                                  (report-exception 'start obj key args)))))
+                 (put-message (current-monitor-channel)
+                              `(set-running ,obj ,running))))
 
 	   ;; Status message.
            (let ((running (service-running-value obj)))
              (when (one-shot? obj)
-               (slot-set! obj 'running #f))
+               (put-message (current-monitor-channel)
+                            `(notify-termination ,obj)))
              (local-output (if running
 			       (l10n "Service ~a has been started.")
                                (l10n "Service ~a could not be started."))
@@ -426,14 +426,9 @@ wire."
   "Replace OLD-SERVICE with NEW-SERVICE in the services registry.  This
 completely removes all references to OLD-SERVICE before registering
 NEW-SERVICE."
-  (define (remove-service name)
-    (let* ((old (hashq-ref %services name))
-           (new (delete old-service old)))
-      (if (null? new)
-          (hashq-remove! %services name)
-          (hashq-set! %services name new))))
   (when new-service
-    (for-each remove-service (provided-by old-service))
+    (put-message (current-monitor-channel)
+                 `(unregister ,(list old-service)))
     (register-services new-service)))
 
 (define (required-by? service dependent)
@@ -457,12 +452,18 @@ is not already running, and will return SERVICE's canonical name in a list."
                       (canonical-name service))
         (list (canonical-name service)))
       (let ((name (canonical-name service))
+            (handle-termination (slot-ref service 'handle-termination))
             (stopped-dependents (fold-services (lambda (other acc)
                                                  (if (and (running? other)
                                                           (required-by? service other))
                                                      (append (stop other) acc)
                                                      acc))
                                                '())))
+
+        ;; Prevent respawn while SERVICE is being stopped.
+        ;; TODO: Handle this via the service monitor.
+        (slot-set! service 'handle-termination (const #f))
+
         ;; Stop the service itself.
         (catch #t
           (lambda ()
@@ -477,7 +478,11 @@ is not already running, and will return SERVICE's canonical name in a list."
             (caught-error key args)))
 
         ;; SERVICE is no longer running.
-        (slot-set! service 'running #f)
+        (put-message (current-monitor-channel)
+                     `(notify-termination ,service))
+
+        ;; Restore termination handler.
+        (slot-set! service 'handle-termination handle-termination)
 
         ;; Reset the list of respawns.
         (slot-set! service 'last-respawns '())
@@ -495,7 +500,8 @@ is not already running, and will return SERVICE's canonical name in a list."
                           name))
 
         (when (transient? service)
-          (hashq-remove! %services (canonical-name service))
+          (put-message (current-monitor-channel)
+                       `(unregister ,(list service)))
           (local-output (l10n "Transient service ~a unregistered.")
                         (canonical-name service)))
 
@@ -651,6 +657,121 @@ clients."
 ;; Return whether OBJ requires something that is not yet running.
 (define-method (depends-resolved? (obj <service>))
   (every lookup-running (required-by obj)))
+
+
+;;;
+;;; Service monitor.
+;;;
+
+(define (service-monitor channel)
+  "Encapsulate shepherd state (registered and running services) and serve
+requests arriving on @var{channel}."
+  (let loop ((registered vlist-null)
+             (running vlist-null))
+    (define (unregister services)
+      ;; Return REGISTERED minus SERVICE.
+      (vhash-fold (lambda (name service result)
+                    (if (memq service services)
+                        result
+                        (fold (cut vhash-consq <> service <>)
+                              result
+                              (provided-by service))))
+                  vlist-null
+                  registered))
+
+    (define* (register service #:optional (registered registered))
+      ;; Add SERVICE to REGISTER and return it.
+      (fold (cut vhash-consq <> service <>)
+            registered
+            (provided-by service)))
+
+    (match (get-message channel)
+      (('register service)                        ;no reply
+       (let ((name (canonical-name service)))
+         (match (vhash-assq name registered)
+           (#f
+            (loop (register service) running))
+           ((_ . old)
+            (if (vhash-assq old running)
+                (begin
+                  (slot-set! old 'replacement service)
+                  (loop registered running))
+                (loop (register service (unregister (list old)))
+                      running))))))
+      (('unregister services)                     ;no reply
+       (match (filter (cut vhash-assq <> running) services)
+         (()
+          (loop (unregister services) running))
+         (lst                                     ;
+          (local-output
+           (l10n "Cannot unregister service ~a, which is still running"
+                 "Cannot unregister services~{ ~a,~} which are still running"
+                 (length lst))
+           (map canonical-name lst))
+          (loop registered running))))
+      (('unregister-all)                          ;no reply
+       (let ((root (cdr (vhash-assq 'root registered))))
+         (loop (fold (cut vhash-consq <> root <>)
+                     vlist-null
+                     (provided-by root))
+               (vhash-consq root #t running))))
+      (('lookup name reply)
+       (put-message reply
+                    (vhash-foldq* cons '() name registered))
+       (loop registered running))
+      (('service-list reply)
+       (let ((names (delete-duplicates
+                     (vhash-fold (lambda (key _ result)
+                                   (cons key result))
+                                 '()
+                                 registered)
+                     eq?)))
+         (put-message reply
+                      (fold (lambda (name result)
+                              (alist-cons name
+                                          (vhash-foldq* cons '() name
+                                                        registered)
+                                          result))
+                            '()
+                            names))
+         (loop registered running)))
+      (('running service reply)
+       (put-message reply
+                    (match (vhash-assq service running)
+                      (#f #f)
+                      ((_ . value) value)))
+       (loop registered running))
+      (('set-running service value)               ;no reply
+       (loop registered
+             (vhash-consq service value running)))
+      (('notify-termination service)              ;no reply
+       (loop registered
+             (vhash-delq service running))))))    ;XXX: complexity
+
+(define (spawn-service-monitor)
+  "Spawn a new service monitor fiber and return a channel to send it requests."
+  (define channel
+    (make-channel))
+
+  (spawn-fiber
+   (lambda ()
+     (service-monitor channel)))
+
+  channel)
+
+(define current-monitor-channel
+  ;; The channel to communicate with the current service monitor.
+  (make-parameter #f))
+
+(define (call-with-service-monitor thunk)
+  (parameterize ((current-monitor-channel (spawn-service-monitor)))
+    (thunk)))
+
+(define-syntax-rule (with-service-monitor exp ...)
+  "Spawn a new service monitor and evaluate @var{exp}... within that dynamic extent.
+This allows @var{exp}... and their callees to send requests to delegate
+service state and to send requests to the service monitor."
+  (call-with-service-monitor (lambda () exp ...)))
 
 
 
@@ -1525,13 +1646,13 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
     ;; Number of active connections.
     0)
 
-  (define (handle-child-termination service status)
+  (define (handle-child-termination service pid status)
     (set! connection-count (- connection-count 1))
     (local-output (l10n "~a connection still in use after ~a termination."
                         "~a connections still in use after ~a termination."
                         connection-count)
                   connection-count (canonical-name service))
-    (default-service-termination-handler service status))
+    (default-service-termination-handler service pid status))
 
   (define (spawn-child-service connection server-address client-address)
     (let* ((name    (child-service-name))
@@ -1725,9 +1846,6 @@ This must be paired with @code{make-systemd-destructor}."
 
 ;;; Registered services.
 
-;; All registered services.
-(define %services (make-hash-table 75))
-
 ;;; Perform actions with services:
 
 (define (lookup-canonical-service name services)
@@ -1737,48 +1855,51 @@ Return #f if service is not found."
           (eq? name (canonical-name service)))
         services))
 
-(define (fold-services proc init)
-  "Apply PROC to the registered services to build a result, and return that
+(define fold-services
+  (let ((reply (make-channel)))
+    (lambda (proc init)
+      "Apply PROC to the registered services to build a result, and return that
 result.  Works in a manner akin to `fold' from SRFI-1."
-  (hash-fold (lambda (name services acc)
+      (put-message (current-monitor-channel)
+                   `(service-list ,reply))
+      (fold (match-lambda*
+              (((name . services) result)
                (let ((service (lookup-canonical-service name services)))
                  (if service
-                     (proc service acc)
-                     acc)))
-             init %services))
+                     (proc service result)
+                     result))))
+            init
+            (get-message reply)))))
 
 (define (for-each-service proc)
   "Call PROC for each registered service."
-  (hash-for-each (lambda (name services)
-                   (and=> (lookup-canonical-service name services)
-                          proc))
-                 %services))
+  (fold-services (lambda (service _)
+                   (proc service)
+                   *unspecified*)
+                 *unspecified*))
 
 (define (service-list)
   "Return the list of services currently defined.  Note: The order of the list
 returned in unspecified."
-  (hash-fold (lambda (name services result)
-               (let ((service (lookup-canonical-service name services)))
-                 (if service
-                     (cons service result)
-                     result)))
-             '()
-             %services))
+  (fold-services cons '()))
 
-(define (find-service pred)
-  "Return the first service that matches PRED, or #f if none was found."
-  (call/ec
-   (lambda (return)
-     (hash-fold (lambda (name services _)
-                  (and=> (find pred services)
-                         return))
-                #f
-                %services)
-     #f)))
+(define find-service
+  (let ((reply (make-channel)))
+    (lambda (pred)
+      "Return the first service that matches PRED, or #f if none was found."
+      (call/ec
+       (lambda (return)
+         (fold-services (lambda (service _)
+                          (and (pred service)
+                               (return service)))
+                        #f))))))
 
-(define (lookup-services name)
-  "Return a (possibly empty) list of services that provide NAME."
-  (hashq-ref %services name '()))
+(define lookup-services
+  (let ((reply (make-channel)))
+    (lambda (name)
+      "Return a (possibly empty) list of services that provide NAME."
+      (put-message (current-monitor-channel) `(lookup ,name ,reply))
+      (get-message reply))))
 
 (define waitpid*
   (lambda (what flags)
@@ -1937,13 +2058,14 @@ been sent, send it @code{SIGKILL}."
 PID is in its @code{running} slot; @var{status} is the process's exit status
 as returned by @code{waitpid}.  This procedure is called right after the
 process has terminated."
-  ((slot-ref service 'handle-termination) service status))
+  (let ((running (service-running-value service)))
+    (put-message (current-monitor-channel) `(notify-termination ,service))
+    ((slot-ref service 'handle-termination) service running status)))
 
 (define (respawn-service serv)
   "Respawn a service that has stopped running unexpectedly. If we have
 attempted to respawn the service a number of times already and it keeps dying,
 then disable it."
-  (slot-set! serv 'running #f)
   (if (and (respawn? serv)
            (not (respawn-limit-hit? (slot-ref serv 'last-respawns)
                                     (car respawn-limit)
@@ -1964,7 +2086,7 @@ then disable it."
         (slot-set! serv 'enabled? #f)
 
         (when (transient? serv)
-          (hashq-remove! %services (canonical-name serv))
+          (put-message (current-monitor-channel) `(unregister (,serv)))
           (local-output (l10n "Transient service ~a terminated, now unregistered.")
                         (canonical-name serv))))))
 
@@ -1979,22 +2101,7 @@ is currently stopped, replace it immediately."
     (assert (list-of-symbols? (required-by new)))
     (assert (boolean? (respawn? new)))
 
-    ;; FIXME: Just because we have a unique canonical name now doesn't mean it
-    ;; will remain unique as other services are added. Whenever a service is
-    ;; added it should check that it's not conflicting with any already
-    ;; registered canonical names.
-    (match (lookup-services (canonical-name new))
-      (() ;; empty, so we can safely add ourselves
-       (for-each (lambda (name)
-		   (let ((old (lookup-services name)))
-		     (hashq-set! %services name (cons new old))))
-	         (provided-by new)))
-      ((old . rest) ;; one service registered, it may be an old version of us
-       (assert (null? rest))
-       (assert (eq? (canonical-name new) (canonical-name old)))
-       (if (running? old)
-           (slot-set! old 'replacement new)
-           (replace-service old new)))))
+    (put-message (current-monitor-channel) `(register ,new)))
 
   (for-each register-single-service new-services))
 
@@ -2007,50 +2114,23 @@ This will remove a service either if it is identified by its canonical
 name, or if it is the only service providing the service that is
 requested to be removed."
   (define (deregister service)
-    (if (running? service)
-        (stop service))
+    (when (running? service)
+      (stop service))
     ;; Remove services provided by service from the hash table.
-    (for-each
-     (lambda (name)
-       (let ((old (lookup-services name)))
-         (if (= 1 (length old))
-             ;; Only service provides this service; remove it.
-             (hashq-remove! %services name)
-             ;; ELSE: remove service from providing services.
-             (hashq-set! %services name
-                         (remove
-                          (lambda (lk-service)
-                            (eq? (canonical-name service)
-                                 (canonical-name lk-service)))
-                          old)))))
-     (provided-by service)))
-  (define (service-pairs)
-    "Return '(name . service) of all user-registered services."
-    (filter identity
-            (hash-map->list
-             (lambda (key value)
-               (match value
-                 ((service)     ; only one service associated with KEY
-                  (and (eq? key (canonical-name service))
-                       (not (memq key '(root shepherd)))
-                       (cons key service)))
-                 (_ #f)))               ; all other cases: #f.
-             %services)))
+    (put-message (current-monitor-channel)
+                 `(unregister ,(list service))))
 
   (let ((name (string->symbol service-name)))
     (cond ((eq? name 'all)
            ;; Special 'remove all' case.
-           (let ((pairs (service-pairs)))
-             (local-output (l10n "Unloading all optional services: '~a'...")
-                           (map car pairs))
-             (for-each deregister (map cdr pairs))
-             (local-output (l10n "Done."))))
+           (put-message (current-monitor-channel) `(unregister-all))
+           #t)
           (else
            ;; Removing only one service.
            (match (lookup-services name)
-             (()                        ; unknown service
+             (()                                  ; unknown service
               (raise (condition (&missing-service-error (name name)))))
-             ((service)             ; only SERVICE provides NAME
+             ((service)                     ; only SERVICE provides NAME
               ;; Are we removing a user service…
               (if (eq? (canonical-name service) name)
                   (local-output (l10n "Removing service '~a'...") name)
@@ -2060,7 +2140,7 @@ requested to be removed."
                    (canonical-name service) name))
               (deregister service)
               (local-output (l10n "Done.")))
-             ((services ...)            ; ambiguous NAME
+             ((services ...)                      ; ambiguous NAME
               (local-output
                "Not unloading: '~a' names several services: '~a'."
                name (map canonical-name services))))))))
@@ -2134,8 +2214,11 @@ where prctl/PR_SET_CHILD_SUBREAPER is unsupported."
 	      #t)
     #:stop (lambda (unused . args)
 	     (local-output (l10n "Exiting shepherd..."))
+
 	     ;; Prevent that we try to stop ourself again.
-	     (slot-set! root-service 'running #f)
+	     (put-message (current-monitor-channel)
+                          `(notify-termination ,root-service))
+
              (shutdown-services)
 	     (quit))
     ;; All actions here need to take care that they do not invoke any
@@ -2262,4 +2345,3 @@ when in interactive mode, i.e. with `--socket=none'."
       (lambda (running)
 	(local-output (l10n "You must be kidding.")))))))
 
-(register-services root-service)

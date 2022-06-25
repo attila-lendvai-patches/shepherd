@@ -649,19 +649,6 @@ several services, one will be started.  By default, this slot
 contains the empty list.
 
 @item
-@vindex running (slot of <service>)
-@cindex Hook for individual services
-@code{running} is a hook that can be used by each service in its own
-way.  The default value is @code{#f}, which indicates that the service
-is not running. When an attempt is made to start the service, it will
-be set to the return value of the procedure in the @code{start} slot.
-It will also be passed as an argument to the procedure in the
-@code{stop} slot.  If it is set a value that is an integer, it is
-assumed to be a process id, and shepherd will monitor the process for
-unexpected exits.  If it is a procedure, that procedure is called to get
-at the underlying value.  This slot cannot be initialized with a keyword.
-
-@item
 @vindex respawn? (slot of <service>)
 @cindex Respawning services
 @code{respawn?} specifies whether the service should be respawned by
@@ -725,8 +712,8 @@ returns @code{#f} and performs no further actions.
 @vindex handle-termination (slot of <service>)
 @cindex Termination of a service's process.
 The @code{handle-termination} slot contains the procedure to call when
-the process associated with a service---the process whose PID appears in
-the @code{running} slot---terminates.  It is passed the service and its
+the process associated with a service terminates.  It is passed the
+service, the PID of the terminating process, and its
 exit status, an integer as returned by @code{waitpid} (@pxref{Processes,
 @code{waitpid},, guile, GNU Guile Reference Manual}).
 
@@ -783,9 +770,8 @@ required symbol can not be started, it will look for another service
 that also provides this symbol, until starting one such service
 succeeds.  There is some room for theoretical improvement here, of
 course, but in practice the current strategy already works very well.
-This method returns the new value of the @code{running} slot
-@ref{Slots of services}, which is @code{#f} if the service could not
-be started.
+This method returns the new ``running value'' of the service,
+@code{#f} if the service could not be started.
 @end deffn
 
 @deffn {method} stop (obj <service>)
@@ -793,7 +779,7 @@ This will stop the service @var{obj}, trying to stop services that
 depend in it first, so they can be shutdown cleanly.  If this will
 fail, it will continue anyway.  Stopping of services should usually
 succeed, though.  Otherwise, the behaviour is very similar to the
-@code{start} method.  The return value is also the new @code{running}
+@code{start} method.  The return value is also the new running
 value, thus @code{#f} if the service was stopped.
 @end deffn
 
@@ -865,7 +851,7 @@ This macro is used to create a value for the @code{actions} slot of a
 service object @ref{Slots of services}.  Each @var{name} is a symbol
 and each @var{proc} the corresponding procedure that will be called to
 perform the action.  A @var{proc} has one argument, which will be the
-current value of the @code{running} slot of the service.
+running value of the service.
 @end deffn
 
 @deffn {method} start (obj <symbol>)
@@ -980,6 +966,10 @@ Return a procedure that sends @var{signal} to the process group of the PID
 given as argument, where @var{signal} defaults to @code{SIGTERM}.  If the
 process is still running after @var{grace-period} seconds, send it
 @code{SIGKILL}.  The procedure returns once the process has terminated.
+
+This @emph{does} work together with respawning services,
+because in that case the @code{stop} method of the @code{<service>}
+arranges so that the service is not respawned.
 @end deffn
 
 The @code{make-forkexec-constructor} procedure builds upon the following
