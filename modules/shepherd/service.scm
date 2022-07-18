@@ -685,7 +685,11 @@ denoting what the service provides."
 
 (define (report-exception action service key args)
   "Report an exception of type KEY in user code ACTION of SERVICE."
-  ;; FIXME: Would be nice to log it without sending the message to the client.
+  (log-with-backtrace
+   log-level.error
+   key args
+   "Action '~A' of service '~A' threw an exception"
+   action service)
   (raise (condition (&action-runtime-error
                      (service service)
                      (action action)
