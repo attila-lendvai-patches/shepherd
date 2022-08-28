@@ -1,5 +1,5 @@
 ;; comm.scm -- Communication between processes and general output.
-;; Copyright (C) 2013, 2014, 2016, 2018, 2019 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013, 2014, 2016, 2018, 2019, 2022 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
 ;; Copyright (C) 2018 Danny Milosavljevic <dannym@scratchpost.org>
 ;;
@@ -238,7 +238,9 @@ mechanism."
                 (apply throw args)))))
 
       (or (and port (not (port-closed? port)) (call/syslog))
-          (let ((sock (socket AF_UNIX SOCK_DGRAM 0)))
+          (let ((sock (socket AF_UNIX
+                              (logior SOCK_CLOEXEC SOCK_DGRAM)
+                              0)))
             (catch 'system-error
               (lambda ()
                 (connect sock AF_UNIX "/dev/log")
