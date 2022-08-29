@@ -24,9 +24,7 @@
   #:use-module (shepherd config)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
-  #:export (buffering-mode
-
-            caught-error
+  #:export (caught-error
             assert
             label
 
@@ -67,14 +65,6 @@
             %user-runtime-dir
 
             verify-dir))
-
-(define-syntax buffering-mode
-  (syntax-rules (line block none)
-    "Return the appropriate buffering mode depending on whether we're on Guile
-2.0 or later."
-    ((_ line) 'line)
-    ((_ block) 'block)
-    ((_ none) 'none)))
 
 ;; Report the caught error.
 ;; FIXME: Needs some more work.
@@ -204,8 +194,8 @@ output port, and PROC's result is returned."
 
   (bindtextdomain %gettext-domain %localedir)
   (textdomain %gettext-domain)
-  (setvbuf (current-output-port) (buffering-mode line))
-  (setvbuf (current-error-port) (buffering-mode line)))
+  (setvbuf (current-output-port) 'line)
+  (setvbuf (current-error-port) 'line))
 
 ;; Localized version of STR.
 (define-syntax l10n

@@ -217,7 +217,7 @@ already ~a threads running, disabling 'signalfd' support")
          (let next-command ()
            (match (accept sock)
              ((command-source . client-address)
-              (setvbuf command-source (buffering-mode block) 1024)
+              (setvbuf command-source 'block 1024)
               (spawn-fiber
                (lambda ()
                  (process-connection command-source))))

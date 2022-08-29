@@ -1,5 +1,5 @@
 # GNU Shepherd --- Make sure shepherd tolerates misbehaved clients.
-# Copyright © 2016, 2018 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2016, 2018, 2022 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -68,7 +68,7 @@ $herd status			# still here?
 (use-modules (shepherd comm) (shepherd support))
 
 (let ((sock (open-connection \"$socket\")))
-  (setvbuf sock (buffering-mode block) 5000)
+  (setvbuf sock 'block 5000)
   (write-command (shepherd-command 'status 'root) sock)
 
   ;; Close prematurely, right after sending the command.
