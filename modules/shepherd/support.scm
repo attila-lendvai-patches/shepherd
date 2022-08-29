@@ -28,6 +28,7 @@
             assert
             label
 
+            buffering
             catch-system-error
             with-system-error-handling
             with-atomic-file-output
@@ -93,6 +94,11 @@
   (lambda args
     (letrec ((NAME PROC))
       (apply NAME args))))
+
+(define (buffering port type . args)
+  "Return PORT after changing its buffering to TYPE and ARGS."
+  (apply setvbuf port type args)
+  port)
 
 ;; Evaluate `EXPR ...' until a system error occurs, then skip the
 ;; remaining code.

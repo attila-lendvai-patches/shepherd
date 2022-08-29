@@ -253,6 +253,10 @@ already ~a threads running, disabling 'signalfd' support")
     ;; the signal thread.
     (maybe-signal-port %precious-signals))
 
+  (define log-flags
+    ;; Flags for 'open' when opening the log file.
+    (logior O_CREAT O_APPEND O_WRONLY O_CLOEXEC))
+
   (initialize-cli)
 
   (let ((config-file #f)
@@ -335,11 +339,13 @@ already ~a threads running, disabling 'signalfd' support")
     ;; Enable logging as first action.
     (parameterize ((log-output-port
                     (cond (logfile
-                           (open-file logfile "al"))
+                           (buffering (open logfile log-flags)
+                                      'line))
                           ((zero? (getuid))
                            (syslog-output-port))
                           (else
-                           (open-file (user-default-log-file) "al"))))
+                           (buffering (open (user-default-log-file) log-flags)
+                                      'line))))
                    (%current-logfile-date-format
                     (if (and (not logfile) (zero? (getuid)))
                         (format #f "shepherd[~d]: " (getpid))
