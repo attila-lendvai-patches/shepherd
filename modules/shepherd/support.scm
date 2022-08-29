@@ -26,7 +26,6 @@
   #:use-module (ice-9 format)
   #:export (caught-error
             assert
-            label
 
             buffering
             catch-system-error
@@ -88,12 +87,6 @@
        (begin
 	 (local-output (l10n "Assertion ~a failed.") 'EXPR)
 	 (throw 'assertion-failed))))
-
-;; Recursive procedures.
-(define-syntax-rule (label NAME PROC)
-  (lambda args
-    (letrec ((NAME PROC))
-      (apply NAME args))))
 
 (define (buffering port type . args)
   "Return PORT after changing its buffering to TYPE and ARGS."
