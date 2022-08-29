@@ -879,7 +879,8 @@ daemon writing FILE is running in a separate PID namespace."
 (define (%service-file-logger file input)
   "Like 'service-file-logger', but doesn't handle the case in which FILE does
 not exist."
-  (let* ((fd     (open-fdes file (logior O_CREAT O_WRONLY O_APPEND) #o640))
+  (let* ((fd     (open-fdes file (logior O_CREAT O_WRONLY O_APPEND O_CLOEXEC)
+                            #o640))
          (output (fdopen fd "al")))
     (set-port-encoding! output "UTF-8")
     (set-port-conversion-strategy! output 'substitute)
