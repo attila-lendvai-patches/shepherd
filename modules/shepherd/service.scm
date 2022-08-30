@@ -1277,6 +1277,14 @@ permissions for its parent directory."
                  socket-owner socket-group
                  socket-directory-permissions))
 
+(define (close-on-exec-endpoint endpoint)
+  "Return ENDPOINT with SOCK_CLOEXEC added to its 'style'."
+  (match endpoint
+    (($ <endpoint> name address style backlog
+                   owner group permissions)
+     (make-endpoint name address (logior SOCK_CLOEXEC style) backlog
+                    owner group permissions))))
+
 (define (endpoint->listening-socket endpoint)
   "Return a listening socket for ENDPOINT."
   (match endpoint
@@ -1546,7 +1554,10 @@ rejecting connection from ~:[~a~;~*local process~].")
                                                  #:socket-group socket-group
                                                  #:socket-directory-permissions
                                                  socket-directory-permissions)))))
-           (sockets   (open-sockets endpoints)))
+           (sockets   (open-sockets
+                       ;; Listening sockets are not passed to the child
+                       ;; process so they can be closed on 'exec'.
+                       (map close-on-exec-endpoint endpoints))))
       (for-each (lambda (endpoint socket)
                   (spawn-fiber
                    (accept-clients (endpoint-address endpoint)
