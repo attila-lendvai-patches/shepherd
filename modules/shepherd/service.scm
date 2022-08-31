@@ -1290,8 +1290,9 @@ permissions for its parent directory."
   (match endpoint
     (($ <endpoint> name address style backlog
                    owner group permissions)
-     (let* ((sock    (non-blocking-port
-                      (socket (sockaddr:fam address) style 0)))
+     (let* ((sock    (socket (sockaddr:fam address)
+                             (logior SOCK_NONBLOCK style)
+                             0))
             (owner   (if (integer? owner)
                          owner
                          (passwd:uid (getpwnam owner))))
