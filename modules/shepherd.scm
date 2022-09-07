@@ -45,11 +45,9 @@
   "Open a socket at FILE-NAME, and listen for connections there."
   (with-fluids ((%default-port-encoding "UTF-8"))
     (let ((sock    (socket PF_UNIX
-                           (logior SOCK_STREAM SOCK_CLOEXEC)
+                           (logior SOCK_STREAM SOCK_NONBLOCK SOCK_CLOEXEC)
                            0))
           (address (make-socket-address AF_UNIX file-name)))
-      (fcntl sock F_SETFL (logior O_NONBLOCK
-                                  (fcntl sock F_GETFL)))
       (bind sock address)
       (listen sock 10)
       sock)))
