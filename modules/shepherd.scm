@@ -151,8 +151,28 @@ already ~a threads running, disabling 'signalfd' support")
     ((signal-handler signal))))
 
 
+(define (mark-as-close-on-exec)
+  "Mark all the open file descriptors as close-on-exec."
+  (define max-fd
+    (max-file-descriptors))
+
+  (let loop ((fd 3))
+    (when (< fd max-fd)
+      (catch-system-error
+       (let ((flags (fcntl fd F_GETFD)))
+         (when (zero? (logand flags FD_CLOEXEC))
+           (fcntl fd F_SETFD (logior FD_CLOEXEC flags)))))
+      (loop (+ fd 1)))))
+
 (define* (run-daemon #:key (config-file (default-config-file)) persistency
                      socket-file pid-file signal-port poll-services?)
+  ;; We might have file descriptors inherited from our parent, as well as file
+  ;; descriptors wrongfully opened by Guile or Fibers (see
+  ;; <https://bugs.gnu.org/57567> and
+  ;; <https://github.com/wingo/fibers/commit/1f834cb81126dea2fd47d3d7ebb2d21f798a3c8b>);
+  ;; mark them all as FD_CLOEXEC so child processes do not inherit them.
+  (mark-as-close-on-exec)
+
   ;; This _must_ succeed.  (We could also put the `catch' around
   ;; `main', but it is often useful to get the backtrace, and
   ;; `caught-error' does not do this yet.)
