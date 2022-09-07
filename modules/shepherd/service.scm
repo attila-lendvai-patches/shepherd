@@ -1004,6 +1004,7 @@ false."
              (dup2 1 2)
 
              ;; Make EXTRA-PORTS available starting from file descriptor 3.
+             ;; This clears their FD_CLOEXEC flag.
              (let loop ((fd    3)
                         (ports extra-ports))
                (match ports
@@ -1277,21 +1278,16 @@ permissions for its parent directory."
                  socket-owner socket-group
                  socket-directory-permissions))
 
-(define (close-on-exec-endpoint endpoint)
-  "Return ENDPOINT with SOCK_CLOEXEC added to its 'style'."
-  (match endpoint
-    (($ <endpoint> name address style backlog
-                   owner group permissions)
-     (make-endpoint name address (logior SOCK_CLOEXEC style) backlog
-                    owner group permissions))))
-
 (define (endpoint->listening-socket endpoint)
   "Return a listening socket for ENDPOINT."
   (match endpoint
     (($ <endpoint> name address style backlog
                    owner group permissions)
+     ;; Make listening sockets SOCK_CLOEXEC: inetd-style services don't pass
+     ;; them to the child process, and systemd-style do pass them but call
+     ;; 'dup2' right before 'exec', thereby clearing this property.
      (let* ((sock    (socket (sockaddr:fam address)
-                             (logior SOCK_NONBLOCK style)
+                             (logior SOCK_NONBLOCK SOCK_CLOEXEC style)
                              0))
             (owner   (if (integer? owner)
                          owner
@@ -1555,10 +1551,7 @@ rejecting connection from ~:[~a~;~*local process~].")
                                                  #:socket-group socket-group
                                                  #:socket-directory-permissions
                                                  socket-directory-permissions)))))
-           (sockets   (open-sockets
-                       ;; Listening sockets are not passed to the child
-                       ;; process so they can be closed on 'exec'.
-                       (map close-on-exec-endpoint endpoints))))
+           (sockets   (open-sockets endpoints)))
       (for-each (lambda (endpoint socket)
                   (spawn-fiber
                    (accept-clients (endpoint-address endpoint)
