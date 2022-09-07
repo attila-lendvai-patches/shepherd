@@ -76,4 +76,21 @@ $herd status			# still here?
 
 $herd status
 
+"$GUILE" -c "
+(use-modules (shepherd comm) (shepherd support) (ice-9 match))
+
+(let ((sock (open-connection \"$socket\")))
+  (setvbuf sock 'none)
+  (display \"(ah ha!\" sock)
+  ;; Leave it hanging; shepherd must not block.
+  (let ((sock (open-connection \"$socket\")))
+    (write-command (shepherd-command 'status 'does-not-exist) sock)
+    (match (read sock)
+      (('reply _ ...) #t)
+      (x
+       (pk 'wrong x)
+       (exit 1)))))"
+
+$herd status
+
 cat "$log"
