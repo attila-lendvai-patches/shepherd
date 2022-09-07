@@ -1082,6 +1082,9 @@ services, specifically those in @code{nowait} mode where the daemon is
 passed the newly-accepted socket connection while @command{shepherd} is
 in charge of listening.
 
+@anchor{endpoints}
+@cindex endpoints, for inetd services
+@cindex endpoints, for systemd services
 Listening endpoints for such services are described as records built
 using the @code{endpoint} procedure:
 
@@ -1284,24 +1287,29 @@ enabled by passing the @option{-i} command-line option:
     #:provides '(sshd ssh-daemon)
     #:start (make-inetd-constructor
              '("/usr/sbin/sshd" "-D" "-i")
-             (make-socket-address AF_INET INADDR_ANY 22)
+             (list (endpoint
+                    (make-socket-address AF_INET INADDR_ANY 22))
+                   (endpoint
+                    (make-socket-address AF_INET6 IN6ADDR_ANY 22)))
              #:max-connections 10)
-    #:stop (make-kill-destructor)
+    #:stop (make-inetd-destructor)
     #:respawn? #t))
 
 (register-services sshd)
 (start-in-the-background '(sshd))
 @end lisp
 
-The @code{make-socket-address} procedure call above returns the
-@dfn{listening address} (@pxref{Network Socket Address,,, guile, GNU
+The @code{make-socket-address} procedure calls above return the
+@dfn{listening addresses} (@pxref{Network Socket Address,,, guile, GNU
 Guile Reference Manual}).  In this case, it specifies that
 @command{shepherd} will accept connections coming from any network
-interface (``0.0.0.0'' in IPv4 notation) on port 22.  When a client
-connects, @command{shepherd} accepts it and spawns @command{sshd -D -i}
-as a new @dfn{transient service}, passing it the client connection.  The
-@code{#:max-connections} parameter instructs @command{shepherd} to
-accept at most 10 simultaneous client connections.
+interface (``0.0.0.0'' in IPv4 notation and ``::0'' for IPv6) on port
+22.  The @code{endpoint} calls wrap these addresses in endpoint records
+(@pxref{endpoints}).  When a client connects, @command{shepherd} accepts
+it and spawns @command{sshd -D -i} as a new @dfn{transient service},
+passing it the client connection.  The @code{#:max-connections}
+parameter instructs @command{shepherd} to accept at most 10 simultaneous
+client connections.
 
 In these examples, we haven't discussed dependencies among
 services---the @code{#:requires} keyword of @code{<service>}---nor did
