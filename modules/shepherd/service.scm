@@ -1098,7 +1098,7 @@ environment variable used for systemd-style \"socket activation\"."
   ;; handler, which stops shepherd, is called.  To avoid this, block signals
   ;; so that the child process never executes those handlers.
   (with-blocked-signals %precious-signals
-    (match (pipe)
+    (match (pipe2 O_CLOEXEC)
       ((log-input . log-output)
        (let ((pid (primitive-fork)))
          (if (zero? pid)
