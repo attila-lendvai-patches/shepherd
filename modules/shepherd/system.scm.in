@@ -33,6 +33,7 @@
             PR_SET_CHILD_SUBREAPER
             getpgid
             ipv6-only
+            pipe2
             SFD_CLOEXEC
             signalfd
             consume-signalfd-siginfo
@@ -151,6 +152,43 @@ only (by default, Linux binds AF_INET6 addresses on IPv4 as well)."
   ;; As of Guile 3.0.8, IPPROTO_IPV6 and IPV6_V6ONLY are not exported.
   (setsockopt port @IPPROTO_IPV6@ @IPV6_V6ONLY@ 1)
   port)
+
+(define-syntax define-as-needed             ;copied from (guix build syscalls)
+  (syntax-rules ()
+    "Define VARIABLE.  If VARIABLE already exists in (guile) then re-export it,
+  otherwise export the newly-defined VARIABLE."
+    ((_ (proc args ...) body ...)
+     (define-as-needed proc (lambda* (args ...) body ...)))
+    ((_ variable value)
+     (if (module-defined? the-scm-module 'variable)
+         (module-re-export! (current-module) '(variable))
+         (begin
+           (module-define! (current-module) 'variable value)
+           (module-export! (current-module) '(variable)))))))
+
+(define-as-needed pipe2
+  ;; Use 'define-as-needed' in case Guile > 3.0.8 comes with a same-named
+  ;; binding.
+  (let ((proc (syscall->procedure int "pipe2" `(* ,int))))
+    (lambda* (#:optional (flags 0))
+      "Return a newly created pipe: a pair of ports linked together on the
+local machine.  The car is the input port, and the cdr is the output port.
+
+The difference compared to 'pipe' is that is the optional FLAGS argument."
+      (let* ((bv  (make-bytevector (* (sizeof int) 2)))
+             (ptr (bytevector->pointer bv)))
+        (let-values (((result err) (proc ptr flags)))
+          (if (zero? result)
+              (let ((in  (bytevector-sint-ref bv 0
+                                              (native-endianness)
+                                              (sizeof int)))
+                    (out (bytevector-sint-ref bv (sizeof int)
+                                              (native-endianness)
+                                              (sizeof int))))
+                (cons (fdopen in "r") (fdopen out "w")))
+              (throw 'system-error "pipe2" "~A"
+                     (list (strerror err))
+                     (list err))))))))
 
 (define (allocate-sigset)
   (bytevector->pointer (make-bytevector @SIZEOF_SIGSET_T@)))
