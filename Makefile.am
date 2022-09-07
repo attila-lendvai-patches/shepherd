@@ -245,7 +245,8 @@ TESTS =						\
   tests/transient.sh				\
   tests/inetd.sh				\
   tests/systemd.sh				\
-  tests/signals.sh
+  tests/signals.sh				\
+  tests/close-on-exec.sh
 
 TEST_EXTENSIONS = .sh
 EXTRA_DIST += $(TESTS)
@@ -254,7 +255,7 @@ AM_TESTS_ENVIRONMENT =				\
   unset XDG_CONFIG_HOME; unset LANGUAGE;	\
   LC_ALL=C LC_MESSAGES=C			\
   PATH="$(abs_top_builddir):$$PATH"		\
-  SHELL="$(SHELL)" GUILE="$(GUILE)"		\
+  SHELL="$(SHELL)" GUILE="$(GUILE)" CC="$(CC)"	\
   GUILE_LOAD_PATH="$(abs_top_srcdir)/modules:$(abs_top_builddir)/modules:$$GUILE_LOAD_PATH" \
   GUILE_LOAD_COMPILED_PATH="$(abs_top_srcdir)/modules:$(abs_top_builddir)/modules:$$GUILE_LOAD_COMPILED_PATH"
 

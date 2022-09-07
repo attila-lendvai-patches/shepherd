@@ -1052,6 +1052,10 @@ false."
      ;; finalization thread since we will close its pipe, leading to
      ;; "error in the finalization thread: Bad file descriptor".
      (without-automatic-finalization
+      ;; TODO: Remove this loop.  Now that all internal file descriptors are
+      ;; close-on-exec, we can safely remove this loop, unless users cause
+      ;; shepherd to evaluate code that opens non-close-on-exec file
+      ;; descriptors.
       (let loop ((i (+ 3 (length extra-ports))))
         (when (< i max-fd)
           (catch-system-error (close-fdes i))
