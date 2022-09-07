@@ -1519,7 +1519,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
     ;; Return a thunk that accepts client connections from SOCK.
     (lambda ()
       (let loop ()
-        (match (accept sock)
+        (match (accept sock SOCK_CLOEXEC)
           ((connection . client-address)
            (if (>= connection-count max-connections)
                (begin
