@@ -213,7 +213,7 @@ already ~a threads running, disabling 'signalfd' support")
 
          ;; Enter some sort of a REPL for commands.
          (let next-command ()
-           (match (accept sock)
+           (match (accept sock SOCK_CLOEXEC)
              ((command-source . client-address)
               (setvbuf command-source 'block 1024)
               (spawn-fiber
