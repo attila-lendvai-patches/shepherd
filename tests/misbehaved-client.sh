@@ -76,7 +76,13 @@ $herd status			# still here?
 
 $herd status
 
-"$GUILE" -c "
+if "$GUILE" -c '(exit (string=? "2" (major-version)))'
+then
+    # The 'read' procedure in Guile 2.2 is not suspendable.  Thus, the test
+    # below would hang forever in 'scm_read'.
+    echo "Running on Guile 2.x; skipping test that requires suspendable 'read'." >&2
+else
+    "$GUILE" -c "
 (use-modules (shepherd comm) (shepherd support) (ice-9 match))
 
 (let ((sock (open-connection \"$socket\")))
@@ -91,6 +97,7 @@ $herd status
        (pk 'wrong x)
        (exit 1)))))"
 
-$herd status
+    $herd status
+fi
 
 cat "$log"
