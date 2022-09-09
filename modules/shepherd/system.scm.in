@@ -166,6 +166,9 @@ only (by default, Linux binds AF_INET6 addresses on IPv4 as well)."
            (module-define! (current-module) 'variable value)
            (module-export! (current-module) '(variable)))))))
 
+;; Guile 2.2.7 lacks a definition for O_CLOEXEC.
+(define-as-needed O_CLOEXEC @O_CLOEXEC@)
+
 (define-as-needed pipe2
   ;; Use 'define-as-needed' in case Guile > 3.0.8 comes with a same-named
   ;; binding.

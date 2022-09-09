@@ -84,6 +84,12 @@ AC_COMPUTE_INT([_SC_OPEN_MAX], [_SC_OPEN_MAX], [#include <unistd.h>])
 AC_MSG_RESULT([$_SC_OPEN_MAX])
 AC_SUBST([_SC_OPEN_MAX])
 
+dnl Guile 2.2.7 lacks a definition for O_CLOEXEC.
+AC_MSG_CHECKING([the 'O_CLOEXEC' value])
+AC_COMPUTE_INT([O_CLOEXEC], [O_CLOEXEC], [#include <fcntl.h>])
+AC_MSG_RESULT([$O_CLOEXEC])
+AC_SUBST([O_CLOEXEC])
+
 AC_MSG_CHECKING([<sys/reboot.h> constants])
 AC_COMPUTE_INT([RB_AUTOBOOT], [RB_AUTOBOOT], [#include <sys/reboot.h>])
 case "$host_os" in
