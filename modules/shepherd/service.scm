@@ -1048,27 +1048,16 @@ false."
      (when file-creation-mask
        (umask file-creation-mask))
 
-     ;; Last, close all file descriptors.  Do that after shutting down the
-     ;; finalization thread since we will close its pipe, leading to
-     ;; "error in the finalization thread: Bad file descriptor".
-     (without-automatic-finalization
-      ;; TODO: Remove this loop.  Now that all internal file descriptors are
-      ;; close-on-exec, we can safely remove this loop, unless users cause
-      ;; shepherd to evaluate code that opens non-close-on-exec file
-      ;; descriptors.
-      (let loop ((i (+ 3 (length extra-ports))))
-        (when (< i max-fd)
-          (catch-system-error (close-fdes i))
-          (loop (+ i 1))))
-
-      (catch 'system-error
-        (lambda ()
-          (apply execlp program program args))
-        (lambda args
-          (format (current-error-port)
-                  "exec of ~s failed: ~a~%"
-                  program (strerror (system-error-errno args)))
-          (primitive-exit 1))))))))
+     (catch 'system-error
+       (lambda ()
+         ;; File descriptors used internally are all marked as close-on-exec,
+         ;; so we can fearlessly go ahead.
+         (apply execlp program program args))
+       (lambda args
+         (format (current-error-port)
+                 "exec of ~s failed: ~a~%"
+                 program (strerror (system-error-errno args)))
+         (primitive-exit 1)))))))
 
 (define %precious-signals
   ;; Signals that the shepherd process handles.
