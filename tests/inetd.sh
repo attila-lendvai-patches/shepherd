@@ -95,6 +95,11 @@ file_descriptor_count ()
     ls -l /proc/$shepherd_pid/fd/[0-9]* | wc -l
 }
 
+# Trigger startup of the finalizer thread, which creates a couple of pipes.
+# That way, those extra file descriptors won't influence the comparison with
+# INITIAL_FD_COUNT done at the end.
+$herd eval root '(gc)'
+
 initial_fd_count=$(file_descriptor_count)
 
 $herd status test-inetd | grep started
