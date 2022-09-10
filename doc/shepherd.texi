@@ -1119,7 +1119,7 @@ permissions for its parent directory.
 The inetd service constructor takes a command and a list of such
 endpoints:
 
-@deffn {procedure} make-inetd-constructor @var{command} @var{endpoints}
+@deffn {procedure} make-inetd-constructor @var{command} @var{endpoints} @
   [#:service-name-stem _] [#:requirements '()] @
   [#:max-connections (default-inetd-max-connections)] @
   [#:user #f] @
