@@ -1,0 +1,537 @@
+# Serbian translation for shepherd.
+# This file is put in the public domain.
+# Мирослав Николић <miroslavnikolic@rocketmail.com>, 2020–2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shepherd 0.9.0rc1\n"
+"Report-Msgid-Bugs-To: guix-devel@gnu.org\n"
+"POT-Creation-Date: 2022-03-30 17:00+0200\n"
+"PO-Revision-Date: 2022-09-08 20:35+0200\n"
+"Last-Translator: Мирослав Николић <miroslavnikolić@rocketmail.com>\n"
+"Language-Team: Serbian <(nothing)>\n"
+"Language: sr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Bugs: Report translation errors to the Language-Team address.\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#. TRANSLATORS: Strings occasionally contain escape sequences starting
+#. with '~' (tilde).  For example, '~a' corresponds to '%s' in C printf
+#. syntax and '~%' corresponds to '\n'.  These must be preserved as is.
+#. See
+#. <https://www.gnu.org/software/guile/manual/html_node/Formatted-Output.html>
+#. for more info.
+#: modules/shepherd/comm.scm:182
+#, scheme-format
+msgid "service '~a' could not be found"
+msgstr "не могу да нађем услугу „~a“"
+
+#: modules/shepherd/comm.scm:185
+#, scheme-format
+msgid "service '~a' does not have an action '~a'"
+msgstr "услуга „~a“ нема радњу „~a“"
+
+#: modules/shepherd/comm.scm:189
+#, scheme-format
+msgid "exception caught while executing '~a' on service '~a':"
+msgstr "ухватих изузетак приликом извршавања „~a“ на услузи „~a“:"
+
+#: modules/shepherd/comm.scm:194
+#, scheme-format
+msgid "something went wrong: ~s"
+msgstr "нешто је пошло наопако: ~s"
+
+#: modules/shepherd/scripts/herd.scm:75
+msgid "Started:\n"
+msgstr "Покренут:\n"
+
+#: modules/shepherd/scripts/herd.scm:77
+msgid "Stopped:\n"
+msgstr "Заустављен:\n"
+
+#. TRANSLATORS: Here "one-shot" refers to "one-shot services".  These are
+#. services that are immediately marked as stopped once their 'start'
+#. method has completed.
+#: modules/shepherd/scripts/herd.scm:83
+msgid "One-shot:\n"
+msgstr "Једног додира:\n"
+
+#: modules/shepherd/scripts/herd.scm:96
+#, scheme-format
+msgid "Status of ~a:~%"
+msgstr "Стање за „~a“:~%"
+
+#: modules/shepherd/scripts/herd.scm:98
+#, scheme-format
+msgid "  It is started.~%"
+msgstr "  Покренут је.~%"
+
+#. TRANSLATORS: The "~s" bit is most of the time a placeholder
+#. for the PID (an integer) of the running process, and
+#. occasionally for another Scheme object.
+#: modules/shepherd/scripts/herd.scm:103
+#, scheme-format
+msgid "  Running value is ~s.~%"
+msgstr "  Вредност покретања је ~s.~%"
+
+#: modules/shepherd/scripts/herd.scm:105
+#, scheme-format
+msgid "  It is stopped (one-shot).~%"
+msgstr "  Заустављен је (једно-додирни).~%"
+
+#: modules/shepherd/scripts/herd.scm:107
+#, scheme-format
+msgid "  It is stopped.~%"
+msgstr "  Заустављен је.~%"
+
+#: modules/shepherd/scripts/herd.scm:109
+#, scheme-format
+msgid "  It is enabled.~%"
+msgstr "  Омогућен је.~%"
+
+#: modules/shepherd/scripts/herd.scm:110
+#, scheme-format
+msgid "  It is disabled.~%"
+msgstr "  Онемогућен је.~%"
+
+#: modules/shepherd/scripts/herd.scm:111
+#, scheme-format
+msgid "  Provides ~a.~%"
+msgstr "  Обезбеђује „~a“.~%"
+
+#: modules/shepherd/scripts/herd.scm:112
+#, scheme-format
+msgid "  Requires ~a.~%"
+msgstr "  Захтева „~a“.~%"
+
+#: modules/shepherd/scripts/herd.scm:113
+#, scheme-format
+msgid "  Conflicts with ~a.~%"
+msgstr "  У сукобу је са „~a“.~%"
+
+#: modules/shepherd/scripts/herd.scm:115
+#, scheme-format
+msgid "  Will be respawned.~%"
+msgstr "  Биће поново изрођен.~%"
+
+#: modules/shepherd/scripts/herd.scm:116
+#, scheme-format
+msgid "  Will not be respawned.~%"
+msgstr "  Неће бити поново изрођен.~%"
+
+#: modules/shepherd/scripts/herd.scm:119
+#, scheme-format
+msgid "  Last respawned on ~a.~%"
+msgstr "  Последњи поново изрођен на „~a“.~%"
+
+#: modules/shepherd/scripts/herd.scm:176
+#, scheme-format
+msgid "failed to start service ~a"
+msgstr "нисам успео да покренем услугу „~a“"
+
+#: modules/shepherd/scripts/herd.scm:195
+msgid "premature end-of-file while talking to shepherd"
+msgstr "прерани крај датотеке приликом разговора са шефердом"
+
+#: modules/shepherd/scripts/herd.scm:210
+msgid "ACTION SERVICE [ARG...]"
+msgstr "РАДЊА УСЛУГА [АРГ...]"
+
+#: modules/shepherd/scripts/herd.scm:211
+msgid ""
+"Apply ACTION (start, stop, status, etc.) on \\\n"
+"SERVICE with the ARGs."
+msgstr ""
+"Примењује РАДЊУ (покрени, заустави, стање, итд.) на \\\n"
+"УСЛУЗИ са АРГ-има."
+
+#: modules/shepherd/scripts/herd.scm:219 modules/shepherd.scm:269
+#: modules/shepherd.scm:301 modules/shepherd.scm:308 modules/shepherd.scm:315
+#: modules/shepherd.scm:322
+msgid "FILE"
+msgstr "ДАТОТЕКА"
+
+#: modules/shepherd/scripts/herd.scm:220
+msgid "send commands to FILE"
+msgstr "шаље наредбе у ДАТОТЕКУ"
+
+#: modules/shepherd/scripts/herd.scm:233
+#, scheme-format
+msgid "Usage: herd ACTION [SERVICE [OPTIONS...]]~%"
+msgstr "Коришћење: herd РАДЊА [УСЛУГА [ОПЦИЈЕ...]]~%"
+
+#: modules/shepherd/support.scm:98
+#, scheme-format
+msgid "Assertion ~a failed."
+msgstr "Потврђивање „~a“ није успело."
+
+#. TRANSLATORS: '~a' is a placeholder for the copyright year.
+#: modules/shepherd/support.scm:225
+#, scheme-format
+msgid "Copyright (C) ~a the Shepherd authors"
+msgstr "Ауторска права © ~a аутори Шеферда"
+
+#: modules/shepherd/support.scm:226
+msgid ""
+"License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"
+"This is free software: you are free to change and redistribute it.\n"
+"There is NO WARRANTY, to the extent permitted by law."
+msgstr ""
+"Лиценца ОЈЛв3+: ГНУ ОЈЛ издање 3 или новије <http://gnu.org/licenses/gpl.html>\n"
+"Ово је слободан софтвер: можете да га мењате и расподељујете.\n"
+"Нема НИКАКВЕ ГАРАНЦИЈЕ, у складу са законом."
+
+#. TRANSLATORS: Please keep double semicolons at the beginning of each
+#. line: they introduce comments in the Scheme language.  Also, keep
+#. "shepherd" untranslated.  Thank you!  :-)
+#: modules/shepherd/support.scm:298
+msgid ";; init.scm -- default shepherd configuration file.\n"
+msgstr ";; init.scm -- основна датотека подешавања шеферда.\n"
+
+#: modules/shepherd/support.scm:300
+msgid ""
+";; Services known to shepherd:\n"
+";; Add new services (defined using 'make <service>') to shepherd here by\n"
+";; providing them as arguments to 'register-services'.\n"
+msgstr ""
+";; Услуге познате шеферду:\n"
+";; Додаје нове услуге (одређене коришћењем „make <услуга>“) шеферду овде\n"
+";; тако што их обезбеђује као аргументе за „register-services“.\n"
+
+#: modules/shepherd/support.scm:305
+msgid ";; Send shepherd into the background\n"
+msgstr ";; Шаље шеферд у позадину\n"
+
+#: modules/shepherd/support.scm:308
+msgid ""
+";; Services to start when shepherd starts:\n"
+";; Add the name of each service that should be started to the list\n"
+";; below passed to 'for-each'.\n"
+msgstr ""
+";; Услуге за покретање када се покрене и шеферд:\n"
+";; Додајте назив сваке услуге која треба да се покрене на\n"
+";; списак испод прослеђен на „for-each“.\n"
+
+#: modules/shepherd/support.scm:403
+msgid "Socket directory setup is insecure."
+msgstr "Поставка директоријума прикључнице није безбедна."
+
+#: modules/shepherd/service.scm:194
+#, scheme-format
+msgid "Service ~a (PID ~a) exited with ~a."
+msgstr "Услуга „~a“ (ПИД ~a) је изашла са „~a“."
+
+#: modules/shepherd/service.scm:200
+#, scheme-format
+msgid "Service ~a (PID ~a) terminated with signal ~a."
+msgstr "Услуга „~a“ (ПИД ~a) је окончана сигналом „~a“."
+
+#: modules/shepherd/service.scm:206
+#, scheme-format
+msgid "Service ~a (PID ~a) stopped with signal ~a."
+msgstr "Услуга „~a“ (ПИД ~a) је заустављена сигналом „~a“."
+
+#: modules/shepherd/service.scm:373
+#, scheme-format
+msgid "Enabled service ~a."
+msgstr "Укључих услугу „~a“."
+
+#: modules/shepherd/service.scm:378
+#, scheme-format
+msgid "Disabled service ~a."
+msgstr "Искључих услугу „~a“."
+
+#: modules/shepherd/service.scm:383
+#, scheme-format
+msgid "Service ~a is already running."
+msgstr "Услуга „~a“ је већ покренута."
+
+#: modules/shepherd/service.scm:387
+#, scheme-format
+msgid "Service ~a is currently disabled."
+msgstr "Услуга „~a“ је тренутно искључена."
+
+#: modules/shepherd/service.scm:392
+#, scheme-format
+msgid "Service ~a conflicts with running services ~a."
+msgstr "Услуга „~a“ се сукобљава са покренутим услугама „~a“."
+
+#: modules/shepherd/service.scm:404
+#, scheme-format
+msgid "Service ~a depends on ~a."
+msgstr "Услуга „~a“ зависи од „~a“."
+
+#: modules/shepherd/service.scm:421
+#, scheme-format
+msgid "Service ~a has been started."
+msgstr "Услуга „~a“ је покренута."
+
+#: modules/shepherd/service.scm:422
+#, scheme-format
+msgid "Service ~a could not be started."
+msgstr "Услуга „~a“ се не може покренути."
+
+#: modules/shepherd/service.scm:463
+#, scheme-format
+msgid "Service ~a is not running."
+msgstr "Услуга „~a“ није покренута."
+
+#: modules/shepherd/service.scm:469
+#, scheme-format
+msgid "Service ~a pending to be stopped."
+msgstr "Услуга „~a“ је заказана за заустављање."
+
+#: modules/shepherd/service.scm:505
+#, scheme-format
+msgid "Service ~a could not be stopped."
+msgstr "Услуга „~a“ се не може зауставити."
+
+#: modules/shepherd/service.scm:507
+#, scheme-format
+msgid "Service ~a has been stopped."
+msgstr "Услуга „~a“ је заустављена."
+
+#: modules/shepherd/service.scm:512
+#, scheme-format
+msgid "Transient service ~a unregistered."
+msgstr "Прелазна услуга „~a“ није регистрована."
+
+#: modules/shepherd/service.scm:602
+msgid "Unknown keyword.  Try 'doc root help'."
+msgstr "Непозната кључна реч.  Покушајте „doc root help“."
+
+#: modules/shepherd/service.scm:731
+#, scheme-format
+msgid "Failed to start ~a in the background."
+msgstr "Нисам успео да покренем „~a“ у позадини."
+
+#: modules/shepherd/service.scm:760
+#, scheme-format
+msgid "No service provides ~a."
+msgstr "Ниједна услуга не обезбеђује „~a“."
+
+#: modules/shepherd/service.scm:1361
+#, scheme-format
+msgid "~a connection still in use after ~a termination."
+msgstr "„~a“ веза је још у употреби након „~a“ окончања."
+
+#: modules/shepherd/service.scm:1423
+#, scheme-format
+msgid "Maximum number of ~a clients reached; rejecting connection from ~:[~a~;~*local process~]."
+msgstr "Највећи број „~a“ клијената је достигнут; одбијам везу од „~:[~a~;~*local процес~]“."
+
+#: modules/shepherd/service.scm:1432
+#, scheme-format
+msgid "Accepted connection on ~a from ~:[~a~;~*local process~]."
+msgstr "Прихваћена је веза на „~a“ од „~:[~a~;~*local процес~]“."
+
+#: modules/shepherd/service.scm:1588
+#, scheme-format
+msgid "Spawning systemd-style service ~a."
+msgstr "Израђам услугу „~a“ „systemd-стила“."
+
+#: modules/shepherd/service.scm:1748
+#, scheme-format
+msgid "Respawning ~a."
+msgstr "Поново израђам „~a“."
+
+#: modules/shepherd/service.scm:1758
+#, scheme-format
+msgid "Service ~a terminated."
+msgstr "Услуга „~a“ је окончана."
+
+#: modules/shepherd/service.scm:1762
+#, scheme-format
+msgid "Service ~a has been disabled."
+msgstr "Услуга „~a“ је искључена."
+
+#: modules/shepherd/service.scm:1765
+msgid "  (Respawning too fast.)"
+msgstr "  (Поновно израђање је пребрзо.)"
+
+#: modules/shepherd/service.scm:1770
+#, scheme-format
+msgid "Transient service ~a terminated, now unregistered."
+msgstr "Прелазна услуга „~a“ је окончана, сада нерегистрована."
+
+#: modules/shepherd/service.scm:1846
+#, scheme-format
+msgid "Unloading all optional services: '~a'..."
+msgstr "Растоварам све изборне услуге: „~a“..."
+
+#: modules/shepherd/service.scm:1849 modules/shepherd/service.scm:1864
+msgid "Done."
+msgstr "Готово."
+
+#: modules/shepherd/service.scm:1858
+#, scheme-format
+msgid "Removing service '~a'..."
+msgstr "Уклањам услугу „~a“..."
+
+#: modules/shepherd/service.scm:1871
+#, scheme-format
+msgid "Loading ~a."
+msgstr "Учитавам „~a“."
+
+#: modules/shepherd/service.scm:1919
+#, scheme-format
+msgid "PID ~a (~a) is dead!"
+msgstr "ПИБ „~a“ (~a) је мртав!"
+
+#: modules/shepherd/service.scm:1934
+msgid "Exiting shepherd..."
+msgstr "Излазим из шеферда..."
+
+#: modules/shepherd/service.scm:1972
+msgid "Halting..."
+msgstr "Заустављам..."
+
+#: modules/shepherd/service.scm:1981
+msgid "Shutting down..."
+msgstr "Гасим..."
+
+#: modules/shepherd/service.scm:1994
+#, scheme-format
+msgid "Evaluating user expression ~a."
+msgstr "Процењујем корисников израз „~a“."
+
+#: modules/shepherd/service.scm:2023
+msgid "Running as PID 1, so not daemonizing."
+msgstr "Ради као ПИБ 1, тако да не демонизујем."
+
+#: modules/shepherd/service.scm:2054
+msgid "You must be kidding."
+msgstr "Мора да се шалите."
+
+#: modules/shepherd/args.scm:45
+msgid "undocumented option"
+msgstr "недокументована опција"
+
+#: modules/shepherd/args.scm:137
+msgid "display version information and exit"
+msgstr "приказује податке о издању и излази"
+
+#: modules/shepherd/args.scm:143
+msgid "display short usage message and exit"
+msgstr "приказује кратку поруку о коришћењу и излази"
+
+#: modules/shepherd/args.scm:190
+msgid "display this help and exit"
+msgstr "приказује ову помоћ и излази"
+
+#: modules/shepherd/args.scm:194
+msgid " [OPTIONS...] "
+msgstr " [ОПЦИЈЕ...] "
+
+#. TRANSLATORS: The '~a' placeholders indicate the
+#. bug-reporting address, the name of this
+#. package, and its home page URL.  Please add
+#. another line saying "Report translation bugs to
+#. ...\n" with the address for translation bugs
+#. (typically your translation team's web or email
+#. address).
+#: modules/shepherd/args.scm:208
+#, scheme-format
+msgid ""
+"\n"
+"Mandatory or optional arguments to long options are also mandatory or\n"
+"optional to the corresponding short options.\n"
+"\n"
+"Report bugs to: ~a .\n"
+"~a general home page: <~a>\n"
+"General help using GNU software: <http://www.gnu.org/gethelp/>~%"
+msgstr ""
+"\n"
+"Обавезни или изборни аргументи за дуге опције су такође обавезни или\n"
+"изборни за одогварајуће кратке опције.\n"
+"\n"
+"Грешке пријавите на: ~a .\n"
+"Главна матична страница програма „~a“: <~a>\n"
+"Општа помоћ за коришћење ГНУ софтвера: <http://www.gnu.org/gethelp/>~%"
+
+#: modules/shepherd/args.scm:255
+#, scheme-format
+msgid "Option `--~a' is ambiguous."
+msgstr "Опција „--~a“ је нејасна."
+
+#: modules/shepherd/args.scm:256
+#, scheme-format
+msgid "Unknown option: `--~a'."
+msgstr "Непозната опција: „--~a“."
+
+#: modules/shepherd/args.scm:258
+msgid "Try `--help'."
+msgstr "Пробајте „--help“."
+
+#: modules/shepherd/args.scm:282
+#, scheme-format
+msgid "Unknown option: `-~a'."
+msgstr "Непозната опција: „-~a“."
+
+#: modules/shepherd/args.scm:295
+#, scheme-format
+msgid "Argument required by `-~a'."
+msgstr "„-~a“ захтева аргумент."
+
+#: modules/shepherd.scm:83
+#, scheme-format
+msgid "while opening socket '~a': ~a: ~a~%"
+msgstr "приликом отварања прикључнице „~a“: ~a: ~a~%"
+
+#: modules/shepherd.scm:116
+#, scheme-format
+msgid "warning: already ~a threads running, disabling 'signalfd' support"
+msgstr "упозорење: већ су покренуте „~a“ нити, искључујем „signalfd“ подршку"
+
+#: modules/shepherd.scm:270
+msgid "use FILE to load and store state"
+msgstr "користи ДАТОТЕКУ да учита и смести стање"
+
+#: modules/shepherd.scm:278
+msgid "synonym for --silent"
+msgstr "синоним за „--silent“"
+
+#: modules/shepherd.scm:285
+msgid "don't do output to stdout"
+msgstr "не даје излаз на стандардни излаз"
+
+#: modules/shepherd.scm:295
+msgid "don't ensure that the setup is secure"
+msgstr "не осигурава да је поставка безбедна"
+
+#: modules/shepherd.scm:302
+msgid "log actions in FILE"
+msgstr "бележи радње у ДАТОТЕКУ"
+
+#: modules/shepherd.scm:309
+msgid "when ready, write PID to FILE or stdout"
+msgstr "када је спреман, пише ПИБ у ДАТОТЕКУ или на стандардни излаз"
+
+#: modules/shepherd.scm:316
+msgid "read configuration from FILE"
+msgstr "чита подешавања из ДАТОТЕКЕ"
+
+#: modules/shepherd.scm:324
+msgid "get commands from socket FILE or from stdin (-)"
+msgstr "добавља наредбе из ДАТОТЕКЕ прикључнице или са стандардног улаза (-)"
+
+#: modules/shepherd.scm:451
+msgid "Rebooting..."
+msgstr "Поново подижем систем..."
+
+#: modules/shepherd.scm:454
+msgid "Exiting."
+msgstr "Одох ја."
+
+#: modules/shepherd.scm:508
+msgid "Invalid command."
+msgstr "Неисправна наредба."
+
+#: modules/shepherd.scm:527
+msgid "invalid command line"
+msgstr "неисправна линија наредби"
+
+#~ msgid "warning: 'waitpid' ~a failed unexpectedly: ~a"
+#~ msgstr "упозорење: „waitpid“ „~a“ се урушило неочекивано: ~a"
