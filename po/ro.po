@@ -1,0 +1,544 @@
+# Mesajele în limba română pentru pachetul shepherd.
+# Copyright © 2022 the authors of Shepherd (msgids)
+# This file is distributed under the same license as the shepherd package.
+# This file is put in the public domain.
+#
+# Remus-Gabriel Chelu <remusgabriel.chelu@disroot.org>, 2022.
+#
+# Cronologia traducerii fișierului „shepherd”:
+# Traducerea inițială, făcută de R-GC, pentru versiunea shepherd 0.9.0rc1.
+# Actualizare a traducerii pentru versiunea Y, făcută de X.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shepherd 0.9.0rc1\n"
+"Report-Msgid-Bugs-To: guix-devel@gnu.org\n"
+"POT-Creation-Date: 2022-03-30 17:00+0200\n"
+"PO-Revision-Date: 2022-09-21 09:40+0200\n"
+"Last-Translator: Remus-Gabriel Chelu <remusgabriel.chelu@disroot.org>\n"
+"Language-Team: Romanian <translation-team-ro@lists.sourceforge.net>\n"
+"Language: ro\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2);\n"
+"X-Bugs: Report translation errors to the Language-Team address.\n"
+"X-Generator: Poedit 3.1.1\n"
+
+#. TRANSLATORS: Strings occasionally contain escape sequences starting
+#. with '~' (tilde).  For example, '~a' corresponds to '%s' in C printf
+#. syntax and '~%' corresponds to '\n'.  These must be preserved as is.
+#. See
+#. <https://www.gnu.org/software/guile/manual/html_node/Formatted-Output.html>
+#. for more info.
+#: modules/shepherd/comm.scm:182
+#, scheme-format
+msgid "service '~a' could not be found"
+msgstr "serviciul „~a” nu a putut fi găsit"
+
+#: modules/shepherd/comm.scm:185
+#, scheme-format
+msgid "service '~a' does not have an action '~a'"
+msgstr "serviciul „~a” nu are o acțiune „~a”"
+
+#: modules/shepherd/comm.scm:189
+#, scheme-format
+msgid "exception caught while executing '~a' on service '~a':"
+msgstr "excepție prinsă în timpul executării „~a” pe serviciul „~a”:"
+
+#: modules/shepherd/comm.scm:194
+#, scheme-format
+msgid "something went wrong: ~s"
+msgstr "ceva a mers prost: ~s"
+
+#: modules/shepherd/scripts/herd.scm:75
+msgid "Started:\n"
+msgstr "S-a pornit:\n"
+
+#: modules/shepherd/scripts/herd.scm:77
+msgid "Stopped:\n"
+msgstr "S-a oprit:\n"
+
+#. TRANSLATORS: Here "one-shot" refers to "one-shot services".  These are
+#. services that are immediately marked as stopped once their 'start'
+#. method has completed.
+#: modules/shepherd/scripts/herd.scm:83
+msgid "One-shot:\n"
+msgstr "Execuție punctuală:\n"
+
+#: modules/shepherd/scripts/herd.scm:96
+#, scheme-format
+msgid "Status of ~a:~%"
+msgstr "Starea lui ~a:~%"
+
+#: modules/shepherd/scripts/herd.scm:98
+#, scheme-format
+msgid "  It is started.~%"
+msgstr "  Este pornit.~%"
+
+#. TRANSLATORS: The "~s" bit is most of the time a placeholder
+#. for the PID (an integer) of the running process, and
+#. occasionally for another Scheme object.
+#: modules/shepherd/scripts/herd.scm:103
+#, scheme-format
+msgid "  Running value is ~s.~%"
+msgstr "  Valoarea de rulare este ~s.~%"
+
+#: modules/shepherd/scripts/herd.scm:105
+#, scheme-format
+msgid "  It is stopped (one-shot).~%"
+msgstr "  Este oprit (execuție punctuală).~%"
+
+#: modules/shepherd/scripts/herd.scm:107
+#, scheme-format
+msgid "  It is stopped.~%"
+msgstr "  Este oprit .~%"
+
+#: modules/shepherd/scripts/herd.scm:109
+#, scheme-format
+msgid "  It is enabled.~%"
+msgstr "  Este activat.~%"
+
+#: modules/shepherd/scripts/herd.scm:110
+#, scheme-format
+msgid "  It is disabled.~%"
+msgstr "  Este dezactivat.~%"
+
+#: modules/shepherd/scripts/herd.scm:111
+#, scheme-format
+msgid "  Provides ~a.~%"
+msgstr "  Furnizează ~a.~%"
+
+#: modules/shepherd/scripts/herd.scm:112
+#, scheme-format
+msgid "  Requires ~a.~%"
+msgstr "  Necesită ~a.~%"
+
+#: modules/shepherd/scripts/herd.scm:113
+#, scheme-format
+msgid "  Conflicts with ~a.~%"
+msgstr "  Intră în conflict cu ~a.~%"
+
+#: modules/shepherd/scripts/herd.scm:115
+#, scheme-format
+msgid "  Will be respawned.~%"
+msgstr "  Va fi repornit.~%"
+
+#: modules/shepherd/scripts/herd.scm:116
+#, scheme-format
+msgid "  Will not be respawned.~%"
+msgstr "  Nu va fi repornit.~%"
+
+#: modules/shepherd/scripts/herd.scm:119
+#, scheme-format
+msgid "  Last respawned on ~a.~%"
+msgstr "  Ultima repornire pe ~a.~%"
+
+#: modules/shepherd/scripts/herd.scm:176
+#, scheme-format
+msgid "failed to start service ~a"
+msgstr "a eșuat la pornirea serviciului ~a"
+
+#: modules/shepherd/scripts/herd.scm:195
+msgid "premature end-of-file while talking to shepherd"
+msgstr "sfârșit de fișier prematur al dosarului în timp ce vorbea cu ciobanul"
+
+#: modules/shepherd/scripts/herd.scm:210
+msgid "ACTION SERVICE [ARG...]"
+msgstr "ACȚIUNE SERVICIU [ARG...]"
+
+#: modules/shepherd/scripts/herd.scm:211
+msgid ""
+"Apply ACTION (start, stop, status, etc.) on \\\n"
+"SERVICE with the ARGs."
+msgstr ""
+"Aplică ACȚIUNEA („start”, „stop”, „status”, etc.) asupra \\\n"
+"SERVICIUlui cu ARGumentele."
+
+#: modules/shepherd/scripts/herd.scm:219 modules/shepherd.scm:269
+#: modules/shepherd.scm:301 modules/shepherd.scm:308 modules/shepherd.scm:315
+#: modules/shepherd.scm:322
+msgid "FILE"
+msgstr "FIȘIER"
+
+#: modules/shepherd/scripts/herd.scm:220
+msgid "send commands to FILE"
+msgstr "trimite comenzi către FIȘIER"
+
+#: modules/shepherd/scripts/herd.scm:233
+#, scheme-format
+msgid "Usage: herd ACTION [SERVICE [OPTIONS...]]~%"
+msgstr "Utilizare: herd ACȚIUNE [SERVICIU [OPȚIUNI...]]~%"
+
+#: modules/shepherd/support.scm:98
+#, scheme-format
+msgid "Assertion ~a failed."
+msgstr "Aserțiunea ~a a eșuat."
+
+#. TRANSLATORS: '~a' is a placeholder for the copyright year.
+#: modules/shepherd/support.scm:225
+#, scheme-format
+msgid "Copyright (C) ~a the Shepherd authors"
+msgstr "Drepturi de autor © autorii de Shepherd, ~a"
+
+#: modules/shepherd/support.scm:226
+msgid ""
+"License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"
+"This is free software: you are free to change and redistribute it.\n"
+"There is NO WARRANTY, to the extent permitted by law."
+msgstr ""
+"Licența GPLv3+: GNU GPL versiunea 3 sau ulterioară <http://gnu.org/licenses/gpl.html>\n"
+"Acesta este software liber: sunteți liber să îl modificați și să îl redistribuiți.\n"
+"NU există NICIO GARANȚIE, în măsura permisă de lege."
+
+#. TRANSLATORS: Please keep double semicolons at the beginning of each
+#. line: they introduce comments in the Scheme language.  Also, keep
+#. "shepherd" untranslated.  Thank you!  :-)
+#: modules/shepherd/support.scm:298
+msgid ";; init.scm -- default shepherd configuration file.\n"
+msgstr ";; init.scm -- fișierul implicit de configurare al «shepherd».\n"
+
+#: modules/shepherd/support.scm:300
+msgid ""
+";; Services known to shepherd:\n"
+";; Add new services (defined using 'make <service>') to shepherd here by\n"
+";; providing them as arguments to 'register-services'.\n"
+msgstr ""
+";; Servicii cunoscute de «shepherd»:\n"
+";; Adăugați servicii noi (definite folosind „make <serviciu>”) pentru «shepherd» aici,\n"
+";; furnizându-le ca argumente pentru „înregistrare-servicii”.\n"
+
+#: modules/shepherd/support.scm:305
+msgid ";; Send shepherd into the background\n"
+msgstr ";; Trimite «shepherd-ul» în fundal\n"
+
+#: modules/shepherd/support.scm:308
+msgid ""
+";; Services to start when shepherd starts:\n"
+";; Add the name of each service that should be started to the list\n"
+";; below passed to 'for-each'.\n"
+msgstr ""
+";; Serviciile care trebuie să pornească atunci când pornește «shepherd»:\n"
+";; Adăugați numele fiecărui serviciu care ar trebui pornit la lista de mai jos;\n"
+";; care va fi pasată funcției for-each() „pentru fiecare”.\n"
+
+#: modules/shepherd/support.scm:403
+msgid "Socket directory setup is insecure."
+msgstr "Configurarea directorului soclului este nesigură."
+
+#: modules/shepherd/service.scm:194
+#, scheme-format
+msgid "Service ~a (PID ~a) exited with ~a."
+msgstr "Serviciul ~a (PID ~a) a ieșit cu ~a."
+
+#: modules/shepherd/service.scm:200
+#, scheme-format
+msgid "Service ~a (PID ~a) terminated with signal ~a."
+msgstr "Serviciul ~a (PID ~a) terminat cu semnalul ~a."
+
+#: modules/shepherd/service.scm:206
+#, scheme-format
+msgid "Service ~a (PID ~a) stopped with signal ~a."
+msgstr "Serviciul ~a (PID ~a) oprit cu semnalul ~a."
+
+#: modules/shepherd/service.scm:373
+#, scheme-format
+msgid "Enabled service ~a."
+msgstr "Serviciul ~a a fost activat."
+
+#: modules/shepherd/service.scm:378
+#, scheme-format
+msgid "Disabled service ~a."
+msgstr "Serviciul ~a a fost dezactivat."
+
+#: modules/shepherd/service.scm:383
+#, scheme-format
+msgid "Service ~a is already running."
+msgstr "Serviciul ~a rulează deja."
+
+#: modules/shepherd/service.scm:387
+#, scheme-format
+msgid "Service ~a is currently disabled."
+msgstr "Serviciul ~a este în prezent dezactivat."
+
+#: modules/shepherd/service.scm:392
+#, scheme-format
+msgid "Service ~a conflicts with running services ~a."
+msgstr "Serviciul ~a intră în conflict cu serviciile care rulează ~a."
+
+#: modules/shepherd/service.scm:404
+#, scheme-format
+msgid "Service ~a depends on ~a."
+msgstr "Serviciul ~a depinde de ~a."
+
+#: modules/shepherd/service.scm:421
+#, scheme-format
+msgid "Service ~a has been started."
+msgstr "Serviciul ~a a fost pornit."
+
+#: modules/shepherd/service.scm:422
+#, scheme-format
+msgid "Service ~a could not be started."
+msgstr "Serviciul ~a nu a putut fi pornit."
+
+#: modules/shepherd/service.scm:463
+#, scheme-format
+msgid "Service ~a is not running."
+msgstr "Serviciul ~a nu rulează."
+
+#: modules/shepherd/service.scm:469
+#, scheme-format
+msgid "Service ~a pending to be stopped."
+msgstr "Serviciul ~a este în așteptare pentru a fi oprit."
+
+#: modules/shepherd/service.scm:505
+#, scheme-format
+msgid "Service ~a could not be stopped."
+msgstr "Serviciul ~a nu a putut fi oprit."
+
+#: modules/shepherd/service.scm:507
+#, scheme-format
+msgid "Service ~a has been stopped."
+msgstr "Serviciul ~a a fost oprit."
+
+#: modules/shepherd/service.scm:512
+#, scheme-format
+msgid "Transient service ~a unregistered."
+msgstr "Serviciu tranzitoriu ~a neînregistrat."
+
+#: modules/shepherd/service.scm:602
+msgid "Unknown keyword.  Try 'doc root help'."
+msgstr "Cuvânt cheie necunoscut.  Încercați „doc root help”."
+
+#: modules/shepherd/service.scm:731
+#, scheme-format
+msgid "Failed to start ~a in the background."
+msgstr "Nu s-a putut pornii ~a în fundal."
+
+#: modules/shepherd/service.scm:760
+#, scheme-format
+msgid "No service provides ~a."
+msgstr "Niciun serviciu nu furnizează ~a."
+
+#: modules/shepherd/service.scm:1361
+#, scheme-format
+msgid "~a connection still in use after ~a termination."
+msgstr "conexiunea ~a este încă în uz după terminarea ~a."
+
+#: modules/shepherd/service.scm:1423
+#, scheme-format
+msgid "Maximum number of ~a clients reached; rejecting connection from ~:[~a~;~*local process~]."
+msgstr "Numărul maxim de ~a clienți a fost atins; se respinge conexiunea de la ~:[~a~;~*procesul local~]."
+
+#: modules/shepherd/service.scm:1432
+#, scheme-format
+msgid "Accepted connection on ~a from ~:[~a~;~*local process~]."
+msgstr "Conexiune acceptată pe ~a de la ~:[~a~;~*proces local~]."
+
+#: modules/shepherd/service.scm:1588
+#, scheme-format
+msgid "Spawning systemd-style service ~a."
+msgstr "Se repornește serviciul ~a în stilul systemd."
+
+#: modules/shepherd/service.scm:1748
+#, scheme-format
+msgid "Respawning ~a."
+msgstr "Se repornește serviciul ~a ."
+
+#: modules/shepherd/service.scm:1758
+#, scheme-format
+msgid "Service ~a terminated."
+msgstr "Serviciul ~a a terminat."
+
+#: modules/shepherd/service.scm:1762
+#, scheme-format
+msgid "Service ~a has been disabled."
+msgstr "Serviciul ~a a fost dezactivat."
+
+#: modules/shepherd/service.scm:1765
+msgid "  (Respawning too fast.)"
+msgstr "  (Repornirea a fost prea rapidă.)"
+
+#: modules/shepherd/service.scm:1770
+#, scheme-format
+msgid "Transient service ~a terminated, now unregistered."
+msgstr "Serviciul tranzitoriu ~a a terminat, acum neînregistrat."
+
+#: modules/shepherd/service.scm:1846
+#, scheme-format
+msgid "Unloading all optional services: '~a'..."
+msgstr "Se descarcă toate serviciile opționale: „~a”..."
+
+#: modules/shepherd/service.scm:1849 modules/shepherd/service.scm:1864
+msgid "Done."
+msgstr "Gata."
+
+#: modules/shepherd/service.scm:1858
+#, scheme-format
+msgid "Removing service '~a'..."
+msgstr "Se înlătură serviciul „~a”..."
+
+#: modules/shepherd/service.scm:1871
+#, scheme-format
+msgid "Loading ~a."
+msgstr "Se încarcă ~a."
+
+#: modules/shepherd/service.scm:1919
+#, scheme-format
+msgid "PID ~a (~a) is dead!"
+msgstr "PID ~a (~a) este mort!"
+
+#: modules/shepherd/service.scm:1934
+msgid "Exiting shepherd..."
+msgstr "Shepherd se oprește..."
+
+#: modules/shepherd/service.scm:1972
+msgid "Halting..."
+msgstr "Se oprește sistemul..."
+
+#: modules/shepherd/service.scm:1981
+msgid "Shutting down..."
+msgstr "Se oprește alimentarea..."
+
+#: modules/shepherd/service.scm:1994
+#, scheme-format
+msgid "Evaluating user expression ~a."
+msgstr "Se evaluează expresia ~a furnizată de utilizator."
+
+#: modules/shepherd/service.scm:2023
+msgid "Running as PID 1, so not daemonizing."
+msgstr "Rulează ca PID 1, deci nu demonizează."
+
+#: modules/shepherd/service.scm:2054
+msgid "You must be kidding."
+msgstr "Se pare că vă arde de râs!"
+
+#: modules/shepherd/args.scm:45
+msgid "undocumented option"
+msgstr "opțiune nedocumentată"
+
+#: modules/shepherd/args.scm:137
+msgid "display version information and exit"
+msgstr "afișează informațiile despre versiune și iese"
+
+#: modules/shepherd/args.scm:143
+msgid "display short usage message and exit"
+msgstr "oferă un scurt mesaj de utilizare și iese"
+
+#: modules/shepherd/args.scm:190
+msgid "display this help and exit"
+msgstr "afișează acest mesaj de ajutor și iese"
+
+#: modules/shepherd/args.scm:194
+msgid " [OPTIONS...] "
+msgstr " [OPȚIUNI...] "
+
+#. TRANSLATORS: The '~a' placeholders indicate the
+#. bug-reporting address, the name of this
+#. package, and its home page URL.  Please add
+#. another line saying "Report translation bugs to
+#. ...\n" with the address for translation bugs
+#. (typically your translation team's web or email
+#. address).
+#: modules/shepherd/args.scm:208
+#, scheme-format
+msgid ""
+"\n"
+"Mandatory or optional arguments to long options are also mandatory or\n"
+"optional to the corresponding short options.\n"
+"\n"
+"Report bugs to: ~a .\n"
+"~a general home page: <~a>\n"
+"General help using GNU software: <http://www.gnu.org/gethelp/>~%"
+msgstr ""
+"\n"
+"Argumentele obligatorii sau opționale pentru opțiunile lungi sunt, de asemenea,\n"
+"obligatorii sau opționale pentru opțiunile scurte corespunzătoare.\n"
+"\n"
+"Raportați erorile la: ~a .\n"
+"Pagina principală a ~a: <~a>\n"
+"Raportați erorile de traducere la: translation-team-ro@lists.sourceforge.net\n"
+"Ajutor general pentru utilizarea software-ului GNU: \n"
+"<http://www.gnu.org/gethelp/>~%"
+
+#: modules/shepherd/args.scm:255
+#, scheme-format
+msgid "Option `--~a' is ambiguous."
+msgstr "Opțiunea „--~a” este ambiguă."
+
+#: modules/shepherd/args.scm:256
+#, scheme-format
+msgid "Unknown option: `--~a'."
+msgstr "Opțiune necunoscută: „--~a”."
+
+#: modules/shepherd/args.scm:258
+msgid "Try `--help'."
+msgstr "Încercați „--help”."
+
+#: modules/shepherd/args.scm:282
+#, scheme-format
+msgid "Unknown option: `-~a'."
+msgstr "Opțiune necunoscută: „-~a”."
+
+#: modules/shepherd/args.scm:295
+#, scheme-format
+msgid "Argument required by `-~a'."
+msgstr "Argument solicitat de „-~a”."
+
+#: modules/shepherd.scm:83
+#, scheme-format
+msgid "while opening socket '~a': ~a: ~a~%"
+msgstr "în timpul deschiderii soclului „~a”: ~a: ~a~%"
+
+#: modules/shepherd.scm:116
+#, scheme-format
+msgid "warning: already ~a threads running, disabling 'signalfd' support"
+msgstr "avertisment: deja sunt ~a fire în execuție, se dezactivează suportul pentru „signalfd”"
+
+#: modules/shepherd.scm:270
+msgid "use FILE to load and store state"
+msgstr "utilizează FIȘIER pentru a încărca și stoca starea"
+
+#: modules/shepherd.scm:278
+msgid "synonym for --silent"
+msgstr "sinonim pentru „--silent”"
+
+#: modules/shepherd.scm:285
+msgid "don't do output to stdout"
+msgstr "nu afișează rezultatul operațiilor la ieșirea standard"
+
+#: modules/shepherd.scm:295
+msgid "don't ensure that the setup is secure"
+msgstr "«shepherd» nu este sigur că această configurare este sigură"
+
+#: modules/shepherd.scm:302
+msgid "log actions in FILE"
+msgstr "înregistrează acțiunile în FIȘIER"
+
+#: modules/shepherd.scm:309
+msgid "when ready, write PID to FILE or stdout"
+msgstr "când este gata, scrie PID-ul în FIȘIER sau la ieșirea standard"
+
+#: modules/shepherd.scm:316
+msgid "read configuration from FILE"
+msgstr "citește configurația din FIȘIER"
+
+#: modules/shepherd.scm:324
+msgid "get commands from socket FILE or from stdin (-)"
+msgstr "obține comenzi din soclul FIȘIER sau de la intrarea standard (-)"
+
+#: modules/shepherd.scm:451
+msgid "Rebooting..."
+msgstr "Se repornește..."
+
+#: modules/shepherd.scm:454
+msgid "Exiting."
+msgstr "Ieșind."
+
+#: modules/shepherd.scm:508
+msgid "Invalid command."
+msgstr "Comandă nevalidă."
+
+#: modules/shepherd.scm:527
+msgid "invalid command line"
+msgstr "linie de comandă nevalidă"
