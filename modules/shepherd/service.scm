@@ -895,7 +895,10 @@ not exist."
               (line
                (let ((prefix (strftime default-logfile-date-format
                                        (localtime (current-time)))))
-                 (format output "~a~a~%" prefix line)
+                 ;; Avoid (ice-9 format) to reduce heap allocations.
+                 (display prefix output)
+                 (display line output)
+                 (newline output)
                  (loop))))))))))
 
 (define (service-file-logger file input)
@@ -925,8 +928,8 @@ FILE."
            ;; TODO: Print the PID of COMMAND.  The actual PID is potentially
            ;; not known until after 'read-pid-file' has completed, so it would
            ;; need to be communicated.
-           (format (log-output-port) "~a[~a] ~a~%"
-                   prefix command line))
+           (simple-format (log-output-port) "~a[~a] ~a~%"
+                          prefix command line))
          (loop))))))
 
 (define (format-supplementary-groups supplementary-groups)
