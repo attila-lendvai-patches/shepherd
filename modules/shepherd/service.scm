@@ -38,7 +38,6 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:autoload   (ice-9 ports internal) (port-read-wait-fd)
-  #:autoload   (ice-9 rdelim) (read-line)
   #:autoload   (ice-9 pretty-print) (truncated-print)
   #:use-module (shepherd support)
   #:use-module (shepherd comm)
@@ -876,6 +875,29 @@ daemon writing FILE is running in a separate PID namespace."
               (try-again)
               (apply throw args)))))))
 
+(define %logging-buffer-size
+  ;; Size of the buffer for each line read by logging fibers.
+  512)
+
+(define (read-line! str port)
+  "This is an interruptible version of the 'read-line!' procedure from (ice-9
+rdelim)."
+  ;; As of Guile 3.0.8, (@ (ice-9 rdelim) read-line!) calls
+  ;; '%read-delimited!', which is in C and thus non-interruptible.
+  (define len
+    (string-length str))
+
+  (let loop ((i 0))
+    (and (< i len)
+         (match (read-char port)
+           ((? eof-object? eof)
+            eof)
+           ((or #\newline #\return)
+            i)
+           (chr
+            (string-set! str i chr)
+            (loop (+ i 1)))))))
+
 (define (%service-file-logger file input)
   "Like 'service-file-logger', but doesn't handle the case in which FILE does
 not exist."
@@ -887,17 +909,21 @@ not exist."
     (lambda ()
       (call-with-port output
         (lambda (output)
+          (define line
+            (make-string %logging-buffer-size))
+
           (let loop ()
-            (match (read-line input)
+            (match (read-line! line input)
               ((? eof-object?)
                (close-port input)
                (close-port output))
-              (line
+              (count
                (let ((prefix (strftime default-logfile-date-format
-                                       (localtime (current-time)))))
+                                       (localtime (current-time))))
+                     (count  (or count (string-length line))))
                  ;; Avoid (ice-9 format) to reduce heap allocations.
-                 (display prefix output)
-                 (display line output)
+                 (put-string output prefix)
+                 (put-string output line 0 count)
                  (newline output)
                  (loop))))))))))
 
@@ -918,18 +944,24 @@ FILE."
   "Return a thunk meant to run as a fiber that reads from INPUT and logs to
 'log-output-port'."
   (lambda ()
+    (define line
+      (make-string %logging-buffer-size))
+
     (let loop ()
-      (match (read-line input)
+      (match (read-line! line input)
         ((? eof-object?)
          (close-port input))
-        (line
+        (count
          (let ((prefix (strftime (%current-logfile-date-format)
-                                 (localtime (current-time)))))
+                                 (localtime (current-time))))
+               (count  (or count (string-length line))))
            ;; TODO: Print the PID of COMMAND.  The actual PID is potentially
            ;; not known until after 'read-pid-file' has completed, so it would
            ;; need to be communicated.
-           (simple-format (log-output-port) "~a[~a] ~a~%"
-                          prefix command line))
+           (simple-format (log-output-port) "~a[~a] "
+                          prefix command)
+           (put-string (log-output-port) line 0 count)
+           (newline (log-output-port)))
          (loop))))))
 
 (define (format-supplementary-groups supplementary-groups)
