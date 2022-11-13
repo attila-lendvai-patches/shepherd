@@ -11,6 +11,7 @@
       . "<https?://\\(debbugs\\|bugs\\)\\.gnu\\.org/\\([0-9]+\\)>")))
  (scheme-mode
   . ((indent-tabs-mode . nil)
-     (eval . (put 'with-blocked-signals 'scheme-indent-function 1))))
+     (eval . (put 'with-blocked-signals 'scheme-indent-function 1))
+     (eval . (put 'with-process-monitor 'scheme-indent-function 0))))
  (texinfo-mode    . ((indent-tabs-mode . nil)
                      (fill-column . 72))))

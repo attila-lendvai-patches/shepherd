@@ -26,6 +26,7 @@
 (define-module (shepherd service)
   #:use-module ((fibers)
                 #:hide (sleep))
+  #:use-module (fibers channels)
   #:use-module (fibers scheduler)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
@@ -75,6 +76,7 @@
             lookup-services
             respawn-service
             handle-SIGCHLD
+            with-process-monitor
             %precious-signals
             register-services
             provided-by
@@ -1784,21 +1786,59 @@ otherwise by updating its state."
        ;; Nothing left to wait for.
        #t)
       ((pid . status)
-       (let ((serv (find-service (lambda (serv)
-                                   (and (enabled? serv)
-                                        (match (service-running-value serv)
-                                          ((? number? pid*)
-                                           (= pid pid*))
-                                          (_ #f)))))))
+       ;; Let the process monitor handle it.
+       (put-message (current-process-monitor)
+                    `(handle-process-termination ,pid ,status))
 
-         ;; SERV can be #f for instance when this code runs just after a
-         ;; service's 'stop' method killed its process and completed.
-         (when serv
-           (handle-service-termination serv status))
+       ;; As noted in libc's manual (info "(libc) Process Completion"),
+       ;; loop so we don't miss any terminated child process.
+       (loop)))))
 
-         ;; As noted in libc's manual (info "(libc) Process Completion"),
-         ;; loop so we don't miss any terminated child process.
-         (loop))))))
+(define (process-monitor channel)
+  "Run a process monitor that handles requests received over @var{channel}."
+  (let loop ()
+    (match (get-message channel)
+      (('handle-process-termination pid status)
+       ;; Handle the termination of PID.
+       (match (find-service (lambda (serv)
+                              (and (enabled? serv)
+                                   (match (service-running-value serv)
+                                     ((? number? pid*)
+                                      (= pid pid*))
+                                     (_ #f)))))
+         (#f
+          ;; SERV can be #f for instance when this code runs just after a
+          ;; service's 'stop' method killed its process and completed.
+          #f)
+         ((? service? service)
+          (handle-service-termination service status)))
+       (loop)))))
+
+(define (spawn-process-monitor)
+  "Spawn a process monitoring fiber and return a channel to communicate with
+it."
+  (define channel
+    (make-channel))
+
+  (spawn-fiber
+   (lambda ()
+     (process-monitor channel)))
+
+  channel)
+
+(define current-process-monitor
+  ;; Channel to communicate with the process monitoring fiber.
+  (make-parameter #f))
+
+(define (call-with-process-monitor thunk)
+  (parameterize ((current-process-monitor (spawn-process-monitor)))
+    (thunk)))
+
+(define-syntax-rule (with-process-monitor exp ...)
+  "Spawn a process monitoring fiber and evaluate @var{exp}... within that
+context.  The process monitoring fiber is responsible for handling
+@code{SIGCHLD} and generally dealing with process creation and termination."
+  (call-with-process-monitor (lambda () exp ...)))
 
 (define (handle-service-termination service status)
   "Handle the termination of the process associated with @var{service}, whose

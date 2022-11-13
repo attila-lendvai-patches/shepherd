@@ -415,12 +415,13 @@ already ~a threads running, disabling 'signalfd' support")
        (lambda ()
          (catch 'quit
            (lambda ()
-             (run-daemon #:socket-file socket-file
-                         #:config-file config-file
-                         #:pid-file pid-file
-                         #:signal-port signal-port
-                         #:poll-services? poll-services?
-                         #:persistency persistency))
+             (with-process-monitor
+               (run-daemon #:socket-file socket-file
+                           #:config-file config-file
+                           #:pid-file pid-file
+                           #:signal-port signal-port
+                           #:poll-services? poll-services?
+                           #:persistency persistency)))
            (case-lambda
              ((key value . _)
               (primitive-exit value))
