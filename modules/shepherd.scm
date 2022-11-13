@@ -416,6 +416,11 @@ already ~a threads running, disabling 'signalfd' support")
          (catch 'quit
            (lambda ()
              (with-process-monitor
+
+               ;; Replace the default 'system*' binding with one that
+               ;; cooperates instead of blocking on 'waitpid'.
+               (set! system* spawn-command)
+
                (run-daemon #:socket-file socket-file
                            #:config-file config-file
                            #:pid-file pid-file

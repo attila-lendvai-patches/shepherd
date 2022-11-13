@@ -246,6 +246,7 @@ TESTS =						\
   tests/inetd.sh				\
   tests/systemd.sh				\
   tests/signals.sh				\
+  tests/system-star.sh				\
   tests/close-on-exec.sh
 
 TEST_EXTENSIONS = .sh

@@ -38,6 +38,7 @@
   #:use-module ((ice-9 control) #:select (call/ec))
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
+  #:use-module (ice-9 vlist)
   #:autoload   (ice-9 ports internal) (port-read-wait-fd)
   #:autoload   (ice-9 pretty-print) (truncated-print)
   #:use-module (shepherd support)
@@ -77,6 +78,7 @@
             respawn-service
             handle-SIGCHLD
             with-process-monitor
+            spawn-command
             %precious-signals
             register-services
             provided-by
@@ -1796,7 +1798,7 @@ otherwise by updating its state."
 
 (define (process-monitor channel)
   "Run a process monitor that handles requests received over @var{channel}."
-  (let loop ()
+  (let loop ((waiters vlist-null))
     (match (get-message channel)
       (('handle-process-termination pid status)
        ;; Handle the termination of PID.
@@ -1812,7 +1814,23 @@ otherwise by updating its state."
           #f)
          ((? service? service)
           (handle-service-termination service status)))
-       (loop)))))
+
+       ;; Notify any waiters.
+       (match (vhash-assv pid waiters)
+         (#f #f)
+         ((_ . waiter)
+          (put-message waiter status)))
+
+       ;; XXX: The call below is linear in the size of WAITERS, but WAITERS is
+       ;; usually empty or small.
+       (loop (vhash-delv pid waiters)))
+
+      (('spawn command reply)
+       ;; Spawn COMMAND; send its exit status to REPLY when it terminates.
+       ;; This operation is atomic: the WAITERS table is updated before
+       ;; termination of PID can possibly be handled.
+       (let ((pid (fork+exec-command command)))
+         (loop (vhash-consv pid reply waiters)))))))
 
 (define (spawn-process-monitor)
   "Spawn a process monitoring fiber and return a channel to communicate with
@@ -1839,6 +1857,16 @@ it."
 context.  The process monitoring fiber is responsible for handling
 @code{SIGCHLD} and generally dealing with process creation and termination."
   (call-with-process-monitor (lambda () exp ...)))
+
+(define (spawn-command program . arguments)
+  "Like 'system*' but do not block while waiting for PROGRAM to terminate."
+  (if (current-process-monitor)
+      (let ((reply (make-channel)))
+        (put-message (current-process-monitor)
+                     `(spawn ,(cons program arguments)
+                             ,reply))
+        (get-message reply))
+      (apply system* program arguments)))
 
 (define (handle-service-termination service status)
   "Handle the termination of the process associated with @var{service}, whose
