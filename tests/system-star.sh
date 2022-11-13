@@ -41,6 +41,7 @@ cat > "$conf" <<EOF
                    (status:exit-val
                     (system* "$SHELL" "-c" "$script"))))
    #:stop  (lambda _
+             (system* "$SHELL" "-c" "echo STOPPING")
              (delete-file "$stamp"))
    #:respawn? #f))
 EOF
@@ -81,5 +82,6 @@ $herd status test | grep "exit-code 123"
 
 $herd stop test
 ! test -f "$stamp"
+grep "STOPPING" "$log"
 
 $herd stop root

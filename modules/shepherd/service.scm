@@ -456,66 +456,64 @@ NEW-SERVICE."
 canonical names for all of the services which have been stopped (including
 transitive dependent services).  This method will print a warning if SERVICE
 is not already running, and will return SERVICE's canonical name in a list."
-  ;; Block asyncs so the SIGCHLD handler doesn't execute concurrently.
-  ;; Notably, that makes sure the handler processes the SIGCHLD for SERVICE's
-  ;; process once we're done; otherwise, it could end up respawning SERVICE.
-  (call-with-blocked-asyncs
-   (lambda ()
-     (if (not (running? service))
-         (begin
-           (local-output (l10n "Service ~a is not running.")
-                         (canonical-name service))
-           (list (canonical-name service)))
-         (if (slot-ref service 'stop-delay?)
-             (begin
-               (slot-set! service 'waiting-for-termination? #t)
-               (local-output (l10n "Service ~a pending to be stopped.")
-                             (canonical-name service))
-               (list (canonical-name service)))
-             (let ((name (canonical-name service))
-                   (stopped-dependents (fold-services (lambda (other acc)
-                                                        (if (and (running? other)
-                                                                 (required-by? service other))
-                                                            (append (stop other) acc)
-                                                            acc))
-                                                      '())))
-               ;; Stop the service itself.
-               (catch #t
-                 (lambda ()
-                   (apply (slot-ref service 'stop)
-                          (service-running-value service)
-                          args))
-                 (lambda (key . args)
-                   ;; Special case: 'root' may quit.
-                   (and (eq? root-service service)
-                        (eq? key 'quit)
-                        (apply quit args))
-                   (caught-error key args)))
+  ;; Note: SIGCHLD resulting from calling SERVICE's 'stop' method won't be
+  ;; handled by the time we're done (in which case we'd end up respawning the
+  ;; service we're trying to stop), unless we explicitly yield.
+  (if (not (running? service))
+      (begin
+        (local-output (l10n "Service ~a is not running.")
+                      (canonical-name service))
+        (list (canonical-name service)))
+      (if (slot-ref service 'stop-delay?)
+          (begin
+            (slot-set! service 'waiting-for-termination? #t)
+            (local-output (l10n "Service ~a pending to be stopped.")
+                          (canonical-name service))
+            (list (canonical-name service)))
+          (let ((name (canonical-name service))
+                (stopped-dependents (fold-services (lambda (other acc)
+                                                     (if (and (running? other)
+                                                              (required-by? service other))
+                                                         (append (stop other) acc)
+                                                         acc))
+                                                   '())))
+            ;; Stop the service itself.
+            (catch #t
+              (lambda ()
+                (apply (slot-ref service 'stop)
+                       (service-running-value service)
+                       args))
+              (lambda (key . args)
+                ;; Special case: 'root' may quit.
+                (and (eq? root-service service)
+                     (eq? key 'quit)
+                     (apply quit args))
+                (caught-error key args)))
 
-               ;; SERVICE is no longer running.
-               (slot-set! service 'running #f)
+            ;; SERVICE is no longer running.
+            (slot-set! service 'running #f)
 
-               ;; Reset the list of respawns.
-               (slot-set! service 'last-respawns '())
+            ;; Reset the list of respawns.
+            (slot-set! service 'last-respawns '())
 
-               ;; Replace the service with its replacement, if it has one
-               (let ((replacement (slot-ref service 'replacement)))
-                 (when replacement
-                   (replace-service service replacement)))
+            ;; Replace the service with its replacement, if it has one
+            (let ((replacement (slot-ref service 'replacement)))
+              (when replacement
+                (replace-service service replacement)))
 
-               ;; Status message.
-               (if (running? service)
-                   (local-output (l10n "Service ~a could not be stopped.")
-                                 name)
-                   (local-output (l10n "Service ~a has been stopped.")
-                                 name))
+            ;; Status message.
+            (if (running? service)
+                (local-output (l10n "Service ~a could not be stopped.")
+                              name)
+                (local-output (l10n "Service ~a has been stopped.")
+                              name))
 
-               (when (transient? service)
-                 (hashq-remove! %services (canonical-name service))
-                 (local-output (l10n "Transient service ~a unregistered.")
-                               (canonical-name service)))
+            (when (transient? service)
+              (hashq-remove! %services (canonical-name service))
+              (local-output (l10n "Transient service ~a unregistered.")
+                            (canonical-name service)))
 
-               (cons name stopped-dependents)))))))
+            (cons name stopped-dependents)))))
 
 ;; Call action THE-ACTION with ARGS.
 (define-method (action (obj <service>) the-action . args)
