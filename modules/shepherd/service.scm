@@ -2028,14 +2028,18 @@ requested to be removed."
   "Shut down all the currently running services; update the persistent state
 file when persistence is enabled."
   (let ((running-services '()))
-    (for-each-service
+    ;; Note: Do not use 'for-each-service' since it introduces a continuation
+    ;; barrier via 'hash-fold', thereby preventing the 'stop' method from
+    ;; suspending via (@ (fibers) sleep), 'spawn-command', or similar.
+    (for-each
      (lambda (service)
        (when (running? service)
          (stop service)
          (when persistency
            (set! running-services
                  (cons (canonical-name service)
-                       running-services))))))
+                       running-services)))))
+     (service-list))
 
     (when persistency
       (call-with-output-file persistency-state-file

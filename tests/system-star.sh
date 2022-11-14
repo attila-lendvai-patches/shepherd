@@ -50,8 +50,10 @@ cat > "$conf" <<EOF
              (list "$SHELL" "-cex"
                    "[ ! -f $PWD/$stamp ] ; touch $PWD/$stamp ; sleep 60"))
    #:stop  (lambda (pid)
-             (delete-file "$stamp")
-             (zero? (system* "$(type -P kill)" (number->string pid))))
+             (and (zero? (system* "$(type -P kill)" (number->string pid)))
+                  (begin
+                    (delete-file "$stamp")
+                    #f)))
    #:respawn? #t))
 EOF
 
@@ -105,7 +107,8 @@ do
     $herd restart test-with-respawn
     $herd status test-with-respawn | grep "started"
 done
-$herd stop test-with-respawn
-$herd status test-with-respawn | grep "stopped"
 
 $herd stop root
+
+# Make sure 'shutdown-services' did its job.
+! test -f "$stamp"
