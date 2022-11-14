@@ -43,7 +43,16 @@ cat > "$conf" <<EOF
    #:stop  (lambda _
              (system* "$SHELL" "-c" "echo STOPPING")
              (delete-file "$stamp"))
-   #:respawn? #f))
+   #:respawn? #f)
+ (make <service>
+   #:provides '(test-with-respawn)
+   #:start (make-forkexec-constructor
+             (list "$SHELL" "-cex"
+                   "[ ! -f $PWD/$stamp ] ; touch $PWD/$stamp ; sleep 60"))
+   #:stop  (lambda (pid)
+             (delete-file "$stamp")
+             (zero? (system* "$(type -P kill)" (number->string pid))))
+   #:respawn? #t))
 EOF
 
 rm -f "$pid"
@@ -83,5 +92,20 @@ $herd status test | grep "exit-code 123"
 $herd stop test
 ! test -f "$stamp"
 grep "STOPPING" "$log"
+
+# What about a service with a custom 'stop' procedure that uses 'system*'?
+# Stopping the service should not trigger the respawn machinery.
+$herd start test-with-respawn
+$herd status test-with-respawn | grep "started"
+$herd stop test-with-respawn
+$herd status test-with-respawn | grep "stopped"
+
+for i in `seq 1 5`
+do
+    $herd restart test-with-respawn
+    $herd status test-with-respawn | grep "started"
+done
+$herd stop test-with-respawn
+$herd status test-with-respawn | grep "stopped"
 
 $herd stop root

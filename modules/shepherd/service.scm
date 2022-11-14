@@ -456,9 +456,6 @@ NEW-SERVICE."
 canonical names for all of the services which have been stopped (including
 transitive dependent services).  This method will print a warning if SERVICE
 is not already running, and will return SERVICE's canonical name in a list."
-  ;; Note: SIGCHLD resulting from calling SERVICE's 'stop' method won't be
-  ;; handled by the time we're done (in which case we'd end up respawning the
-  ;; service we're trying to stop), unless we explicitly yield.
   (if (not (running? service))
       (begin
         (local-output (l10n "Service ~a is not running.")
@@ -480,18 +477,18 @@ is not already running, and will return SERVICE's canonical name in a list."
             ;; Stop the service itself.
             (catch #t
               (lambda ()
-                (apply (slot-ref service 'stop)
-                       (service-running-value service)
-                       args))
+                (let ((running (service-running-value service)))
+                  ;; Mark SERVICE as already stopped to prevent the respawn
+                  ;; machinery from firing upon SIGCHLD.
+                  (slot-set! service 'running #f)
+
+                  (apply (slot-ref service 'stop) running args)))
               (lambda (key . args)
                 ;; Special case: 'root' may quit.
                 (and (eq? root-service service)
                      (eq? key 'quit)
                      (apply quit args))
                 (caught-error key args)))
-
-            ;; SERVICE is no longer running.
-            (slot-set! service 'running #f)
 
             ;; Reset the list of respawns.
             (slot-set! service 'last-respawns '())
