@@ -420,7 +420,18 @@ already ~a threads running, disabling 'signalfd' support")
 
                ;; Replace the default 'system*' binding with one that
                ;; cooperates instead of blocking on 'waitpid'.
-               (set! system* spawn-command)
+               (let ((real-system* system*))
+                 (set! system* spawn-command)
+
+                 ;; Restore 'system*' after fork.
+                 (set! primitive-fork
+                       (let ((real-fork primitive-fork))
+                         (lambda ()
+                           (let ((result (real-fork)))
+                             (when (zero? result)
+                               (set! primitive-fork real-fork)
+                               (set! system* real-system*))
+                             result)))))
 
                (run-daemon #:socket-file socket-file
                            #:config-file config-file
