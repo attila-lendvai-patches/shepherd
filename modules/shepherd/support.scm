@@ -361,20 +361,35 @@ which has essential bindings pulled in."
     (module-use! m (resolve-interface '(shepherd service)))
     m))
 
+(define (primitive-load* file)
+  ;; Like 'primitive-load', but in Scheme, so that it does not introduce a
+  ;; continuation barrier that would prevent code in FILE from suspending.
+  (call-with-input-file file
+    (lambda (port)
+      (let loop ((result *unspecified*))
+       (match (read port)
+         ((? eof-object?)
+          result)
+         (exp
+          (loop (primitive-eval exp))))))))
+
 (define (load-in-user-module file)
   "Load FILE in a fresh user module that has essential bindings pulled in."
   (let ((user-module (make-user-module)))
     (save-module-excursion
      (lambda ()
        (set-current-module user-module)
-       (primitive-load file)))))
+       (primitive-load* file)))))
 
 (define (eval-in-user-module exp)
   "Eval EXP in a fresh user module that has essential bindings pulled in."
   (let ((user-module (make-user-module)))
     (save-module-excursion
      (lambda ()
-       (eval exp user-module)))))
+       ;; Note: As of Guile 3.0.8, 'eval' is written in C, and is thus a
+       ;; continuation barrier.  Use 'primitive-eval' to avoid that.
+       (set-current-module user-module)
+       (primitive-eval exp)))))
 
 (define* (verify-dir dir #:key (secure? #t))
   "Check if the directory DIR exists and create it if it is the default

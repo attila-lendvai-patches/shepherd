@@ -244,6 +244,9 @@ then false; else true; fi
 
 $herd eval root '(values)'
 
+# Make sure we can suspend from an action.
+$herd eval root '((@ (fibers) sleep) 1)'
+
 # Unload everything and make sure only 'root' is left.
 $herd unload root all
 if $herd status | grep "Stopped:"
