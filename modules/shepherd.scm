@@ -125,10 +125,15 @@ already ~a threads running, disabling 'signalfd' support")
 
 (define (handle-SIGINT)
   "Handle SIGINT by stopping the Shepherd, which means rebooting if we're PID 1."
-  (catch 'quit
-    (lambda ()
-      (stop root-service))
-    quit-exception-handler))
+  ;; Since 'stop' is synchronous and may block until SIGCHLD has been received
+  ;; for the process it's waiting for, call it in a separate fiber so that
+  ;; signals are still being processed in the meantime.
+  (spawn-fiber
+   (lambda ()
+     (catch 'quit
+       (lambda ()
+         (stop root-service))
+       quit-exception-handler))))
 
 (define (signal-handler signal)
   "Return the signal handler for SIGNAL."
@@ -137,11 +142,7 @@ already ~a threads running, disabling 'signalfd' support")
         ((= signal SIGINT)
          (lambda _ (handle-SIGINT)))
         ((memv signal (list SIGTERM SIGHUP))
-         (lambda _
-           (catch 'quit
-             (lambda ()
-               (stop root-service))
-             quit-exception-handler)))
+         (lambda _ (handle-SIGINT)))
         (else
          (const #f))))
 

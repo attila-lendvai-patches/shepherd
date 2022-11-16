@@ -992,15 +992,12 @@ Guile's @code{setrlimit} procedure is applied on the entries in
 @end lisp
 @end deffn
 
-@deffn {procedure} make-kill-destructor [@var{signal}]
-Return a procedure that sends @var{signal} to the process group of the
-PID given as argument, where @var{signal} defaults to @code{SIGTERM}.
-
-This @emph{does} work together with respawning services,
-because in that case the @code{stop} method of the @code{<service>}
-class sets the @code{running} slot to @code{#f} before actually
-calling the destructor; if it would not do that, killing the process
-in the destructor would immediately respawn the service.
+@deffn {procedure} make-kill-destructor [@var{signal}] @
+  [#:grace-period (default-process-termination-grace-period)]
+Return a procedure that sends @var{signal} to the process group of the PID
+given as argument, where @var{signal} defaults to @code{SIGTERM}.  If the
+process is still running after @var{grace-period} seconds, send it
+@code{SIGKILL}.  The procedure returns once the process has terminated.
 @end deffn
 
 The @code{make-forkexec-constructor} procedure builds upon the following
@@ -1060,9 +1057,18 @@ returns when the program starts (@pxref{Runtime Environment,
 
 @defvr {Scheme Variable} default-pid-file-timeout
 This parameter (@pxref{Parameters,,, guile, GNU Guile Reference Manual})
-specified the default PID file timeout in seconds, when
+specifies the default PID file timeout in seconds, when
 @code{#:pid-file} is used (see above).  It defaults to 5 seconds.
 @end defvr
+
+@defvr {Scheme Variable} default-process-termination-grace-period
+This parameter (@pxref{Parameters,,, guile, GNU Guile Reference Manual})
+specifies the ``grace period'' (in seconds) after which a process that
+has been sent @code{SIGTERM} or some other signal to gracefully exit is
+sent @code{SIGKILL} for immediate termination.  It defaults to 5
+seconds.
+@end defvr
+
 
 @cindex on-demand, starting services
 @cindex inetd-style services

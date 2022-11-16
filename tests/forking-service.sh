@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test detecting a forked process' termination
-# Copyright © 2016, 2020 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2016, 2020, 2022 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 #
 # This file is part of the GNU Shepherd.
@@ -84,6 +84,17 @@ cat > "$conf"<<EOF
    #:start (make-forkexec-constructor %command3)
    #:stop  (make-kill-destructor)
    #:respawn? #t))
+
+(define %command4
+  '("$SHELL" "-c" "trap 'echo ignoring SIGTERM' SIGTERM; while true ; do : ; done"))
+
+(register-services
+ (make <service>
+   ;; A service that ignores SIGTERM.
+   #:provides '(test4)
+   #:requires '(test3)
+   #:start (make-forkexec-constructor %command4)
+   #:stop  (make-kill-destructor SIGTERM #:grace-period 3)))
 EOF
 cat $conf
 
@@ -134,11 +145,22 @@ test -f "$service_nofiles"
 nofiles_value="`cat $service_nofiles`"
 test 1567 -eq $nofiles_value
 
-
-
-# Try to trigger eventual race conditions, when killing a process between fork
-# and execv calls.
+# Try to trigger potential race conditions, when killing a process, between
+# the fork and execv calls.
 for i in `seq 1 50`
 do
     $herd restart test3
 done
+
+# Make sure 'herd stop' eventually terminates processes that ignore SIGTERM.
+$herd start test4
+$herd status test3 | grep started
+child_pid="$($herd status test4 | grep Running | sed '-es/.*Running value is \([0-9]\+\)\./\1/g')"
+kill -0 "$child_pid"
+$herd stop test3		# this will also stop 'test4'
+! kill -0 "$child_pid"
+grep ignoring "$log"
+grep SIGKILL "$log"
+$herd status test3 | grep stopped
+
+$herd status

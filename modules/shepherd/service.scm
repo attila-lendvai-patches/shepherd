@@ -27,7 +27,9 @@
   #:use-module ((fibers)
                 #:hide (sleep))
   #:use-module (fibers channels)
+  #:use-module (fibers operations)
   #:use-module (fibers scheduler)
+  #:use-module (fibers timers)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
@@ -89,6 +91,7 @@
             default-environment-variables
             make-forkexec-constructor
             make-kill-destructor
+            default-process-termination-grace-period
             exec-command
             fork+exec-command
             default-pid-file-timeout
@@ -467,13 +470,16 @@ is not already running, and will return SERVICE's canonical name in a list."
             (local-output (l10n "Service ~a pending to be stopped.")
                           (canonical-name service))
             (list (canonical-name service)))
-          (let ((name (canonical-name service))
-                (stopped-dependents (fold-services (lambda (other acc)
-                                                     (if (and (running? other)
-                                                              (required-by? service other))
-                                                         (append (stop other) acc)
-                                                         acc))
-                                                   '())))
+          (let* ((name (canonical-name service))
+                 (dependents (fold-services (lambda (other lst)
+                                              (if (and (running? other)
+                                                       (required-by? service other))
+                                                  (cons other lst)
+                                                  lst))
+                                            '()))
+                 ;; Note: 'fold-services' introduces a continuation barrier,
+                 ;; which is why we're not using it when calling 'stop'.
+                 (stopped-dependents (append-map stop dependents)))
             ;; Stop the service itself.
             (catch #t
               (lambda ()
@@ -1242,9 +1248,13 @@ start."
              pid))
           pid))))
 
-(define* (make-kill-destructor #:optional (signal SIGTERM))
-  "Return a procedure that sends SIGNAL to the process group of the PID given
-as argument, where SIGNAL defaults to `SIGTERM'."
+(define* (make-kill-destructor #:optional (signal SIGTERM)
+                               #:key (grace-period
+                                      (default-process-termination-grace-period)))
+  "Return a procedure that sends @var{signal} to the process group of the PID
+given as argument, where @var{signal} defaults to @code{SIGTERM}.  If the
+process is still running after @var{grace-period} seconds, send it
+@code{SIGKILL}.  The procedure returns once the process has terminated."
   (lambda (pid . args)
     ;; Kill the whole process group PID belongs to.  Don't assume that PID is
     ;; a process group ID: that's not the case when using #:pid-file, where
@@ -1253,8 +1263,10 @@ as argument, where SIGNAL defaults to `SIGTERM'."
     ;; will still be zero (the Shepherd PGID). In that case, use the PID.
     (let ((pgid (getpgid pid)))
       (if (= (getpgid 0) pgid)
-          (kill pid signal) ;don't kill ourself
-          (kill (- pgid) signal)))
+          (terminate-process pid signal           ;don't kill ourself
+                             #:grace-period grace-period)
+          (terminate-process (- pgid) signal
+                             #:grace-period grace-period)))
     #f))
 
 ;; Produce a constructor that executes a command.
@@ -1811,21 +1823,34 @@ otherwise by updating its state."
           (handle-service-termination service status)))
 
        ;; Notify any waiters.
-       (match (vhash-assv pid waiters)
-         (#f #f)
-         ((_ . waiter)
-          (put-message waiter status)))
+       (vhash-foldv* (lambda (waiter _)
+                       (put-message waiter status)
+                       #t)
+                     #t pid waiters)
 
        ;; XXX: The call below is linear in the size of WAITERS, but WAITERS is
        ;; usually empty or small.
-       (loop (vhash-delv pid waiters)))
+       (loop (vhash-fold (lambda (key value result)
+                           (if (= key pid)
+                               result
+                               (vhash-consv key value result)))
+                         vlist-null
+                         waiters)))
 
       (('spawn command reply)
        ;; Spawn COMMAND; send its exit status to REPLY when it terminates.
        ;; This operation is atomic: the WAITERS table is updated before
        ;; termination of PID can possibly be handled.
        (let ((pid (fork+exec-command command)))
-         (loop (vhash-consv pid reply waiters)))))))
+         (loop (vhash-consv pid reply waiters))))
+
+      (('await pid reply)
+       ;; Await the termination of PID and send its status on REPLY.
+       (if (catch-system-error (kill pid 0))
+           (loop (vhash-consv pid reply waiters))
+           (begin                                 ;PID is gone
+             (put-message reply 0)
+             (loop waiters)))))))
 
 (define (spawn-process-monitor)
   "Spawn a process monitoring fiber and return a channel to communicate with
@@ -1862,6 +1887,45 @@ context.  The process monitoring fiber is responsible for handling
                              ,reply))
         (get-message reply))
       (apply system* program arguments)))
+
+(define default-process-termination-grace-period
+  ;; Default process termination "grace period" before we send SIGKILL.
+  (make-parameter 5))
+
+(define* (get-message* channel timeout #:optional default)
+  "Receive a message from @var{channel} and return it, or, if the message hasn't
+arrived before @var{timeout} seconds, return @var{default}."
+  (call-with-values
+      (lambda ()
+        (perform-operation
+         (choice-operation (get-operation channel)
+                           (sleep-operation timeout))))
+    (match-lambda*
+      (()                               ;'sleep' operation returns zero values
+       default)
+      ((message)                            ;'get' operation returns one value
+       message))))
+
+(define* (terminate-process pid signal
+                            #:key (grace-period
+                                   (default-process-termination-grace-period)))
+  "Send @var{signal} to @var{pid}, which can be negative to denote a process
+group; wait for @var{pid} to terminate and return its exit status.  If
+@var{pid} is still running @var{grace-period} seconds after @var{signal} has
+been sent, send it @code{SIGKILL}."
+  (let ((reply (make-channel)))
+    (put-message (current-process-monitor) `(await ,(abs pid) ,reply))
+    (kill pid signal)
+
+    (match (get-message* reply grace-period #f)
+      (#f
+       (local-output
+        (l10n "Grace period of ~a seconds is over; sending ~a SIGKILL.")
+        grace-period pid)
+       (catch-system-error (kill pid SIGKILL))
+       (get-message reply))
+      (status
+       status))))
 
 (define (handle-service-termination service status)
   "Handle the termination of the process associated with @var{service}, whose
