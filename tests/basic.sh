@@ -242,6 +242,8 @@ then false; else true; fi
 if $herd eval root '(no closing paren'
 then false; else true; fi
 
+$herd eval root '(values)'
+
 # Unload everything and make sure only 'root' is left.
 $herd unload root all
 if $herd status | grep "Stopped:"

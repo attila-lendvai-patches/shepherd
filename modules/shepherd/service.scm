@@ -557,7 +557,15 @@ is not already running, and will return SERVICE's canonical name in a list."
     ;; it provides generally useful functionality and information.
     (catch #t
       (lambda ()
-        (apply proc (service-running-value obj) args))
+        ;; PROC may return any number of values (e.g., if PROC is
+        ;; 'eval-in-user-module'), including zero values, but callers expect a
+        ;; single value.  Deal with it gracefully.
+        (call-with-values
+            (lambda ()
+              (apply proc (service-running-value obj) args))
+          (case-lambda
+            (() *unspecified*)
+            ((first . rest) first))))
       (lambda (key . args)
         ;; Special case: 'root' may quit.
         (and (eq? root-service obj)
