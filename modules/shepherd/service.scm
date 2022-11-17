@@ -671,6 +671,20 @@ clients."
 
 
 
+(cond-expand
+ (guile-3.0 #t)
+ (else
+  ;; In Guile 2.2, SRFI-1 'find' is in C and thus introduces a continuation
+  ;; barrier, which is a problem for 'launch-service'.  Provide a Scheme
+  ;; implementation to address that.
+  (define (find pred lst)
+    (let loop ((lst lst))
+      (and (not (null? lst))
+           (let ((head (car lst)))
+             (if (pred head)
+                 head
+                 (loop (cdr lst)))))))))
+
 (define (launch-service name proc args)
   "Try to start (with PROC) a service providing NAME; return #f on failure.
 Used by `start' and `enforce'."
