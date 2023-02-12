@@ -656,6 +656,11 @@ denoting what the service provides."
   "Return true if OBJ is a service."
   (is-a? obj <service>))
 
+(define-method (write (o <service>) stream)
+  (display "#<service " stream)
+  (display (service-provision o) stream)
+  (display #\> stream))
+
 ;; Service errors.
 (define-condition-type &service-error &error service-error?)
 
