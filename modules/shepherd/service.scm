@@ -1,5 +1,5 @@
 ;; service.scm -- Representation of services.
-;; Copyright (C) 2013-2022 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013-2023 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Järling <wolfgang@pro-linux.de>
 ;; Copyright (C) 2014 Alex Sassmannshausen <alex.sassmannshausen@gmail.com>
 ;; Copyright (C) 2016 Alex Kost <alezost@gmail.com>
@@ -375,6 +375,27 @@ wire."
   (slot-set! obj 'enabled? #f)
   (local-output (l10n "Disabled service ~a.") (canonical-name obj)))
 
+(define (start-in-parallel services)
+  "Start @var{services} in parallel--i.e., without waiting for each one to be
+started before starting the next one.  Return the subset of @var{services}
+that could not be started."
+  (let ((channel (make-channel)))
+    (for-each (lambda (service)
+                (spawn-fiber
+                 (lambda ()
+                   (put-message channel
+                                (cons service (start service))))))
+              services)
+    (let loop ((i (length services))
+               (failures '()))
+      (if (> i 0)
+          (match (get-message channel)
+            ((service . #f)
+             (loop (- i 1) (cons service failures)))
+            ((_ . _)
+             (loop (- i 1) failures)))
+          failures))))
+
 ;; Start the service, including dependencies.
 (define-method (start (obj <service>) . args)
   (cond ((running? obj)
@@ -395,14 +416,16 @@ wire."
 	(else
 	 ;; It is not running and does not conflict with anything
 	 ;; that's running, so we can go on and launch it.
-	 (let ((problem
+	 (let ((problems
 		;; Resolve all dependencies.
-		(find (negate start) (required-by obj))))
+		(start-in-parallel (required-by obj))))
            (define running
-	     (if problem
-	         (local-output (l10n "Service ~a depends on ~a.")
-			       (canonical-name obj)
-			       problem)
+	     (if (pair? problems)
+                 (for-each (lambda (problem)
+	                     (local-output (l10n "Service ~a depends on ~a.")
+			                   (canonical-name obj)
+			                   problem))
+                           problems)
                  ;; Start the service itself.
                  (let ((reply (make-channel)))
                    (put-message (current-monitor-channel) `(start ,obj ,reply))
