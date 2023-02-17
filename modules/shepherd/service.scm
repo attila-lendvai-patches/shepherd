@@ -946,14 +946,21 @@ This procedure can be useful in a configuration file because it lets you
 interact right away with shepherd using the @command{herd} command."
   (spawn-fiber
    (lambda ()
-     (for-each (lambda (service)
-                 ;; Keep going if one of SERVICES fails to start.
-                 (guard (c ((service-error? c)
-                            (local-output
-                             (l10n "Failed to start ~a in the background.")
-                             service)))
-                   (start service)))
-               services)))
+     (match (start-in-parallel services)
+       (()
+        (local-output
+         (l10n "Successfully started ~a service in the background."
+               "Successfully started ~a services in the background."
+               (length services))
+         (length services)))
+       (failures
+        (local-output
+         (l10n "The following service could not be started in the \
+background:~{ ~a~}."
+               "The following services could not be started in the \
+background:~{ ~a~}."
+               (length failures))
+         failures)))))
 
   ;; 'spawn-fiber' returns zero values, which can confuse callees; return one.
   *unspecified*)
