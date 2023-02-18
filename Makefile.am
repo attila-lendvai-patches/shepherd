@@ -1,6 +1,6 @@
 # Makefile.am -- How to build and install the Shepherd.
 # Copyright © 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
-# Copyright © 2013-2016, 2018-2020, 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2013-2016, 2018-2020, 2022-2023 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 #
 # This file is part of the GNU Shepherd.
@@ -231,6 +231,7 @@ SUFFIXES = .go
 TESTS =						\
   tests/basic.sh				\
   tests/starting-status.sh			\
+  tests/stopping-status.sh			\
   tests/replacement.sh				\
   tests/respawn.sh				\
   tests/respawn-throttling.sh			\
