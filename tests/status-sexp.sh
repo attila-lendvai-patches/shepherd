@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test status sexps.
-# Copyright © 2016 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2016, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -71,7 +71,8 @@ root_service_sexp="
       (requires ())
       (respawn? #f)
       (docstring \"The root service is used to operate on shepherd itself.\")
-      (enabled? #t) (running #t) (conflicts ()) (last-respawns ()))"
+      (enabled? #t) (running #t) (conflicts ()) (last-respawns ())
+      (status running))"
 
 "$GUILE" -c "
 (use-modules (shepherd comm) (srfi srfi-1) (ice-9 match))
@@ -86,12 +87,14 @@ root_service_sexp="
 	       (provides (foo)) (requires ())
 	       (respawn? #t) (docstring \"Foo!\")
 	       (enabled? #t) (running abc) (conflicts ())
-	       (last-respawns ()))
+	       (last-respawns ())
+               (status running))
 	     (service (version 0)
 	       (provides (bar)) (requires (foo))
 	       (respawn? #f) (docstring \"Bar!\")
 	       (enabled? #t) (running #f) (conflicts ())
-	       (last-respawns ())))))))
+	       (last-respawns ())
+               (status stopped)))))))
 "
 
 # Make sure we get an 'error' sexp when querying a nonexistent service.

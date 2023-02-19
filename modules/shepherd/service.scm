@@ -833,6 +833,7 @@ clients."
             (running ,(result->sexp (service-running-value service)))
             (conflicts ,(map canonical-name (conflicts-with service)))
             (last-respawns ,(slot-ref service 'last-respawns))
+            (status ,(service-status service))
             ,@(if (slot-ref service 'one-shot?)
                   '((one-shot? #t))
                   '())
