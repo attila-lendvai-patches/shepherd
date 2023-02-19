@@ -336,15 +336,14 @@ wire."
 (define-method (canonical-name (obj <service>))
   (car (provided-by obj)))
 
-(define service-running-value
+(define (service-running-value service)
+  "Return the \"running value\" of SERVICE."
   (let ((reply (make-channel)))
-    (lambda (service)
-      "Return the \"running value\" of SERVICE."
-      (put-message (current-monitor-channel)
-                   `(running ,service ,reply))
-      (match (get-message reply)
-        ((? procedure? proc) (proc))
-        (value value)))))
+    (put-message (service-control service)
+                 `(running ,reply))
+    (match (get-message reply)
+      ((? procedure? proc) (proc))
+      (value value))))
 
 ;; Return whether the service is currently running.
 (define-method (running? (obj <service>))
