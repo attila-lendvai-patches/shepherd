@@ -57,7 +57,7 @@
             action-list
             lookup-action
             defines-action?
-            with-service-monitor
+            with-service-registry
 
             action?
 
@@ -597,7 +597,7 @@ that could not be started."
 completely removes all references to OLD-SERVICE before registering
 NEW-SERVICE."
   (when new-service
-    (put-message (current-monitor-channel)
+    (put-message (current-registry-channel)
                  `(unregister ,(list old-service)))
     (register-services new-service)))
 
@@ -679,7 +679,7 @@ is not already running, and will return SERVICE's canonical name in a list."
                           name))
 
         (when (transient? service)
-          (put-message (current-monitor-channel)
+          (put-message (current-registry-channel)
                        `(unregister ,(list service)))
           (local-output (l10n "Transient service ~a unregistered.")
                         (canonical-name service)))
@@ -839,10 +839,10 @@ clients."
 
 
 ;;;
-;;; Service monitor.
+;;; Service registry.
 ;;;
 
-(define (service-monitor channel)
+(define (service-registry channel)
   "Encapsulate shepherd state (registered and running services) and serve
 requests arriving on @var{channel}."
   (define (stopped? service)
@@ -919,30 +919,30 @@ requests arriving on @var{channel}."
                             names))
          (loop registered))))))
 
-(define (spawn-service-monitor)
+(define (spawn-service-registry)
   "Spawn a new service monitor fiber and return a channel to send it requests."
   (define channel
     (make-channel))
 
   (spawn-fiber
    (lambda ()
-     (service-monitor channel)))
+     (service-registry channel)))
 
   channel)
 
-(define current-monitor-channel
+(define current-registry-channel
   ;; The channel to communicate with the current service monitor.
   (make-parameter #f))
 
-(define (call-with-service-monitor thunk)
-  (parameterize ((current-monitor-channel (spawn-service-monitor)))
+(define (call-with-service-registry thunk)
+  (parameterize ((current-registry-channel (spawn-service-registry)))
     (thunk)))
 
-(define-syntax-rule (with-service-monitor exp ...)
+(define-syntax-rule (with-service-registry exp ...)
   "Spawn a new service monitor and evaluate @var{exp}... within that dynamic extent.
 This allows @var{exp}... and their callees to send requests to delegate
 service state and to send requests to the service monitor."
-  (call-with-service-monitor (lambda () exp ...)))
+  (call-with-service-registry (lambda () exp ...)))
 
 
 
@@ -2049,7 +2049,7 @@ Return #f if service is not found."
     (lambda (proc init)
       "Apply PROC to the registered services to build a result, and return that
 result.  Works in a manner akin to `fold' from SRFI-1."
-      (put-message (current-monitor-channel)
+      (put-message (current-registry-channel)
                    `(service-list ,reply))
       (fold (match-lambda*
               (((name . services) result)
@@ -2087,7 +2087,7 @@ returned in unspecified."
   (let ((reply (make-channel)))
     (lambda (name)
       "Return a (possibly empty) list of services that provide NAME."
-      (put-message (current-monitor-channel) `(lookup ,name ,reply))
+      (put-message (current-registry-channel) `(lookup ,name ,reply))
       (get-message reply))))
 
 (define waitpid*
@@ -2275,7 +2275,7 @@ then disable it."
         (slot-set! serv 'enabled? #f)
 
         (when (transient? serv)
-          (put-message (current-monitor-channel) `(unregister (,serv)))
+          (put-message (current-registry-channel) `(unregister (,serv)))
           (local-output (l10n "Transient service ~a terminated, now unregistered.")
                         (canonical-name serv))))))
 
@@ -2290,7 +2290,7 @@ is currently stopped, replace it immediately."
     (assert (list-of-symbols? (required-by new)))
     (assert (boolean? (respawn? new)))
 
-    (put-message (current-monitor-channel) `(register ,new)))
+    (put-message (current-registry-channel) `(register ,new)))
 
   (for-each register-single-service new-services))
 
@@ -2306,13 +2306,13 @@ requested to be removed."
     (when (running? service)
       (stop service))
     ;; Remove services provided by service from the hash table.
-    (put-message (current-monitor-channel)
+    (put-message (current-registry-channel)
                  `(unregister ,(list service))))
 
   (let ((name (string->symbol service-name)))
     (cond ((eq? name 'all)
            ;; Special 'remove all' case.
-           (put-message (current-monitor-channel) `(unregister-all))
+           (put-message (current-registry-channel) `(unregister-all))
            #t)
           (else
            ;; Removing only one service.

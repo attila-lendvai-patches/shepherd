@@ -411,7 +411,7 @@ already ~a threads running, disabling 'signalfd' support")
       ;; because POSIX threads and 'fork' cannot be used together.
       (run-fibers
        (lambda ()
-         (with-service-monitor
+         (with-service-registry
 
           ;; Register and start the 'root' service.
           (register-services root-service)
