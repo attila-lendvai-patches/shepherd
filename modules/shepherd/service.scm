@@ -483,9 +483,20 @@ wire."
       ((? procedure? proc) (proc))
       (value value))))
 
-;; Return whether the service is currently running.
-(define-method (running? (obj <service>))
-  (and (service-running-value obj) #t))
+(define (service-status service)
+  "Return the status of @var{service}, one of @code{stopped}, @code{starting},
+@code{running}, or @code{stopping}."
+  (let ((reply (make-channel)))
+    (put-message (service-control service) `(status ,reply))
+    (get-message reply)))
+
+(define-method (running? (service <service>))
+  "Return true if @var{service} is not stopped."
+  (not (stopped? service)))
+
+(define (stopped? service)
+  "Return true if @var{service} is stopped."
+  (eq? 'stopped (service-status service)))
 
 ;; Return a list of all actions implemented by OBJ.
 (define-method (action-list (obj <service>))
@@ -535,7 +546,7 @@ that could not be started."
 
 ;; Start the service, including dependencies.
 (define-method (start (obj <service>) . args)
-  (cond ((running? obj)
+  (cond ((eq? 'running (service-status obj))
 	 (local-output (l10n "Service ~a is already running.")
 		       (canonical-name obj))
          (service-running-value obj))
@@ -616,7 +627,7 @@ NEW-SERVICE."
 canonical names for all of the services which have been stopped (including
 transitive dependent services).  This method will print a warning if SERVICE
 is not already running, and will return SERVICE's canonical name in a list."
-  (if (not (running? service))
+  (if (stopped? service)
       (begin
         (local-output (l10n "Service ~a is not running.")
                       (canonical-name service))
@@ -845,11 +856,6 @@ clients."
 (define (service-registry channel)
   "Encapsulate shepherd state (registered and running services) and serve
 requests arriving on @var{channel}."
-  (define (stopped? service)
-    (let ((reply (make-channel)))
-      (put-message (service-control service) `(status ,reply))
-      (eq? 'stopped (get-message reply))))
-
   (let loop ((registered vlist-null))
     (define (unregister services)
       ;; Return REGISTERED minus SERVICE.
@@ -1002,7 +1008,7 @@ Used by `start' and `enforce'."
 
 ;; Stopping by name.
 (define-method (stop (obj <symbol>) . args)
-  (let ((which (lookup-running obj)))
+  (let ((which (find (negate stopped?) (lookup-services obj))))
     (if which
 	(apply stop which args)
         (let ((unknown (lookup-running 'unknown)))
@@ -1092,7 +1098,9 @@ background:~{ ~a~}."
 ;; the return value of `lookup-services', where no more than one will
 ;; ever run at the same time.
 (define (first-running services)
-  (find running? services))
+  (find (lambda (service)
+          (eq? 'running (service-status service)))
+        services))
 
 ;; Return the running service that provides NAME, or false if none.
 (define (lookup-running name)
