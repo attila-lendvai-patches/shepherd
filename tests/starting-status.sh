@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test the "starting" status.
-# Copyright © 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2022, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -59,10 +59,9 @@ shepherd_pid="`cat $pid`"
 $herd start test &
 herd_pid=$!
 
-# Currently, 'test' is considered as "stopped" while starting.
 $herd status
 $herd status test
-$herd status test | grep stopped
+$herd status test | grep starting
 
 $herd start test &
 herd_pid2=$!

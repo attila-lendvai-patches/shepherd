@@ -64,10 +64,9 @@ $herd status test | grep started
 $herd stop test &
 herd_pid=$!
 
-# Currently, 'test' is considered as "running" while being stopped.
 $herd status
 $herd status test
-$herd status test | grep started
+$herd status test | grep "being stopped"
 
 $herd stop test &
 herd_pid2=$!

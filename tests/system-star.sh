@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test whether 'system*' is blocking.
-# Copyright © 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2022-2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -70,8 +70,8 @@ kill -0 $shepherd_pid
 # 'herd start' will block until the script exits...
 $herd start test &
 
-# ... so at this point the service is stopped.
-$herd status test | grep "stopped"
+# ... so at this point the service is starting or about to start.
+$herd status test | grep -E "(starting|stopped)"
 
 # Touch $stamp.  The shell script passed to 'system*' should complete shortly
 # after that.

@@ -1,5 +1,5 @@
 ;; herd.scm -- The program to herd the Shepherd.
-;; Copyright (C) 2013-2014, 2016, 2018-2019, 2021-2022 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013-2014, 2016, 2018-2019, 2021-2023 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
 ;;
 ;; This file is part of the GNU Shepherd.
@@ -91,22 +91,33 @@ of pairs."
   "Display the status of SERVICE, an sexp."
   (match service
     (('service ('version 0 _ ...) properties ...)
-     (alist-let* properties (provides requires running respawn? enabled?
+     (alist-let* properties (provides requires status running respawn? enabled?
                              conflicts last-respawns one-shot? transient?)
        (format #t (l10n "Status of ~a:~%") (first provides))
-       (cond (running
-              (if transient?
-                  (format #t (l10n "  It is started and transient.~%"))
-                  (format #t (l10n "  It is started.~%")))
 
-              ;; TRANSLATORS: The "~s" bit is most of the time a placeholder
-              ;; for the PID (an integer) of the running process, and
-              ;; occasionally for another Scheme object.
-              (format #t (l10n "  Running value is ~s.~%") running))
-             (one-shot?
-              (format #t (l10n "  It is stopped (one-shot).~%")))
-             (else
+       ;; Note: Shepherd up to 0.9.x included did not provide 'status', hence
+       ;; the 'or' below.
+       (match (or status (if running 'running 'stopped))
+         ('running
+          (if transient?
+              (format #t (l10n "  It is started and transient.~%"))
+              (format #t (l10n "  It is started.~%")))
+
+          ;; TRANSLATORS: The "~s" bit is most of the time a placeholder
+          ;; for the PID (an integer) of the running process, and
+          ;; occasionally for another Scheme object.
+          (format #t (l10n "  Running value is ~s.~%") running))
+         ('stopped
+          (if one-shot?
+              (format #t (l10n "  It is stopped (one-shot).~%"))
               (format #t (l10n "  It is stopped.~%"))))
+         ('starting
+          (format #t (l10n "  It is starting.~%")))
+         ('stopping
+          (format #t (l10n "  It is being stopped.~%")))
+         (x
+          (format #t (l10n "  Unknown status '~a'~%.") x)))
+
        (if enabled?
            (format #t (l10n "  It is enabled.~%"))
            (format #t (l10n "  It is disabled.~%")))
