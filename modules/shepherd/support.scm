@@ -52,13 +52,9 @@
             default-socket-dir
             default-socket-file
             %system-socket-file
-            default-persistency-state-file
 
             load-in-user-module
             eval-in-user-module
-
-            persistency
-            persistency-state-file
 
             %user-log-dir
             %user-config-dir
@@ -340,16 +336,6 @@ create a template configuration file if non exists."
 ;; Location of the socket of the system's instance (PID 1).
 (define %system-socket-file
   (string-append %system-socket-dir "/socket"))
-
-;; Saving the state on exit.
-(define default-persistency-state-file
-  (if (zero? (getuid))
-      (string-append %localstatedir "/lib/shepherd/state")
-      (string-append %user-config-dir "/state")))
-
-;; Global variables set from (shepherd).
-(define persistency #f)
-(define persistency-state-file default-persistency-state-file)
 
 (define (make-user-module)
   "Return a new module, for use when evaluating the user's configuration,

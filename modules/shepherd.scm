@@ -165,7 +165,7 @@ already ~a threads running, disabling 'signalfd' support")
            (fcntl fd F_SETFD (logior FD_CLOEXEC flags)))))
       (loop (+ fd 1)))))
 
-(define* (run-daemon #:key (config-file (default-config-file)) persistency
+(define* (run-daemon #:key (config-file (default-config-file))
                      socket-file pid-file signal-port poll-services?)
   ;; We might have file descriptors inherited from our parent, as well as file
   ;; descriptors wrongfully opened by Guile or Fibers (see
@@ -183,15 +183,6 @@ already ~a threads running, disabling 'signalfd' support")
     (lambda (key . args)
       (caught-error key args)
       (quit 1)))
-  ;; Start what was started last time.
-  (and persistency
-       (catch 'system-error
-         (lambda ()
-           (start-in-order (read (open-input-file
-                                  persistency-state-file))))
-         (lambda (key . args)
-           (apply format #f (gettext (cadr args)) (caddr args))
-           (quit 1))))
 
   ;; Ignore SIGPIPE so that we don't die if a client closes the connection
   ;; prematurely.
@@ -288,15 +279,6 @@ already ~a threads running, disabling 'signalfd' support")
 		  ""
 		  "This is a service manager for Unix and GNU."
 		  not ;; Fail on unknown args.
-		  (make <option>
-		    #:long "persistency" #:short #\p
-		    #:takes-arg? #t #:optional-arg? #t
-                    #:arg-name (l10n "FILE")
-		    #:description (l10n "use FILE to load and store state")
-		    #:action (lambda (file)
-			       (set! persistency #t)
-			       (and file
-				    (set! persistency-state-file file))))
 		  (make <option>
 		    #:long "quiet"
 		    #:takes-arg? #f
@@ -439,8 +421,7 @@ already ~a threads running, disabling 'signalfd' support")
                             #:config-file config-file
                             #:pid-file pid-file
                             #:signal-port signal-port
-                            #:poll-services? poll-services?
-                            #:persistency persistency)))
+                            #:poll-services? poll-services?)))
             (case-lambda
               ((key value . _)
                (primitive-exit value))

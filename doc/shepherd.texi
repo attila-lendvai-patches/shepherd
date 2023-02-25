@@ -301,7 +301,7 @@ using with the additional argument @code{list-actions}.
 $ herd doc root
 The root service is used to operate on shepherd itself.
 $ herd doc root list-actions
-root (help status halt power-off load eval unload reload daemonize persistency no-persistency cd restart)
+root (help status halt power-off load eval unload reload daemonize cd restart)
 $ herd doc root action power-off
 power-off: Halt the system and turn it off.
 @end example
@@ -439,10 +439,6 @@ is the case on other operating systems, it falls back to
 @item --pid[=@var{file}]
 When @command{shepherd} is ready to accept connections, write its PID to @var{file} or
 to the standard output if @var{file} is omitted.
-
-@item -p [@var{file}]
-@itemx --persistency[=@var{file}]
-@c FIXME-CRITICAL
 
 @item -s @var{file}
 @itemx --socket=@var{file}

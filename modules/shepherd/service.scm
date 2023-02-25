@@ -2364,8 +2364,7 @@ requested to be removed."
 ;; The 'root' service.
 
 (define (shutdown-services)
-  "Shut down all the currently running services; update the persistent state
-file when persistence is enabled."
+  "Shut down all the currently running services."
   (let ((running-services '()))
     ;; Note: Do not use 'for-each-service' since it introduces a continuation
     ;; barrier via 'hash-fold', thereby preventing the 'stop' method from
@@ -2373,17 +2372,8 @@ file when persistence is enabled."
     (for-each
      (lambda (service)
        (when (running? service)
-         (stop service)
-         (when persistency
-           (set! running-services
-                 (cons (canonical-name service)
-                       running-services)))))
-     (service-list))
-
-    (when persistency
-      (call-with-output-file persistency-state-file
-        (lambda (p)
-          (format p "~{~a ~}~%" running-services))))))
+         (stop service)))
+     (service-list))))
 
 (define (check-for-dead-services)
   "Poll each process that we expect to be running, and respawn any which have
@@ -2517,19 +2507,6 @@ we want to receive these signals."
                      (catch-system-error (prctl PR_SET_CHILD_SUBREAPER 1))
                      #t)
                    (primitive-exit 0))))))
-     (persistency
-      "Save the current state of running and non-running services.
-This status gets written into a file on termination, so that we can
-restore the status on next startup.  Optionally, you can pass a file
-name as argument that will be used to store the status."
-      (lambda* (running #:optional (file #f))
-               (set! persistency #t)
-               (when file
-                 (set! persistency-state-file file))))
-     (no-persistency
-      "Don't save state in a file on exit."
-      (lambda (running)
-	(set! persistency #f)))
      (cd
       "Change the working directory of shepherd.  This only makes sense
 when in interactive mode, i.e. with `--socket=none'."
