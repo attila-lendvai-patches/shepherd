@@ -87,7 +87,6 @@
             register-services
             provided-by
             required-by
-            handle-unknown
 
             default-service-termination-handler
             default-environment-variables
@@ -990,14 +989,7 @@ Used by `start' and `enforce'."
          ;; None running yet, start one.
          (find (lambda (service)
                  (apply proc service args))
-               possibilities)
-
-         ;; Failed to start something, try the 'unknown' service.
-         (let ((unknown (lookup-running 'unknown)))
-           (if (and unknown
-                    (defines-action? unknown 'start))
-               (apply action unknown 'start name args)
-               #f))))))
+               possibilities)))))
 
 ;; Starting by name.
 (define-method (start (obj <symbol>) . args)
@@ -1012,27 +1004,19 @@ Used by `start' and `enforce'."
   (let ((which (find (negate stopped?) (lookup-services obj))))
     (if which
 	(apply stop which args)
-        (let ((unknown (lookup-running 'unknown)))
-	  (if (and unknown
-		   (defines-action? unknown 'stop))
-	      (apply action unknown 'stop obj args)
-              ;; Only print an error if the service does not exist.
-              (match (lookup-services obj)
-                (()
-                 (raise (condition (&missing-service-error (name obj)))))
-                ((stopped . _)
-                 (list))))))))
+        ;; Only print an error if the service does not exist.
+        (match (lookup-services obj)
+          (()
+           (raise (condition (&missing-service-error (name obj)))))
+          ((stopped . _)
+           (list))))))
 
 (define-method (action (obj <symbol>) the-action . args)
   "Perform THE-ACTION on all the services named OBJ.  Return the list of
 results."
   (let ((which-services (lookup-running-or-providing obj)))
     (if (null? which-services)
-	(let ((unknown (lookup-running 'unknown)))
-	  (if (and unknown
-		   (defines-action? unknown 'action))
-	      (apply action unknown 'action the-action args)
-              (raise (condition (&missing-service-error (name obj))))))
+        (raise (condition (&missing-service-error (name obj))))
         (map (lambda (service)
                (apply action service the-action args))
              which-services))))
@@ -1066,32 +1050,6 @@ background:~{ ~a~}."
   *unspecified*)
 
 
-
-;; Handling of unprovided service-symbols.  This can be called in
-;; either of the following ways (i.e. with either three or four
-;; arguments):
-;;   handle-unknown SERVICE-SYMBOL [ 'start | 'stop ] ARGS
-;;   handle-unknown SERVICE-SYMBOL 'action THE_ACTION ARGS
-(define (handle-unknown . args)
-  (let ((unknown (lookup-running 'unknown)))
-    ;; FIXME: Display message if no unknown service.
-    (when unknown
-      (apply (case-lambda
-	       ;; Start or stop.
-	       ((service-symbol start/stop args)
-	        (if (defines-action? unknown start/stop)
-		    (apply action unknown start/stop service-symbol args)
-		    ;; FIXME: Bad message.
-		    (local-output "Cannot ~a ~a." start/stop service-symbol)))
-	       ;; Action.
-	       ((service-symbol action-sym the-action args)
-	        (assert (eq? action-sym 'action))
-	        (if (defines-action? unknown 'action)
-		    (apply action unknown 'action service-symbol
-                           the-action args)
-		    (local-output (l10n "No service provides ~a.")
-                                  service-symbol))))
-             args))))
 
 ;; Check if any of SERVICES is running.  If this is the case, return
 ;; it.  If none, return `#f'.  Only the first one found will be

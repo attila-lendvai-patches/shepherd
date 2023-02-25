@@ -499,7 +499,7 @@ It causes the @var{action} of the @var{service} to be invoked.  When
 @code{detailed-status}, the @code{root} service is used@footnote{This
 shorthand does not work for other actions such as @code{stop}, because
 inadvertently typing @code{herd stop} would stop all the services, which
-could be pretty annoying.} (@pxref{The root and unknown services}, for
+could be pretty annoying.} (@pxref{The root Service}, for
 more information on the @code{root} service.)
 
 For each action, you should pass the appropriate @var{arg}s.  Actions
@@ -606,7 +606,7 @@ defined in the @code{(shepherd service)} module.
                                    stopping services.
 * Service Examples::             Examples that show how services are used.
 * Managing User Services::       Running the Shepherd as a user.
-* The root and unknown services:: Special services in the Shepherd.
+* The root Service::             The service that comes first.
 @end menu
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1369,8 +1369,8 @@ Then, individual user services can be put in
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-@node The root and unknown services
-@section The @code{root} and @code{unknown} services
+@node The root Service
+@section The @code{root} Service
 
 @cindex root service
 @cindex special services
@@ -1424,16 +1424,6 @@ respawnable services are started, as otherwise we would not get the
 @code{SIGCHLD} signals when they terminate.
 
 @end table
-
-@cindex unknown service
-@cindex fallback service
-The @code{unknown} service must be defined by the user and if it
-exists, is used as a fallback whenever we try to invoke an unknown
-action of an existing service or use a service that does not exist.
-This is useful only in few cases, but enables you to do various sorts
-of unusual things.
-
-@c FIXME-CRITICAL: finish
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
