@@ -118,6 +118,14 @@ do
     $herd restart test-with-respawn
     $herd status test-with-respawn | grep "started"
 done
+$herd stop test-with-respawn
+
+# What happens when we cause the process monitor to throw an exception while
+# trying to fork?  The process monitor fiber should remain alive.
+$herd eval root "(setrlimit 'nproc 1 1)"
+! $herd start test
+$herd status test
+$herd status test | grep "stopped"
 
 $herd stop root
 

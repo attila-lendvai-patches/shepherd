@@ -7,6 +7,7 @@
 ;; Copyright (C) 2019 Ricardo Wurmus <rekado@elephly.net>
 ;; Copyright (C) 2020 Mathieu Othacehe <m.othacehe@gmail.com>
 ;; Copyright (C) 2020 Oleg Pykhalov <go.wigust@gmail.com>
+;; Copyright (C) 2023 Ulf Herrman <striness@tilde.club>
 ;;
 ;; This file is part of the GNU Shepherd.
 ;;
@@ -2086,6 +2087,24 @@ otherwise by updating its state."
        ;; loop so we don't miss any terminated child process.
        (loop)))))
 
+(define-syntax-rule (boxed-errors exps ...)
+  (catch #t
+    (lambda ()
+      (call-with-values
+          (lambda ()
+            exps ...)
+        (lambda results
+          (list 'success results))))
+    (lambda args
+      (list 'exception args))))
+
+(define unboxed-errors
+  (match-lambda
+    (('success vals)
+     (apply values vals))
+    (('exception args)
+     (apply throw args))))
+
 (define (process-monitor channel)
   "Run a process monitor that handles requests received over @var{channel}."
   (let loop ((waiters vlist-null))
@@ -2121,11 +2140,17 @@ otherwise by updating its state."
                          waiters)))
 
       (('spawn command reply)
-       ;; Spawn COMMAND; send its exit status to REPLY when it terminates.
-       ;; This operation is atomic: the WAITERS table is updated before
-       ;; termination of PID can possibly be handled.
-       (let ((pid (fork+exec-command command)))
-         (loop (vhash-consv pid reply waiters))))
+       ;; Spawn COMMAND; send the spawn result (PID or exception) to REPLY;
+       ;; send its exit status to REPLY when it terminates.  This operation is
+       ;; atomic: the WAITERS table is updated before termination of PID can
+       ;; possibly be handled.
+       (let ((result (boxed-errors (fork+exec-command command))))
+         (put-message reply result)
+         (match result
+           (('exception . _)
+            (loop waiters))
+           (('success (pid))
+            (loop (vhash-consv pid reply waiters))))))
 
       (('await pid reply)
        ;; Await the termination of PID and send its status on REPLY.
@@ -2161,14 +2186,17 @@ context.  The process monitoring fiber is responsible for handling
 @code{SIGCHLD} and generally dealing with process creation and termination."
   (call-with-process-monitor (lambda () exp ...)))
 
+(define (spawn-via-monitor command)
+  (let ((reply (make-channel)))
+    (put-message (current-process-monitor)
+                 `(spawn ,command ,reply))
+    (unboxed-errors (get-message reply))
+    (get-message reply)))
+
 (define (spawn-command program . arguments)
   "Like 'system*' but do not block while waiting for PROGRAM to terminate."
   (if (current-process-monitor)
-      (let ((reply (make-channel)))
-        (put-message (current-process-monitor)
-                     `(spawn ,(cons program arguments)
-                             ,reply))
-        (get-message reply))
+      (spawn-via-monitor (cons program arguments))
       (apply system* program arguments)))
 
 (define default-process-termination-grace-period
