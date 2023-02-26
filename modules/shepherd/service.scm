@@ -2465,11 +2465,6 @@ we want to receive these signals."
                      (catch-system-error (prctl PR_SET_CHILD_SUBREAPER 1))
                      #t)
                    (primitive-exit 0))))))
-     (cd
-      "Change the working directory of shepherd.  This only makes sense
-when in interactive mode, i.e. with `--socket=none'."
-      (lambda (running dir)
-	(chdir dir)))
      ;; Restart it - that does not make sense, but
      ;; we're better off by implementing it due to the
      ;; default action.
