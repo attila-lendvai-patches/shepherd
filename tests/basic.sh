@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test basic communication capabilities.
-# Copyright © 2013-2014, 2016-2019, 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2013-2014, 2016-2019, 2022-2023 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2016 Mathieu Lirzin <mthl@gnu.org>
 # Copyright © 2014 Alex Sassmannshausen <alex.sassmannshausen@gmail.com>
 #
@@ -141,8 +141,9 @@ done
 if $herd an-action-that-does-not-exist root
 then false; else true; fi
 
-if $herd start broken
-then false; else true; fi
+# Check the behavior for a service whose 'start' method throws.
+! $herd start broken
+$herd status broken | grep "stopped"
 
 # Wrong number of arguments for an action.
 if $herd status root foo bar baz;

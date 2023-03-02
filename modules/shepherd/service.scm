@@ -587,6 +587,7 @@ that could not be started."
                                        (lambda ()
                                          (apply (slot-ref obj 'start) args))
                                        (lambda (key . args)
+                                         (put-message notification #f)
                                          (report-exception 'start obj key args)))))
                         (put-message notification running)
                         running))))))
