@@ -45,6 +45,12 @@ cat > "$conf" <<EOF
              (delete-file "$stamp"))
    #:respawn? #f)
  (make <service>
+   #:provides '(test-command-not-found)
+   #:start (lambda _
+             (zero? (system* "this command does not exist")))
+   #:stop  (const #f)
+   #:respawn? #f)
+ (make <service>
    #:provides '(test-with-respawn)
    #:start (make-forkexec-constructor
              (list "$SHELL" "-cex"
@@ -94,6 +100,11 @@ $herd status test | grep "exit-code 123"
 $herd stop test
 ! test -f "$stamp"
 grep "STOPPING" "$log"
+
+# This service uses 'system*' but the command is not found.
+! $herd start test-command-not-found
+$herd status test-command-not-found
+$herd status test-command-not-found | grep "stopped"
 
 # What about a service with a custom 'stop' procedure that uses 'system*'?
 # Stopping the service should not trigger the respawn machinery.
