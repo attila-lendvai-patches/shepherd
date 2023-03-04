@@ -2139,12 +2139,13 @@ otherwise by updating its state."
                          vlist-null
                          waiters)))
 
-      (('spawn command reply)
-       ;; Spawn COMMAND; send the spawn result (PID or exception) to REPLY;
-       ;; send its exit status to REPLY when it terminates.  This operation is
-       ;; atomic: the WAITERS table is updated before termination of PID can
-       ;; possibly be handled.
-       (let ((result (boxed-errors (fork+exec-command command))))
+      (('spawn arguments reply)
+       ;; Spawn the command as specified by ARGUMENTS; send the spawn result
+       ;; (PID or exception) to REPLY; send its exit status to REPLY when it
+       ;; terminates.  This operation is atomic: the WAITERS table is updated
+       ;; before termination of PID can possibly be handled.
+       (let ((result (boxed-errors
+                      (apply fork+exec-command arguments))))
          (put-message reply result)
          (match result
            (('exception . _)
@@ -2186,18 +2187,52 @@ context.  The process monitoring fiber is responsible for handling
 @code{SIGCHLD} and generally dealing with process creation and termination."
   (call-with-process-monitor (lambda () exp ...)))
 
-(define (spawn-via-monitor command)
+(define (spawn-via-monitor arguments)
   (let ((reply (make-channel)))
     (put-message (current-process-monitor)
-                 `(spawn ,command ,reply))
+                 `(spawn ,arguments ,reply))
     (unboxed-errors (get-message reply))
     (get-message reply)))
 
-(define (spawn-command program . arguments)
-  "Like 'system*' but do not block while waiting for PROGRAM to terminate."
-  (if (current-process-monitor)
-      (spawn-via-monitor (cons program arguments))
-      (apply system* program arguments)))
+(define spawn-command
+  (let ((warn-deprecated-form
+         ;; In 0.9.3, this procedure took a rest list.
+         (lambda ()
+           (issue-deprecation-warning
+            "This 'spawn-command' form is deprecated; use\
+ (spawn-command '(\"PROGRAM\" \"ARGS\"...))."))))
+    (case-lambda*
+     ((command #:key
+               (user #f)
+               (group #f)
+               (environment-variables (default-environment-variables))
+               (directory (default-service-directory))
+               (resource-limits '()))
+      "Like @code{system*}, spawn @var{command} (a list of strings) but do not block
+while waiting for @var{program} to terminate."
+      (let ((command (if (string? command)
+                         (begin
+                           (warn-deprecated-form)
+                           (list command))
+                         command)))
+        (if (current-process-monitor)
+            (spawn-via-monitor
+             (list command
+                   #:user user #:group group
+                   #:environment-variables environment-variables
+                   #:directory directory
+                   #:resource-limits resource-limits))
+            (let ((pid (fork+exec-command
+                        command
+                        #:user user #:group group
+                        #:environment-variables environment-variables
+                        #:directory directory
+                        #:resource-limits resource-limits)))
+              (match (waitpid pid)
+                ((_ . status) status))))))
+     ((program . arguments)
+      ;; The old form, which appeared in 0.9.3.
+      (spawn-command (cons program arguments))))))
 
 (define default-process-termination-grace-period
   ;; Default process termination "grace period" before we send SIGKILL.

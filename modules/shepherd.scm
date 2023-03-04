@@ -1,5 +1,5 @@
 ;; shepherd.scm -- The daemon shepherd.
-;; Copyright (C) 2013-2014, 2016, 2018-2020, 2022 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013-2014, 2016, 2018-2020, 2022-2023 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
 ;; Copyright (C) 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 ;; Copyright (C) 2018 Danny Milosavljevic <dannym@scratchpost.org>
@@ -405,7 +405,8 @@ already ~a threads running, disabling 'signalfd' support")
                 ;; Replace the default 'system*' binding with one that
                 ;; cooperates instead of blocking on 'waitpid'.
                 (let ((real-system* system*))
-                  (set! system* spawn-command)
+                  (set! system* (lambda command
+                                  (spawn-command command)))
 
                   ;; Restore 'system*' after fork.
                   (set! primitive-fork
