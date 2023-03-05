@@ -403,6 +403,20 @@ Log abnormal termination reported by @var{status}."
       ('notify-termination                        ;no reply
        (loop 'stopped #f condition))
 
+      (('handle-termination exit-status)          ;no reply
+       ;; Handle premature termination of this service's process, possibly by
+       ;; respawning it, unless STATUS is 'stopping'.
+       (if (eq? status 'stopping)
+           (loop status value condition)
+           (begin
+             (spawn-fiber
+              (lambda ()
+                (false-if-exception
+                 ((slot-ref service 'handle-termination)
+                  service value exit-status))
+                (put-message channel 'notify-termination)))
+             (loop 'stopped #f #f))))
+
       (('replace-if-running replacement reply)
        (if (eq? status 'running)
            (begin
@@ -634,18 +648,12 @@ is not already running, and will return SERVICE's canonical name in a list."
                       (canonical-name service))
         (list (canonical-name service)))
       (let ((name (canonical-name service))
-            (handle-termination (slot-ref service 'handle-termination))
             (stopped-dependents (fold-services (lambda (other acc)
                                                  (if (and (running? other)
                                                           (required-by? service other))
                                                      (append (stop other) acc)
                                                      acc))
                                                '())))
-
-        ;; Prevent respawn while SERVICE is being stopped.
-        ;; TODO: Handle this via the service monitor.
-        (slot-set! service 'handle-termination (const #f))
-
         ;; Stop the service itself.
         (let ((reply (make-channel)))
           (put-message (service-control service) `(stop ,reply))
@@ -671,9 +679,6 @@ is not already running, and will return SERVICE's canonical name in a list."
         ;; SERVICE is no longer running.
         (put-message (service-control service)
                      'notify-termination)
-
-        ;; Restore termination handler.
-        (slot-set! service 'handle-termination handle-termination)
 
         ;; Reset the list of respawns.
         (slot-set! service 'last-respawns '())
@@ -2278,9 +2283,8 @@ been sent, send it @code{SIGKILL}."
 PID is in its @code{running} slot; @var{status} is the process's exit status
 as returned by @code{waitpid}.  This procedure is called right after the
 process has terminated."
-  (let ((running (service-running-value service)))
-    (put-message (service-control service) 'notify-termination)
-    ((slot-ref service 'handle-termination) service running status)))
+  (put-message (service-control service)
+               `(handle-termination ,status)))
 
 (define (respawn-service serv)
   "Respawn a service that has stopped running unexpectedly. If we have
