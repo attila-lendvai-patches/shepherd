@@ -267,10 +267,6 @@ Log abnormal termination reported by @var{status}."
   ;; A description of the service.
   (docstring #:init-keyword #:docstring
 	     #:init-value "[No description].")
-  ;; A service can be disabled if it is respawning too fast; it is
-  ;; also possible to enable or disable it manually.
-  (enabled? #:init-value #t
-	    #:getter enabled?)
   ;; A replacement for when this service is stopped.
   (replacement #:init-keyword #:replacement
                #:init-value #f)
@@ -308,17 +304,26 @@ Log abnormal termination reported by @var{status}."
   (let loop ((status 'stopped)
              (value #f)
              (condition #f)
+             (enabled? #t)
              (respawns '()))
     (match (get-message channel)
       (('running reply)
        (put-message reply value)
-       (loop status value condition respawns))
+       (loop status value condition enabled? respawns))
       (('status reply)
        (put-message reply status)
-       (loop status value condition respawns))
+       (loop status value condition enabled? respawns))
+      (('enabled? reply)
+       (put-message reply enabled?)
+       (loop status value condition enabled? respawns))
       (('respawn-times reply)
        (put-message reply respawns)
-       (loop status value condition respawns))
+       (loop status value condition enabled? respawns))
+
+      ('enable                                    ;no reply
+       (loop status value condition #t respawns))
+      ('disable                                   ;no reply
+       (loop status value condition #f respawns))
 
       (('start reply)
        ;; Attempt to start SERVICE, blocking if it is already being started.
@@ -328,7 +333,7 @@ Log abnormal termination reported by @var{status}."
        (cond ((eq? 'running status)
               ;; SERVICE is already running: send #f on REPLY.
               (put-message reply #f)
-              (loop status value condition respawns))
+              (loop status value condition enabled? respawns))
              ((eq? 'starting status)
               ;; SERVICE is being started: wait until it has started and
               ;; then send #f on REPLY.
@@ -336,7 +341,7 @@ Log abnormal termination reported by @var{status}."
                (lambda ()
                  (wait condition)
                  (put-message reply #f)))
-              (loop status value condition respawns))
+              (loop status value condition enabled? respawns))
              (else
               ;; Become the one that starts SERVICE.
               (let ((condition (make-condition))
@@ -351,7 +356,7 @@ Log abnormal termination reported by @var{status}."
                 (local-output (l10n "Starting service ~a...")
                               (canonical-name service))
                 (put-message reply notification)
-                (loop 'starting value condition respawns)))))
+                (loop 'starting value condition enabled? respawns)))))
       (((? started-message?) value)               ;no reply
        (local-output (l10n "Service ~a running with value ~s.")
                      (canonical-name service) value)
@@ -361,6 +366,7 @@ Log abnormal termination reported by @var{status}."
                  'stopped)
              (and (not (one-shot? service)) value)
              #f
+             enabled?
              respawns))
 
       (('stop reply)
@@ -375,11 +381,11 @@ Log abnormal termination reported by @var{status}."
                (lambda ()
                  (wait condition)
                  (put-message reply #f)))
-              (loop status value condition respawns))
+              (loop status value condition enabled? respawns))
              ((not (eq? status 'running))
               ;; SERVICE is not running: send #f on REPLY.
               (put-message reply #f)
-              (loop status value condition respawns))
+              (loop status value condition enabled? respawns))
              (else
               ;; Become the one that stops SERVICE.
               (let ((condition (make-condition))
@@ -396,21 +402,21 @@ Log abnormal termination reported by @var{status}."
                 (local-output (l10n "Stopping service ~a...")
                               (canonical-name service))
                 (put-message reply notification)
-                (loop 'stopping value condition respawns)))))
+                (loop 'stopping value condition enabled?  respawns)))))
       ((? stopped-message?)                       ;no reply
        (local-output (l10n "Service ~a is now stopped.")
                      (canonical-name service))
        (signal-condition! condition)
-       (loop 'stopped #f #f '()))
+       (loop 'stopped #f #f enabled? '()))
 
       ('notify-termination                        ;no reply
-       (loop 'stopped #f condition respawns))
+       (loop 'stopped #f condition enabled? respawns))
 
       (('handle-termination exit-status)          ;no reply
        ;; Handle premature termination of this service's process, possibly by
        ;; respawning it, unless STATUS is 'stopping'.
        (if (eq? status 'stopping)
-           (loop status value condition respawns)
+           (loop status value condition enabled? respawns)
            (begin
              (spawn-fiber
               (lambda ()
@@ -418,10 +424,10 @@ Log abnormal termination reported by @var{status}."
                  ((slot-ref service 'handle-termination)
                   service value exit-status))
                 (put-message channel 'notify-termination)))
-             (loop 'stopped #f #f respawns))))
+             (loop 'stopped #f #f enabled? respawns))))
 
       ('record-respawn-time                       ;no reply
-       (loop status value condition
+       (loop status value condition enabled?
              (cons (current-time) respawns)))
 
       (('replace-if-running replacement reply)
@@ -431,10 +437,10 @@ Log abnormal termination reported by @var{status}."
                            (canonical-name service))
              (slot-set! service 'replacement replacement)
              (put-message reply #t)
-             (loop status value condition respawns))
+             (loop status value condition enabled? respawns))
            (begin
              (put-message reply #f)
-             (loop status value condition respawns)))))))
+             (loop status value condition enabled? respawns)))))))
 
 (define (service? obj)
   "Return true if OBJ is a service."
@@ -521,6 +527,18 @@ channel and wait for its reply."
   ;; Return the list of respawn times of @var{service}.
   (service-control-message 'respawn-times))
 
+(define service-enabled?
+  ;; Return true if @var{service} is enabled, false otherwise.
+  (service-control-message 'enabled?))
+
+(define (enable-service service)
+  "Enable @var{service}."
+  (put-message (service-control service) 'enable))
+
+(define (disable-service service)
+  "Disable @var{service}."
+  (put-message (service-control service) 'disable))
+
 (define (record-service-respawn-time service)
   "Record the current time as the last respawn time for @var{service}."
   (put-message (service-control service) 'record-respawn-time))
@@ -548,14 +566,18 @@ channel and wait for its reply."
 (define-method (defines-action? (obj <service>) action)
   (and (lookup-action obj action) #t))
 
+(define-method (enabled? (service <service>))
+  "Return true if @var{service} is enabled."
+  (service-enabled? service))
+
 ;; Enable the service, allow it to get started.
 (define-method (enable (obj <service>))
-  (slot-set! obj 'enabled? #t)
+  (enable-service obj)
   (local-output (l10n "Enabled service ~a.") (canonical-name obj)))
 
 ;; Disable the service, make it unstartable.
 (define-method (disable (obj <service>))
-  (slot-set! obj 'enabled? #f)
+  (disable-service obj)
   (local-output (l10n "Disabled service ~a.") (canonical-name obj)))
 
 (define (start-in-parallel services)
@@ -585,7 +607,7 @@ that could not be started."
 	 (local-output (l10n "Service ~a is already running.")
 		       (canonical-name obj))
          (service-running-value obj))
-	((not (enabled? obj))
+	((not (service-enabled? obj))
 	 (local-output (l10n "Service ~a is currently disabled.")
 		       (canonical-name obj))
          (service-running-value obj))
@@ -853,7 +875,7 @@ clients."
             ;; Status.  Use 'result->sexp' for the running value to make sure
             ;; that whole thing is valid read syntax; we do not want things
             ;; like #<undefined> to be sent to the client.
-            (enabled? ,(enabled? service))
+            (enabled? ,(service-enabled? service))
             (running ,(result->sexp (service-running-value service)))
             (conflicts ,(map canonical-name (conflicts-with service)))
             (last-respawns ,(service-respawn-times service))
@@ -2135,7 +2157,7 @@ otherwise by updating its state."
       (('handle-process-termination pid status)
        ;; Handle the termination of PID.
        (match (find-service (lambda (serv)
-                              (and (enabled? serv)
+                              (and (service-enabled? serv)
                                    (match (service-running-value serv)
                                      ((? number? pid*)
                                       (= pid pid*))
@@ -2323,7 +2345,7 @@ then disable it."
                       (canonical-name serv))
         (when (respawn? serv)
           (local-output (l10n "  (Respawning too fast.)")))
-        (slot-set! serv 'enabled? #f)
+        (disable-service serv)
 
         (when (transient? serv)
           (put-message (current-registry-channel) `(unregister (,serv)))

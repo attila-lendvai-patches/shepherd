@@ -727,14 +727,6 @@ Convenience} is provided to abstract the actual data representation
 format for this slot.  (It actually is a hash currently.)
 
 @item
-@vindex enabled? (slot of <service>)
-@code{enabled?} cannot be initialized with a keyword, and contains
-@code{#t} by default.  When the value becomes @code{#f} at some point,
-this will prevent the service from getting started.  A service can be
-enabled and disabled with the methods @code{enable} and
-@code{disable}, respectively @ref{Methods of services}.
-
-@item
 @vindex replacement (slot of <service>)
 @code{replacement} specifies a service to be used to replace this one
 when it is stopped.  This service will continue to function normally
