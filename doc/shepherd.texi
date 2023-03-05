@@ -651,7 +651,7 @@ contains the empty list.
 the Shepherd.  If this slot has the value @code{#t}, then assume the
 @code{running} slot specifies a child process PID and restart the
 service if that process terminates.  Otherwise this slot is @code{#f},
-which is the default.  See also the @code{last-respawns} slot.
+which is the default.
 
 @item
 @vindex one-shot? (slot of <service>)
@@ -733,15 +733,6 @@ format for this slot.  (It actually is a hash currently.)
 this will prevent the service from getting started.  A service can be
 enabled and disabled with the methods @code{enable} and
 @code{disable}, respectively @ref{Methods of services}.
-
-@item
-@vindex last-respawns (slot of <service>)
-@code{last-respawns} cannot be initialized with a keyword and is only
-ever used when the @code{respawn?} slot contains @code{#t}; it is a
-circular list with @code{(car respawn-limit)} elements, where each
-element contains the time when it was restarted, initially all 0,
-later a time in seconds since the Epoch.  The first element is the one
-that contains the oldest one, the last one the newest.
 
 @item
 @vindex replacement (slot of <service>)
