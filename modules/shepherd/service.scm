@@ -650,10 +650,6 @@ that could not be started."
                         (put-message notification running)
                         running))))))
 
-	   ;; Status message.
-           (when (one-shot? obj)
-             (put-message (service-control obj) 'notify-termination))
-
            (local-output (if running
 			     (l10n "Service ~a has been started.")
                              (l10n "Service ~a could not be started."))
