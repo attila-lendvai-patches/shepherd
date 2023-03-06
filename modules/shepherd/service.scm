@@ -648,12 +648,11 @@ that could not be started."
                                          (put-message notification #f)
                                          (report-exception 'start obj key args)))))
                         (put-message notification running)
+                        (local-output (if running
+			                  (l10n "Service ~a has been started.")
+                                          (l10n "Service ~a could not be started."))
+			              (canonical-name obj))
                         running))))))
-
-           (local-output (if running
-			     (l10n "Service ~a has been started.")
-                             (l10n "Service ~a could not be started."))
-			 (canonical-name obj))
 
            running))))
 
