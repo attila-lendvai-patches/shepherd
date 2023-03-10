@@ -1,0 +1,60 @@
+;;; manifest.scm -- Guix manifest for continuous integration.
+;;; Copyright © 2023 Ludovic Courtès <ludo@gnu.org>
+;;;
+;;; This file is part of the GNU Shepherd.
+;;;
+;;; The GNU Shepherd is free software; you can redistribute it and/or modify it
+;;; under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation; either version 3 of the License, or (at
+;;; your option) any later version.
+;;;
+;;; The GNU Shepherd is distributed in the hope that it will be useful, but
+;;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;; GNU General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public License
+;;; along with the GNU Shepherd.  If not, see <http://www.gnu.org/licenses/>.
+
+(use-modules (guix)
+             (guix profiles)
+             (shepherd-package)
+             (srfi srfi-1))
+
+(define* (package->manifest-entry* package system
+                                   #:key target)
+  "Return a manifest entry for PACKAGE on SYSTEM, optionally cross-compiled to
+TARGET."
+  (manifest-entry
+    (inherit (package->manifest-entry package))
+    (name (string-append (package-name package) "." system
+                         (if target
+                             (string-append "." target)
+                             "")))
+    (item (with-parameters ((%current-system system)
+                            (%current-target-system target))
+            package))))
+
+(define native-builds
+  (manifest
+   (append-map (lambda (system)
+                 (map (lambda (package)
+                        (package->manifest-entry* package system))
+                      (list shepherd
+                            shepherd-from-tarball
+                            guile2.2-shepherd)))
+               '("x86_64-linux"
+                 "i686-linux"
+                 "aarch64-linux" "armhf-linux"
+                 "powerpc64le-linux"))))
+
+(define cross-builds
+  (manifest
+   (map (lambda (target)
+          (package->manifest-entry* shepherd-from-tarball "x86_64-linux"
+                                    #:target target))
+        '(;; "i586-pc-gnu"          ;FIXME: requires Fibers 1.2.0+
+          "aarch64-linux-gnu"
+          "riscv64-linux-gnu"))))
+
+(concatenate-manifests (list native-builds cross-builds))
