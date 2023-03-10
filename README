@@ -69,7 +69,11 @@ system.  Join us now!
 
 Using GNU Guix, you can enter a development environment by running:
 
-  guix shell -D shepherd
+  guix shell -D -f guix.scm
+
+or simply:
+
+  guix shell
 
 You can authenticate the code in this repository by running:
 

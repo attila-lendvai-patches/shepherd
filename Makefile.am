@@ -71,7 +71,10 @@ CLEANFILES =						\
 
 # Crash handler.
 
-EXTRA_DIST = etc/crash-handler.c
+EXTRA_DIST =					\
+  etc/crash-handler.c				\
+  guix.scm					\
+  build-aux/guix/shepherd-package.scm
 
 if BUILD_CRASH_HANDLER
 
