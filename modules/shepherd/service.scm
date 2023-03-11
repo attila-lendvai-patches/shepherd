@@ -84,6 +84,7 @@
             handle-SIGCHLD
             with-process-monitor
             spawn-command
+            spawn-shell-command
             %precious-signals
             register-services
             provided-by
@@ -1593,15 +1594,25 @@ process is still running after @var{grace-period} seconds, send it
                              #:grace-period grace-period)))
     #f))
 
+(define (spawn-shell-command command)
+  "Spawn @var{command} (a string) using the shell.
+
+This is similar to Guile's @code{system} procedure but does not block while
+waiting for the shell to terminate."
+  (spawn-command (list (or (getenv "SHELL") "/bin/sh")
+                       "-c" command)))
+
 ;; Produce a constructor that executes a command.
 (define (make-system-constructor . command)
   (lambda args
-    (zero? (status:exit-val (system (apply string-append command))))))
+    (zero? (status:exit-val
+            (spawn-shell-command (string-concatenate command))))))
 
 ;; Produce a destructor that executes a command.
 (define (make-system-destructor . command)
   (lambda (ignored . args)
-    (not (zero? (status:exit-val (system (apply string-append command)))))))
+    (not (zero? (status:exit-val
+                 (spawn-shell-command (string-concatenate command)))))))
 
 
 ;;;
