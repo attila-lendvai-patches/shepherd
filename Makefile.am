@@ -36,6 +36,7 @@ dist_guilemodule_DATA =				\
 nodist_guileobject_DATA = $(dist_guilemodule_DATA:%.scm=%.go)
 
 shepherdsubdir = $(guilemoduledir)/shepherd
+servicesubdir = $(guilemoduledir)/shepherd/service
 dist_shepherdsub_DATA =				\
   modules/shepherd/args.scm			\
   modules/shepherd/service.scm			\
@@ -44,12 +45,17 @@ dist_shepherdsub_DATA =				\
 nodist_shepherdsub_DATA =			\
   modules/shepherd/config.scm			\
   modules/shepherd/system.scm
+dist_servicesub_DATA =				\
+  modules/shepherd/service/monitoring.scm
 
 shepherdgosubdir = $(guileobjectdir)/shepherd
+servicegosubdir = $(guileobjectdir)/shepherd/service
 nodist_shepherdgosub_DATA =			\
   modules/shepherd/config.go			\
   modules/shepherd/system.go			\
   $(dist_shepherdsub_DATA:%.scm=%.go)
+nodist_servicegosub_DATA =			\
+  $(dist_servicesub_DATA:%.scm=%.go)
 
 scriptsdir = $(shepherdsubdir)/scripts
 dist_scripts_DATA =				\
@@ -253,7 +259,8 @@ TESTS =						\
   tests/systemd.sh				\
   tests/signals.sh				\
   tests/system-star.sh				\
-  tests/close-on-exec.sh
+  tests/close-on-exec.sh			\
+  tests/services/monitoring.sh
 
 TEST_EXTENSIONS = .sh
 EXTRA_DIST += $(TESTS)

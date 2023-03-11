@@ -6,5 +6,6 @@ modules/shepherd/scripts/herd.scm
 modules/shepherd/scripts/reboot.scm
 modules/shepherd/support.scm
 modules/shepherd/service.scm
+modules/shepherd/service/monitoring.scm
 modules/shepherd/args.scm
 modules/shepherd.scm

@@ -139,7 +139,9 @@
             action-runtime-error-key
             action-runtime-error-arguments
 
-            condition->sexp))
+            condition->sexp
+
+            get-message*))                    ;XXX: for lack of a better place
 
 
 (define sleep (@ (fibers) sleep))

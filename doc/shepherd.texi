@@ -58,12 +58,13 @@ This manual documents the GNU@tie{}Shepherd version @value{VERSION}, a
 service manager for the GNU system.
 
 @menu
-* Introduction::      Introduction to the Shepherd service manager.
-* Jump Start::        How to do simple things with the Shepherd.
-* herd and shepherd:: User interface to service management.
-* Services::          Details on services.
-* Misc Facilities::   Generally useful things provided by the Shepherd.
-* Internals::         Hacking shepherd.
+* Introduction::                Introduction to the Shepherd service manager.
+* Jump Start::                  How to do simple things with the Shepherd.
+* herd and shepherd::           User interface to service management.
+* Services::                    Details on services.
+* Service Collection::          Services that come with the Shepherd.
+* Misc Facilities::             Generally useful things provided by the Shepherd.
+* Internals::                   Hacking shepherd.
 
 * GNU Free Documentation License::  The license of this manual.
 * Concept Index::
@@ -1414,6 +1415,70 @@ respawnable services are started, as otherwise we would not get the
 @code{SIGCHLD} signals when they terminate.
 
 @end table
+
+
+@c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+@node Service Collection
+@chapter Service Collection
+
+The Shepherd comes with a collection of services that let you control it
+or otherwise extend its functionality.  This chapter documents them.
+
+@menu
+* Monitoring Service::          Monitoring shepherd resource usage.
+@end menu
+
+@node Monitoring Service
+@section Monitoring Service
+
+The @dfn{monitoring service}, as its name suggests, monitors resource
+usage of the shepherd daemon.  It does so by periodically logging
+information about key resources: heap size (memory usage), open file
+descriptors, and so on.  It is a simple and useful way to check whether
+resource usage remains under control.
+
+To use it, a simple configuration file that uses this service and
+nothing else would look like this:
+
+@lisp
+(use-modules (shepherd service monitoring))
+
+(register-services
+  ;; Create a monitoring service that logs every 15 minutes.
+  (monitoring-service #:period (* 15 60)))
+
+;; Start it!
+(start 'monitoring)
+@end lisp
+
+Using the @code{herd} command, you can get immediate resource usage
+logging:
+
+@example
+$ herd log monitoring
+heap: 8.77 MiB; file descriptors: 20
+@end example
+
+You can also change the logging period; for instance, here is how you'd
+change it to 30 minutes:
+
+@example
+$ herd period monitoring 30
+@end example
+
+The @code{(shepherd service monitoring)} module exports the following
+bindings:
+
+@deffn {procedure} monitoring-service @
+          [#:period (default-monitoring-period)]
+Return a service that will monitor shepherd resource usage by printing it
+every @var{period} seconds.
+@end deffn
+
+@defvr {Scheme Variable} default-monitoring-period
+This parameter specifies the default monitoring period, in seconds.
+@end defvr
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
