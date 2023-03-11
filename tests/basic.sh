@@ -62,6 +62,10 @@ cat > "$conf"<<EOF
 			   (fail "Fail." (const #f)))
    #:respawn? #f)
  (make <service>
+   #:provides '(spawn-with-system)
+   #:start (make-system-constructor "echo starting from $PWD")
+   #:stop (make-system-destructor "echo stopping from $PWD"))
+ (make <service>
    #:provides '(broken)
    #:requires '()
    #:start (lambda _
@@ -144,6 +148,12 @@ then false; else true; fi
 # Check the behavior for a service whose 'start' method throws.
 ! $herd start broken
 $herd status broken | grep "stopped"
+
+# Check 'make-system-constructor' and 'make-system-destructor'.
+$herd start spawn-with-system
+$herd status spawn-with-system | grep "started"
+$herd stop spawn-with-system
+$herd status spawn-with-system | grep "stopped"
 
 # Wrong number of arguments for an action.
 if $herd status root foo bar baz;
