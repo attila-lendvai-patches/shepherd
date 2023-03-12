@@ -7,5 +7,6 @@ modules/shepherd/scripts/reboot.scm
 modules/shepherd/support.scm
 modules/shepherd/service.scm
 modules/shepherd/service/monitoring.scm
+modules/shepherd/service/repl.scm
 modules/shepherd/args.scm
 modules/shepherd.scm

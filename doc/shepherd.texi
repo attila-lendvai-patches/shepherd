@@ -1427,6 +1427,7 @@ or otherwise extend its functionality.  This chapter documents them.
 
 @menu
 * Monitoring Service::          Monitoring shepherd resource usage.
+* REPL Service::                Interacting with a running shepherd.
 @end menu
 
 @node Monitoring Service
@@ -1478,6 +1479,65 @@ every @var{period} seconds.
 
 @defvr {Scheme Variable} default-monitoring-period
 This parameter specifies the default monitoring period, in seconds.
+@end defvr
+
+@node REPL Service
+@section Read-Eval-Print Loop Service
+
+@cindex REPL, read-eval-print loop
+@cindex read-eval-print loop, REPL
+Scheme wouldn't be Scheme without support for @dfn{live hacking}, and
+your favorite service manager had to support it too!  The @dfn{REPL
+service} provides a read-eval-print loop (REPL) that lets you interact
+with it from the comfort of the Guile REPL (@pxref{Running Guile
+Interactively,,, guile, GNU Guile Reference Manual}).
+
+The service listens for connections on a Unix-domain socket---by default
+@file{/var/run/shepherd/repl} when running as root and
+@file{/run/user/@var{uid}/shepherd/repl} otherwise---and spawns a new
+service for each client connection.  Clients can use the REPL as they
+would do with a ``normal'' REPL, except that it lets them inspect and
+modify the state of the @command{shepherd} process itself.
+
+@quotation Caveat
+The live REPL is a powerful tool in support of live hacking and
+debugging, but it's also a dangerous one: depending on the code you
+execute, you could lock the @command{shepherd} process, make it crash,
+or who knows what.
+
+One particular aspect to keep in mind is that @command{shepherd}
+currently uses Fibers in such a way that scheduling among fibers is
+cooperative and non-preemptive.  Beware!
+@end quotation
+
+A configuration file that enables the REPL service looks like this:
+
+@lisp
+(use-modules (shepherd service repl))
+
+(register-services (repl-service))
+@end lisp
+
+With that in place, you can later start the REPL:
+
+@example
+herd start repl
+@end example
+
+From there you can connect to the REPL socket.  If you use Emacs, you
+might fancy doing it with Geiser's @code{geiser-connect-local} function
+(@pxref{Top,,, geiser, Geiser User Manual}).
+
+The @code{(shepherd service repl)} module exports the following
+bindings.
+
+@deffn {procedure} repl-service [@var{socket-file}]
+Return a REPL service that listens to @var{socket-file}.
+@end deffn
+
+@defvr {Scheme Variable} default-repl-socket-file
+This parameter specifies the socket file name @code{repl-service} uses
+by default.
 @end defvr
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

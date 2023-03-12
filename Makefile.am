@@ -46,7 +46,8 @@ nodist_shepherdsub_DATA =			\
   modules/shepherd/config.scm			\
   modules/shepherd/system.scm
 dist_servicesub_DATA =				\
-  modules/shepherd/service/monitoring.scm
+  modules/shepherd/service/monitoring.scm	\
+  modules/shepherd/service/repl.scm
 
 shepherdgosubdir = $(guileobjectdir)/shepherd
 servicegosubdir = $(guileobjectdir)/shepherd/service
@@ -260,7 +261,8 @@ TESTS =						\
   tests/signals.sh				\
   tests/system-star.sh				\
   tests/close-on-exec.sh			\
-  tests/services/monitoring.sh
+  tests/services/monitoring.sh			\
+  tests/services/repl.sh
 
 TEST_EXTENSIONS = .sh
 EXTRA_DIST += $(TESTS)
