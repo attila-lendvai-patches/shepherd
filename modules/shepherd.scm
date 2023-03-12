@@ -41,17 +41,6 @@
 
 (define sleep (@ (fibers) sleep))
 
-(define (open-server-socket file-name)
-  "Open a socket at FILE-NAME, and listen for connections there."
-  (with-fluids ((%default-port-encoding "UTF-8"))
-    (let ((sock    (socket PF_UNIX
-                           (logior SOCK_STREAM SOCK_NONBLOCK SOCK_CLOEXEC)
-                           0))
-          (address (make-socket-address AF_UNIX file-name)))
-      (bind sock address)
-      (listen sock 10)
-      sock)))
-
 (define-syntax-rule (unwind-protect body ... conclude)
   "Evaluate BODY... and return its result(s), but always evaluate CONCLUDE
 before leaving, even if an exception is raised.

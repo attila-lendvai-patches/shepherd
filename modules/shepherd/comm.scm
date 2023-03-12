@@ -1,5 +1,5 @@
 ;; comm.scm -- Communication between processes and general output.
-;; Copyright (C) 2013, 2014, 2016, 2018, 2019, 2022 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013, 2014, 2016, 2018, 2019, 2022, 2023 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
 ;; Copyright (C) 2018 Danny Milosavljevic <dannym@scratchpost.org>
 ;;
@@ -25,6 +25,7 @@
   #:use-module (oop goops)
   #:use-module (ice-9 match)
   #:export (open-connection
+            open-server-socket
 
             <shepherd-command>
             shepherd-command?
@@ -91,6 +92,17 @@ return the socket."
                  key proc
                  "~A: ~A" (list file (strerror (car errno)))
                  (list errno) rest)))
+      sock)))
+
+(define (open-server-socket file-name)
+  "Open a socket at FILE-NAME, and listen for connections there."
+  (with-fluids ((%default-port-encoding "UTF-8"))
+    (let ((sock    (socket PF_UNIX
+                           (logior SOCK_STREAM SOCK_NONBLOCK SOCK_CLOEXEC)
+                           0))
+          (address (make-socket-address AF_UNIX file-name)))
+      (bind sock address)
+      (listen sock 10)
       sock)))
 
 (define (read-command port)
