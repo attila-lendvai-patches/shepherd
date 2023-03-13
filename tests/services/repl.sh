@@ -90,6 +90,36 @@ guile -c '
 '
 
 while test $($herd status | grep '^ ' | wc -l) -ne 2; do $herd status && sleep 1; done
+
+# Register and start a service from the REPL.
+guile -c '
+(alarm 10)
+(let ((sock (socket AF_UNIX SOCK_STREAM 0)))
+  (connect sock PF_UNIX "'$repl_socket'")
+  (format #t "connected!~%> ")
+  (display
+   (object->string
+    (quote (begin
+             (use-modules (shepherd service) (shepherd service monitoring))
+             (register-services (monitoring-service #:period 2))
+             (start (quote monitoring)))))
+   sock)
+  (display ",q\n" sock)
+  (let loop ()
+    (define chr (read-char sock))
+    (unless (eof-object? chr)
+      (display chr)
+      (when (eq? chr #\newline)
+	(display "> "))
+      (loop))))
+'
+
+$herd status monitoring
+$herd status monitoring | grep "started"
+grep "heap:" "$log"
+
+$herd log monitoring | grep "heap:"
+
 $herd stop repl
 $herd status repl | grep "stopped"
 

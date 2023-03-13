@@ -293,7 +293,13 @@ Log abnormal termination reported by @var{status}."
   (let ((channel (make-channel)))
     (spawn-fiber
      (lambda ()
-       (service-controller service channel)))
+       ;; The controller writes to its current output port via 'local-output'.
+       ;; Make sure that goes to the right port.  If the controller got a
+       ;; wrong output port, it could crash and stop responding just because a
+       ;; 'local-output' call raised an exception.
+       (parameterize ((current-output-port (%current-service-output-port))
+                      (current-error-port (%current-service-output-port)))
+         (service-controller service channel))))
     channel))
 
 (define (service-controller service channel)
@@ -645,12 +651,19 @@ that could not be started."
                      ((? channel? notification)
                       ;; We won the race: we're responsible for starting OBJ
                       ;; and sending its running value on NOTIFICATION.
-                      (let ((running (catch #t
-                                       (lambda ()
-                                         (apply (slot-ref obj 'start) args))
-                                       (lambda (key . args)
-                                         (put-message notification #f)
-                                         (report-exception 'start obj key args)))))
+                      (let ((running
+                             (catch #t
+                               (lambda ()
+                                 ;; Make sure the 'start' method writes
+                                 ;; messages to the right port.
+                                 (parameterize ((current-output-port
+                                                 (%current-service-output-port))
+                                                (current-error-port
+                                                 (%current-service-output-port)))
+                                   (apply (slot-ref obj 'start) args)))
+                               (lambda (key . args)
+                                 (put-message notification #f)
+                                 (report-exception 'start obj key args)))))
                         (put-message notification running)
                         (local-output (if running
 			                  (l10n "Service ~a has been started.")

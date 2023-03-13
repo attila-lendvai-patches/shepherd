@@ -57,7 +57,8 @@
             make-shepherd-output-port
 
             %current-client-socket
-            %current-logfile-date-format))
+            %current-logfile-date-format
+            %current-service-output-port))
 
 
 ;; Command for shepherd.
@@ -357,3 +358,6 @@ available."
    ;; It's an output-only port.
    "w"))
 
+(define %current-service-output-port
+  ;; The output port that services should write to.
+  (make-parameter (current-output-port)))

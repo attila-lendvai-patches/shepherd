@@ -340,7 +340,7 @@ already ~a threads running, disabling 'signalfd' support")
                     (if (and (not logfile) (zero? (getuid)))
                         (format #f "shepherd[~d]: " (getpid))
                         default-logfile-date-format))
-                   (current-output-port
+                   (%current-service-output-port
                     ;; Send output to log and clients.
                     (make-shepherd-output-port
                      (if (and (zero? (getuid)) (not logfile))
@@ -350,78 +350,79 @@ already ~a threads running, disabling 'signalfd' support")
                          (%make-void-port "w")
                          (current-output-port)))))
 
-      (set-port-encoding! (log-output-port) "UTF-8")
+      (parameterize ((current-output-port (%current-service-output-port)))
+        (set-port-encoding! (log-output-port) "UTF-8")
 
-      (when (= 1 (getpid))
-        ;; When running as PID 1, disable hard reboots upon ctrl-alt-del.
-        ;; Instead, the kernel will send us SIGINT so that we can gracefully
-        ;; shut down.  See ctrlaltdel(8) and kernel/reboot.c.
-        (catch 'system-error
-          (lambda ()
-            (disable-reboot-on-ctrl-alt-del))
-          (lambda args
-            (let ((err (system-error-errno args)))
-              ;; When in a separate PID namespace, we get EINVAL (see
-              ;; 'reboot_pid_ns' in kernel/pid_namespace.c.)  We get EPERM in
-              ;; a user namespace that lacks CAP_SYS_BOOT.
-              (unless (member err (list EINVAL EPERM))
-                (apply throw args)))))
-
-        ;; Load the SIGSEGV/SIGABRT handler.  This is what allows PID 1 to
-        ;; dump core on "/", should something go wrong.
-        (false-if-exception
-         (dynamic-link (string-append %pkglibdir "/crash-handler"))))
-
-      ;; Install signal handlers for everything but SIGCHLD, which is taken
-      ;; care of in (shepherd services).
-      (for-each (lambda (signal)
-                  (sigaction signal (signal-handler signal)))
-                (delete SIGCHLD %precious-signals))
-
-      ;; Run Fibers in such a way that it does not create any POSIX thread,
-      ;; because POSIX threads and 'fork' cannot be used together.
-      (run-fibers
-       (lambda ()
-         (with-service-registry
-
-          ;; Register and start the 'root' service.
-          (register-services root-service)
-          (start root-service)
-
-          (catch 'quit
+        (when (= 1 (getpid))
+          ;; When running as PID 1, disable hard reboots upon ctrl-alt-del.
+          ;; Instead, the kernel will send us SIGINT so that we can gracefully
+          ;; shut down.  See ctrlaltdel(8) and kernel/reboot.c.
+          (catch 'system-error
             (lambda ()
-              (with-process-monitor
-                ;; Replace the default 'system*' binding with one that
-                ;; cooperates instead of blocking on 'waitpid'.
-                (let ((real-system* system*)
-                      (real-system  system))
-                  (set! system* (lambda command
-                                  (spawn-command command)))
-                  (set! system spawn-shell-command)
+              (disable-reboot-on-ctrl-alt-del))
+            (lambda args
+              (let ((err (system-error-errno args)))
+                ;; When in a separate PID namespace, we get EINVAL (see
+                ;; 'reboot_pid_ns' in kernel/pid_namespace.c.)  We get EPERM in
+                ;; a user namespace that lacks CAP_SYS_BOOT.
+                (unless (member err (list EINVAL EPERM))
+                  (apply throw args)))))
 
-                  ;; Restore 'system*' after fork.
-                  (set! primitive-fork
-                        (let ((real-fork primitive-fork))
-                          (lambda ()
-                            (let ((result (real-fork)))
-                              (when (zero? result)
-                                (set! primitive-fork real-fork)
-                                (set! system* real-system*)
-                                (set! system real-system))
-                              result)))))
+          ;; Load the SIGSEGV/SIGABRT handler.  This is what allows PID 1 to
+          ;; dump core on "/", should something go wrong.
+          (false-if-exception
+           (dynamic-link (string-append %pkglibdir "/crash-handler"))))
 
-                (run-daemon #:socket-file socket-file
-                            #:config-file config-file
-                            #:pid-file pid-file
-                            #:signal-port signal-port
-                            #:poll-services? poll-services?)))
-            (case-lambda
-              ((key value . _)
-               (primitive-exit value))
-              ((key)
-               (primitive-exit 0))))))
-       #:parallelism 1  ;don't create POSIX threads
-       #:hz 0))))       ;disable preemption, which would require POSIX threads
+        ;; Install signal handlers for everything but SIGCHLD, which is taken
+        ;; care of in (shepherd services).
+        (for-each (lambda (signal)
+                    (sigaction signal (signal-handler signal)))
+                  (delete SIGCHLD %precious-signals))
+
+        ;; Run Fibers in such a way that it does not create any POSIX thread,
+        ;; because POSIX threads and 'fork' cannot be used together.
+        (run-fibers
+         (lambda ()
+           (with-service-registry
+
+             ;; Register and start the 'root' service.
+             (register-services root-service)
+             (start root-service)
+
+             (catch 'quit
+               (lambda ()
+                 (with-process-monitor
+                   ;; Replace the default 'system*' binding with one that
+                   ;; cooperates instead of blocking on 'waitpid'.
+                   (let ((real-system* system*)
+                         (real-system  system))
+                     (set! system* (lambda command
+                                     (spawn-command command)))
+                     (set! system spawn-shell-command)
+
+                     ;; Restore 'system*' after fork.
+                     (set! primitive-fork
+                           (let ((real-fork primitive-fork))
+                             (lambda ()
+                               (let ((result (real-fork)))
+                                 (when (zero? result)
+                                   (set! primitive-fork real-fork)
+                                   (set! system* real-system*)
+                                   (set! system real-system))
+                                 result)))))
+
+                   (run-daemon #:socket-file socket-file
+                               #:config-file config-file
+                               #:pid-file pid-file
+                               #:signal-port signal-port
+                               #:poll-services? poll-services?)))
+               (case-lambda
+                 ((key value . _)
+                  (primitive-exit value))
+                 ((key)
+                  (primitive-exit 0))))))
+         #:parallelism 1                          ;don't create POSIX threads
+         #:hz 0)))))       ;disable preemption, which would require POSIX threads
 
 ;; Start all of SERVICES, which is a list of canonical names (FIXME?),
 ;; but in a order where all dependencies are fulfilled before we
