@@ -361,8 +361,9 @@ Log abnormal termination reported by @var{status}."
                 (put-message reply notification)
                 (loop 'starting value condition enabled? respawns)))))
       (((? started-message?) value)               ;no reply
-       (local-output (l10n "Service ~a running with value ~s.")
-                     (canonical-name service) value)
+       (when value
+         (local-output (l10n "Service ~a running with value ~s.")
+                       (canonical-name service) value))
        (signal-condition! condition)
        (loop (if (and value (not (one-shot? service)))
                  'running
