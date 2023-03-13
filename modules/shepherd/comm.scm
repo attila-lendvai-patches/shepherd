@@ -52,8 +52,6 @@
 
             log-output-port
             syslog-output-port
-            start-logging
-            stop-logging
             make-shepherd-output-port
 
             %current-client-socket
@@ -214,15 +212,6 @@ on service '~a':")
 (define log-output-port
   ;; Port for logging.  This must always be a valid port, never `#f'.
   (make-parameter (%make-void-port "w")))
-
-(define (start-logging file)                      ;deprecated
-  (let ((directory (dirname file)))
-    (unless (file-exists? directory)
-      (mkdir directory)))
-  (log-output-port (open-file file "al")))
-(define (stop-logging)                            ;deprecated
-  (close-port (log-output-port))
-  (log-output-port (%make-void-port "w")))
 
 (define %current-client-socket
   ;; Socket of the client currently talking to the daemon.
