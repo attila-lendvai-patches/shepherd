@@ -358,8 +358,11 @@ Log abnormal termination reported by @var{status}."
                 (spawn-fiber
                  (lambda ()
                    (let ((running (get-message notification)))
-                     (local-output (l10n "Service ~a started.")
-                                   (canonical-name service))
+                     (if running
+                         (local-output (l10n "Service ~a started.")
+                                       (canonical-name service))
+                         (local-output (l10n "Service ~a failed to start.")
+                                       (canonical-name service)))
                      (put-message channel
                                   (list *service-started* running)))))
                 (local-output (l10n "Starting service ~a...")
