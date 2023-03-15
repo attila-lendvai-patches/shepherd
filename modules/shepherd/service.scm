@@ -601,8 +601,17 @@ that could not be started."
     (for-each (lambda (service)
                 (spawn-fiber
                  (lambda ()
-                   (put-message channel
-                                (cons service (start service))))))
+                   (let ((value
+                          (guard (c ((action-runtime-error? c)
+                                     (local-output
+                                      (l10n "Exception caught \
+while starting ~a: ~s")
+                                      service
+                                      (cons (action-runtime-error-key c)
+                                            (action-runtime-error-arguments c)))
+                                     #f))
+                            (start service))))
+                     (put-message channel (cons service value))))))
               services)
     (let loop ((i (length services))
                (failures '()))
