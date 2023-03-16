@@ -72,7 +72,6 @@
             doc
             conflicts-with
             conflicts-with-running
-            depends-resolved?
             launch-service
             first-running
             lookup-running
@@ -914,10 +913,6 @@ clients."
 (define-method (result->sexp (service <service>))
   ;; Serialize SERVICE to an sexp.
   (service->sexp service))
-
-;; Return whether OBJ requires something that is not yet running.
-(define-method (depends-resolved? (obj <service>))
-  (every lookup-running (required-by obj)))
 
 
 ;;;
