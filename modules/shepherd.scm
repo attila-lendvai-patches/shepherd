@@ -424,26 +424,6 @@ already ~a threads running, disabling 'signalfd' support")
          #:parallelism 1                          ;don't create POSIX threads
          #:hz 0)))))       ;disable preemption, which would require POSIX threads
 
-;; Start all of SERVICES, which is a list of canonical names (FIXME?),
-;; but in a order where all dependencies are fulfilled before we
-;; attempt to start a service.  It is assumed that this is possible (FIXME?).
-;; FIXME: This procedure is untested!
-(define (start-in-order services)
-  ;; Same thing with an association list where the cdr of each pair is
-  ;; `#f' if the service is not yet started.
-  (define (start-in-order-assoc assoc-services)
-    (while (any not (map cdr assoc-services))
-      (for-each (lambda (x)
-		  (let ((service (car (lookup-services (car x)))))
-		    (and (not (cdr x))
-			 (depends-resolved? service)
-			 (set-cdr! x (start service)))))
-		assoc-services)))
-
-  (start-in-order-assoc (map (lambda (x)
-			       (cons x #f))
-			     services)))
-
 (define (process-connection sock)
   "Process client connection SOCK, reading and processing commands."
   (catch 'system-error
