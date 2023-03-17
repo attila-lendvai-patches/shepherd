@@ -405,11 +405,16 @@ Log abnormal termination reported by @var{status}."
                 (spawn-fiber
                  (lambda ()
                    (let ((stopped? (get-message notification)))
+                     ;; The STOPPED? boolean is supposed to indicate success
+                     ;; or failure, but sometimes 'stop' method might return a
+                     ;; truth value even though the service was successfully
+                     ;; stopped, hence "might have failed" below.
                      (if stopped?
                          (local-output (l10n "Service ~a stopped.")
                                        (canonical-name service))
-                         (local-output (l10n "Failed to stop ~a.")
-                                       (canonical-name service)))
+                         (local-output
+                          (l10n "Service ~a might have failed to stop.")
+                          (canonical-name service)))
                      (put-message channel *service-stopped*))))
                 (local-output (l10n "Stopping service ~a...")
                               (canonical-name service))
