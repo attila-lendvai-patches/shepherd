@@ -2463,15 +2463,14 @@ requested to be removed."
 
 (define (shutdown-services)
   "Shut down all the currently running services."
-  (let ((running-services '()))
-    ;; Note: Do not use 'for-each-service' since it introduces a continuation
-    ;; barrier via 'hash-fold', thereby preventing the 'stop' method from
-    ;; suspending via (@ (fibers) sleep), 'spawn-command', or similar.
-    (for-each
-     (lambda (service)
-       (when (running? service)
-         (stop service)))
-     (service-list))))
+  ;; Note: Do not use 'for-each-service' since it introduces a continuation
+  ;; barrier via 'hash-fold', thereby preventing the 'stop' method from
+  ;; suspending via (@ (fibers) sleep), 'spawn-command', or similar.
+  (for-each
+   (lambda (service)
+     (when (running? service)
+       (stop service)))
+   (service-list)))
 
 (define (check-for-dead-services)
   "Poll each process that we expect to be running, and respawn any which have
