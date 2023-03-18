@@ -306,30 +306,30 @@ Log abnormal termination reported by @var{status}."
   (define *service-stopped* (list 'service 'stopped!))
   (define (stopped-message? obj) (eq? *service-stopped* obj))
 
-  (let loop ((status 'stopped)
-             (value #f)
-             (condition #f)
-             (enabled? #t)
-             (respawns '())
-             (replacement #f))
+  (let-loop loop ((status 'stopped)
+                  (value #f)
+                  (condition #f)
+                  (enabled? #t)
+                  (respawns '())
+                  (replacement #f))
     (match (get-message channel)
       (('running reply)
        (put-message reply value)
-       (loop status value condition enabled? respawns replacement))
+       (loop))
       (('status reply)
        (put-message reply status)
-       (loop status value condition enabled? respawns replacement))
+       (loop))
       (('enabled? reply)
        (put-message reply enabled?)
-       (loop status value condition enabled? respawns replacement))
+       (loop))
       (('respawn-times reply)
        (put-message reply respawns)
-       (loop status value condition enabled? respawns replacement))
+       (loop))
 
       ('enable                                    ;no reply
-       (loop status value condition #t respawns replacement))
+       (loop (enabled? #t)))
       ('disable                                   ;no reply
-       (loop status value condition #f respawns replacement))
+       (loop (enabled? #f)))
 
       (('start reply)
        ;; Attempt to start SERVICE, blocking if it is already being started.
@@ -339,7 +339,7 @@ Log abnormal termination reported by @var{status}."
        (cond ((eq? 'running status)
               ;; SERVICE is already running: send #f on REPLY.
               (put-message reply #f)
-              (loop status value condition enabled? respawns replacement))
+              (loop))
              ((eq? 'starting status)
               ;; SERVICE is being started: wait until it has started and
               ;; then send #f on REPLY.
@@ -347,11 +347,10 @@ Log abnormal termination reported by @var{status}."
                (lambda ()
                  (wait condition)
                  (put-message reply #f)))
-              (loop status value condition enabled? respawns replacement))
+              (loop))
              (else
               ;; Become the one that starts SERVICE.
-              (let ((condition (make-condition))
-                    (notification (make-channel)))
+              (let ((notification (make-channel)))
                 (spawn-fiber
                  (lambda ()
                    (let ((running (get-message notification)))
@@ -365,20 +364,18 @@ Log abnormal termination reported by @var{status}."
                 (local-output (l10n "Starting service ~a...")
                               (canonical-name service))
                 (put-message reply notification)
-                (loop 'starting value condition enabled? respawns replacement)))))
-      (((? started-message?) value)               ;no reply
-       (when value
+                (loop (status 'starting)
+                      (condition (make-condition)))))))
+      (((? started-message?) new-value)           ;no reply
+       (when new-value
          (local-output (l10n "Service ~a running with value ~s.")
-                       (canonical-name service) value))
+                       (canonical-name service) new-value))
        (signal-condition! condition)
-       (loop (if (and value (not (one-shot? service)))
-                 'running
-                 'stopped)
-             (and (not (one-shot? service)) value)
-             #f
-             enabled?
-             respawns
-             replacement))
+       (loop (status (if (and new-value (not (one-shot? service)))
+                         'running
+                         'stopped))
+             (value (and (not (one-shot? service)) new-value))
+             (condition #f)))
 
       (('stop reply)
        ;; Attempt to stop SERVICE, blocking if it is already being stopped.
@@ -392,15 +389,14 @@ Log abnormal termination reported by @var{status}."
                (lambda ()
                  (wait condition)
                  (put-message reply #f)))
-              (loop status value condition enabled? respawns replacement))
+              (loop))
              ((not (eq? status 'running))
               ;; SERVICE is not running: send #f on REPLY.
               (put-message reply #f)
-              (loop status value condition enabled? respawns replacement))
+              (loop))
              (else
               ;; Become the one that stops SERVICE.
-              (let ((condition (make-condition))
-                    (notification (make-channel)))
+              (let ((notification (make-channel)))
                 (spawn-fiber
                  (lambda ()
                    (let ((stopped? (get-message notification)))
@@ -418,22 +414,23 @@ Log abnormal termination reported by @var{status}."
                 (local-output (l10n "Stopping service ~a...")
                               (canonical-name service))
                 (put-message reply notification)
-                (loop 'stopping value condition enabled?
-                      respawns replacement)))))
+                (loop (status 'stopping)
+                      (condition (make-condition)))))))
       ((? stopped-message?)                       ;no reply
        (local-output (l10n "Service ~a is now stopped.")
                      (canonical-name service))
        (signal-condition! condition)
-       (loop 'stopped #f #f enabled? '() replacement))
+       (loop (status 'stopped) (value #f) (condition #f)
+             (respawns '())))
 
       ('notify-termination                        ;no reply
-       (loop 'stopped #f condition enabled? respawns replacement))
+       (loop (status 'stopped) (value #f)))
 
       (('handle-termination exit-status)          ;no reply
        ;; Handle premature termination of this service's process, possibly by
        ;; respawning it, unless STATUS is 'stopping'.
        (if (eq? status 'stopping)
-           (loop status value condition enabled? respawns replacement)
+           (loop)
            (begin
              (spawn-fiber
               (lambda ()
@@ -441,26 +438,24 @@ Log abnormal termination reported by @var{status}."
                  ((slot-ref service 'handle-termination)
                   service value exit-status))
                 (put-message channel 'notify-termination)))
-             (loop 'stopped #f #f enabled? respawns replacement))))
+             (loop (status 'stopped) (value #f) (condition #f)))))
 
       ('record-respawn-time                       ;no reply
-       (loop status value condition enabled?
-             (cons (current-time) respawns)
-             replacement))
+       (loop (respawns (cons (current-time) respawns))))
 
-      (('replace-if-running replacement reply)
+      (('replace-if-running new-service reply)
        (if (eq? status 'running)
            (begin
              (local-output (l10n "Recording replacement for ~a.")
                            (canonical-name service))
              (put-message reply #t)
-             (loop status value condition enabled? respawns replacement))
+             (loop (replacement new-service)))
            (begin
              (put-message reply #f)
-             (loop status value condition enabled? respawns #f))))
+             (loop (replacement #f)))))
       (('replacement reply)
        (put-message reply replacement)
-       (loop status value condition enabled? respawns replacement))
+       (loop))
 
       ('terminate                                 ;no reply
        (if (eq? status 'stopped)
@@ -473,7 +468,7 @@ Log abnormal termination reported by @var{status}."
              (local-output
               (l10n "Attempt to terminate controller of ~a in ~a state!")
               (canonical-name service) status)
-             (loop status value condition enabled? respawns replacement)))))))
+             (loop)))))))
 
 (define (service? obj)
   "Return true if OBJ is a service."

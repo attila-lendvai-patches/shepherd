@@ -26,6 +26,7 @@
   #:use-module (ice-9 format)
   #:export (caught-error
             assert
+            let-loop
 
             buffering
             catch-system-error
@@ -83,6 +84,43 @@
        (begin
 	 (local-output (l10n "Assertion ~a failed.") 'EXPR)
 	 (throw 'assertion-failed))))
+
+(define-syntax-rule (let-loop loop ((variable value) ...)
+                              body ...)
+  "Similar to a named let, define @var{loop} as a procedure that takes the given
+@var{variable}s and their initial @var{value}s.  The main difference is that
+@var{loop} is in fact a macro that can be passed a subset of @var{variable}s.
+The example below illustrates that:
+
+@example
+(let-loop loop ((x 1) (y 2) (z 3))
+  (match (get-message channel)
+    ('print-x
+     (display x)
+     (loop))                ;x, y, and z unchanged
+    (('set-y value)
+     (loop (y value)))))    ;only y gets a new value
+@end example
+
+That reduces the amount of boilerplate for loops with many variables."
+  (let real-loop ((variable value) ...)
+    (define-syntax extract-value
+      (syntax-rules (variable ...)
+        ;; Extract the value of the variable given as its first argument among
+        ;; the given arguments.
+        ((_ variable ((variable x) rest (... ...)))
+         x)
+        ...
+        ((_ binding ((_ _) rest (... ...)))
+         (extract-value binding (rest (... ...))))
+        ((_ binding ())
+         binding)))
+    (letrec-syntax ((loop (syntax-rules (variable ...)
+                            ((_ args (... ...))
+                             (real-loop
+                              (extract-value variable (args (... ...)))
+                              ...)))))
+      body ...)))
 
 (define (buffering port type . args)
   "Return PORT after changing its buffering to TYPE and ARGS."
