@@ -457,6 +457,19 @@ Log abnormal termination reported by @var{status}."
              (loop status value condition enabled? respawns))
            (begin
              (put-message reply #f)
+             (loop status value condition enabled? respawns))))
+
+      ('terminate                                 ;no reply
+       (if (eq? status 'stopped)
+           (begin
+             ;; Exit the loop, terminating this fiber.
+             (slot-set! service 'control #f)
+             #t)
+           (begin
+             ;; Oops, that shouldn't happen!
+             (local-output
+              (l10n "Attempt to terminate controller of ~a in ~a state!")
+              (canonical-name service) status)
              (loop status value condition enabled? respawns)))))))
 
 (define (service? obj)
@@ -751,11 +764,6 @@ is not already running, and will return SERVICE's canonical name in a list."
         (put-message (service-control service)
                      'notify-termination)
 
-        ;; Replace the service with its replacement, if it has one
-        (let ((replacement (slot-ref service 'replacement)))
-          (when replacement
-            (replace-service service replacement)))
-
         ;; Status message.
         (if (running? service)
             (local-output (l10n "Service ~a could not be stopped.")
@@ -768,6 +776,11 @@ is not already running, and will return SERVICE's canonical name in a list."
                        `(unregister ,(list service)))
           (local-output (l10n "Transient service ~a unregistered.")
                         (canonical-name service)))
+
+        ;; Replace the service with its replacement, if it has one.
+        (let ((replacement (slot-ref service 'replacement)))
+          (when replacement
+            (replace-service service replacement)))
 
         (cons name stopped-dependents))))
 
@@ -929,7 +942,11 @@ clients."
 requests arriving on @var{channel}."
   (let loop ((registered vlist-null))
     (define (unregister services)
-      ;; Return REGISTERED minus SERVICES.
+      ;; Terminate the controller of each of SERVICES and return REGISTERED
+      ;; minus SERVICES.
+      (for-each (lambda (service)
+                  (put-message (service-control service) 'terminate))
+                services)
       (vhash-fold (lambda (name service result)
                     (if (memq service services)
                         result
