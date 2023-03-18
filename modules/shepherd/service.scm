@@ -929,13 +929,11 @@ clients."
 requests arriving on @var{channel}."
   (let loop ((registered vlist-null))
     (define (unregister services)
-      ;; Return REGISTERED minus SERVICE.
+      ;; Return REGISTERED minus SERVICES.
       (vhash-fold (lambda (name service result)
                     (if (memq service services)
                         result
-                        (fold (cut vhash-consq <> service <>)
-                              result
-                              (provided-by service))))
+                        (vhash-consq name service result)))
                   vlist-null
                   registered))
 
