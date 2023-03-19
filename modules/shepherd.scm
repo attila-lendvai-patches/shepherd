@@ -496,7 +496,6 @@ already ~a threads running, disabling 'signalfd' support")
                (case the-action
                  ((start) (apply start service-symbol args))
                  ((stop) (apply stop service-symbol args))
-                 ((enforce) (apply enforce service-symbol args))
 
                  ;; Actions which have the semantics of `action' are
                  ;; handled there.

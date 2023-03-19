@@ -68,7 +68,6 @@
             start-in-the-background
             stop
             action
-            enforce
             doc
             conflicts-with
             conflicts-with-running
@@ -921,14 +920,6 @@ is not already running, and will return SERVICE's canonical name in a list."
 (define-method (conflicts-with-running (obj <service>))
   (filter running? (conflicts-with obj)))
 
-;; Start OBJ, but first kill all services which conflict with it.
-;; FIXME-CRITICAL: Conflicts of indirect dependencies.  For this, we
-;; seem to need a similar solution like launch-service.
-;; FIXME: This should rather be removed and added cleanly later.
-(define-method (enforce (obj <service>) . args)
-  (for-each stop (conflicts-with-running obj))
-  (apply start obj args))
-
 (define (service->sexp service)
   "Return a representation of SERVICE as an sexp meant to be consumed by
 clients."
@@ -1090,7 +1081,7 @@ service state and to send requests to the service monitor."
 
 (define (launch-service name proc args)
   "Try to start (with PROC) a service providing NAME; return #f on failure.
-Used by `start' and `enforce'."
+Used by `start'."
   (match (lookup-services name)
     (()
      (raise (condition (&missing-service-error (name name)))))
@@ -1105,10 +1096,6 @@ Used by `start' and `enforce'."
 ;; Starting by name.
 (define-method (start (obj <symbol>) . args)
   (launch-service obj start args))
-
-;; Enforcing by name.  FIXME: Should be removed and added cleanly later.
-(define-method (enforce (obj <symbol>) . args)
-  (launch-service obj enforce args))
 
 ;; Stopping by name.
 (define-method (stop (obj <symbol>) . args)
