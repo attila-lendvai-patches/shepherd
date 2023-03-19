@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test one-shot services.
-# Copyright © 2019 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2019, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -54,7 +54,25 @@ cat > "$conf"<<EOF
              #t)
    #:stop  (lambda _
              (delete-file "$stamp-2")
-             #f)))
+             #f))
+
+ ;; Several services depending on the same one-shot service.
+ (make <service>
+   #:provides '(one-shotty)
+   #:start (const #t)
+   #:one-shot? #t)
+ (make <service>
+   #:provides '(a)
+   #:requires '(one-shotty)
+   #:start (const #t))
+ (make <service>
+   #:provides '(b)
+   #:requires '(a one-shotty)
+   #:start (const #t))
+ (make <service>
+   #:provides '(c)
+   #:requires '(a b one-shotty)
+   #:start (const #t)))
 EOF
 
 rm -f "$pid"
@@ -92,3 +110,16 @@ $herd status test | grep stopped.*one-shot
 $herd status test-2 | grep started
 $herd stop test-2
 if test -f "$stamp-2"; then false; else true; fi
+
+# In the course of starting C, ONE-SHOTTY should be started only once.
+$herd start c
+test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 1
+
+# But we can still start it a second time, indirectly...
+$herd stop a
+$herd start c
+test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 2
+
+# ... and a third time, directly.
+$herd start one-shotty
+test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 3

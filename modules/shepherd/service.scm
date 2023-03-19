@@ -612,35 +612,58 @@ channel and wait for its reply."
   (disable-service obj)
   (local-output (l10n "Disabled service ~a.") (canonical-name obj)))
 
+(define %one-shot-services-started
+  ;; Bookkeeping of one-shot services already started.
+  (make-parameter #f))                            ;#f | hash table
+
 (define (start-in-parallel services)
   "Start @var{services} in parallel--i.e., without waiting for each one to be
 started before starting the next one.  Return the subset of @var{services}
 that could not be started."
-  (let ((channel (make-channel)))
-    (for-each (lambda (service)
-                (spawn-fiber
-                 (lambda ()
-                   (let ((value
-                          (guard (c ((action-runtime-error? c)
-                                     (local-output
-                                      (l10n "Exception caught \
+  ;; Use the hash table in %ONE-SHOT-SERVICES-STARTED to keep track of
+  ;; one-shot services that have been started directly or indirectly by this
+  ;; call.  That way, if several services depend on the same one-shot service,
+  ;; its 'start' method is invoked only once.
+  (parameterize ((%one-shot-services-started
+                  (or (%one-shot-services-started)
+                      (make-hash-table))))
+    (let ((services (append-map (lambda (service)
+                                  (if (symbol? service)
+                                      (lookup-services service)
+                                      (list service)))
+                                services))
+          (channel  (make-channel)))
+      (for-each (lambda (service)
+                  (spawn-fiber
+                   (lambda ()
+                     (let ((value
+                            (guard (c ((action-runtime-error? c)
+                                       (local-output
+                                        (l10n "Exception caught \
 while starting ~a: ~s")
-                                      service
-                                      (cons (action-runtime-error-key c)
-                                            (action-runtime-error-arguments c)))
-                                     #f))
-                            (start service))))
-                     (put-message channel (cons service value))))))
-              services)
-    (let loop ((i (length services))
-               (failures '()))
-      (if (> i 0)
-          (match (get-message channel)
-            ((service . #f)
-             (loop (- i 1) (cons service failures)))
-            ((_ . _)
-             (loop (- i 1) failures)))
-          failures))))
+                                        service
+                                        (cons (action-runtime-error-key c)
+                                              (action-runtime-error-arguments c)))
+                                       #f))
+                              (or (and (one-shot? service)
+                                       (hashq-ref (%one-shot-services-started)
+                                                  service))
+                                  (let ((result (start service)))
+                                    (when (one-shot? service)
+                                      (hashq-set! (%one-shot-services-started)
+                                                  service #t))
+                                    result)))))
+                       (put-message channel (cons service value))))))
+                services)
+      (let loop ((i (length services))
+                 (failures '()))
+        (if (> i 0)
+            (match (get-message channel)
+              ((service . #f)
+               (loop (- i 1) (cons service failures)))
+              ((_ . _)
+               (loop (- i 1) failures)))
+            failures)))))
 
 ;; Start the service, including dependencies.
 (define-method (start (obj <service>) . args)
