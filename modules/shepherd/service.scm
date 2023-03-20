@@ -1142,7 +1142,7 @@ background:~{ ~a~}."
                "The following services could not be started in the \
 background:~{ ~a~}."
                (length failures))
-         failures)))))
+         (map canonical-name failures))))))
 
   ;; 'spawn-fiber' returns zero values, which can confuse callees; return one.
   *unspecified*)
