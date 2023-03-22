@@ -978,18 +978,19 @@ requests arriving on @var{channel}."
 
     (match (get-message channel)
       (('register service)                        ;no reply
-       (let ((name (canonical-name service)))
-         (match (vhash-assq name registered)
-           (#f
-            (loop (register service)))
-           ((_ . old)
-            (let ((reply (make-channel)))
-              (put-message (service-control old)
-                           `(replace-if-running ,service ,reply))
-              (match (get-message reply)
-                (#t (loop registered))
-                (#f (loop (register service
-                                    (unregister (list old)))))))))))
+       (match (any (lambda (name)
+                     (vhash-assq name registered))
+                   (provided-by service))
+         (#f
+          (loop (register service)))
+         ((_ . old)
+          (let ((reply (make-channel)))
+            (put-message (service-control old)
+                         `(replace-if-running ,service ,reply))
+            (match (get-message reply)
+              (#t (loop registered))
+              (#f (loop (register service
+                                  (unregister (list old))))))))))
       (('unregister services)                     ;no reply
        (match (remove stopped? services)
          (()
