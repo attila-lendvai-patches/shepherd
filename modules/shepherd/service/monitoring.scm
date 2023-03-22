@@ -47,6 +47,7 @@
   (let loop ((period period))
     (match (get-message* channel period 'log)
       ('stop
+       (log-monitoring-stats)                     ;one last time
        (local-output (l10n "Terminating shepherd monitoring."))
        #f)
       ('log
