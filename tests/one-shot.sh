@@ -73,6 +73,8 @@ cat > "$conf"<<EOF
    #:provides '(c)
    #:requires '(a b one-shotty)
    #:start (const #t)))
+
+(start-in-the-background '(a b c))
 EOF
 
 rm -f "$pid"
@@ -111,15 +113,20 @@ $herd status test-2 | grep started
 $herd stop test-2
 if test -f "$stamp-2"; then false; else true; fi
 
+# When starting A, B, and C via 'start-in-the-background', ONE-SHOTTY should
+# have been started once only.
+test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 1
+$herd stop a
+
 # In the course of starting C, ONE-SHOTTY should be started only once.
 $herd start c
-test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 1
+test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 2
 
 # But we can still start it a second time, indirectly...
 $herd stop a
 $herd start c
-test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 2
+test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 3
 
 # ... and a third time, directly.
 $herd start one-shotty
-test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 3
+test $(grep "Starting service one-shotty" "$log" | wc -l) -eq 4
