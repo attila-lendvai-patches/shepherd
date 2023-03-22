@@ -1012,21 +1012,8 @@ requests arriving on @var{channel}."
                     (vhash-foldq* cons '() name registered))
        (loop registered))
       (('service-list reply)
-       (let ((names (delete-duplicates
-                     (vhash-fold (lambda (key _ result)
-                                   (cons key result))
-                                 '()
-                                 registered)
-                     eq?)))
-         (put-message reply
-                      (fold (lambda (name result)
-                              (alist-cons name
-                                          (vhash-foldq* cons '() name
-                                                        registered)
-                                          result))
-                            '()
-                            names))
-         (loop registered))))))
+       (put-message reply (vlist->list registered))
+       (loop registered)))))
 
 (define (spawn-service-registry)
   "Spawn a new service monitor fiber and return a channel to send it requests."
@@ -2113,13 +2100,6 @@ This must be paired with @code{make-systemd-destructor}."
 
 ;;; Perform actions with services:
 
-(define (lookup-canonical-service name services)
-  "Return service with canonical NAME from SERVICES list.
-Return #f if service is not found."
-  (find (lambda (service)
-          (eq? name (canonical-name service)))
-        services))
-
 (define fold-services
   (let ((reply (make-channel)))
     (lambda (proc init)
@@ -2128,11 +2108,10 @@ result.  Works in a manner akin to `fold' from SRFI-1."
       (put-message (current-registry-channel)
                    `(service-list ,reply))
       (fold (match-lambda*
-              (((name . services) result)
-               (let ((service (lookup-canonical-service name services)))
-                 (if service
-                     (proc service result)
-                     result))))
+              (((name . service) result)
+               (if (eq? name (canonical-name service))
+                   (proc service result)
+                   result)))
             init
             (get-message reply)))))
 
