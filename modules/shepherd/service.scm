@@ -75,7 +75,6 @@
             first-running
             lookup-running
             lookup-running-or-providing
-            make-service-group
             for-each-service
             lookup-services
             respawn-service
@@ -2078,20 +2077,6 @@ This must be paired with @code{make-systemd-destructor}."
        (destroy pid))
       (((_ . (? port? socks)) ...)
        (for-each close-port socks)))))
-
-
-;; A group of service-names which can be provided (i.e. services
-;; providing them get started) and unprovided (same for stopping)
-;; together.  Not comparable with a real runlevel at all, but can be
-;; used to emulate a simple kind of runlevel.
-(define-syntax-rule (make-service-group NAME (SYM ...) ADDITIONS ...)
-  (make <service>
-    #:provides '(NAME)
-    #:requires '(SYM ...)
-    #:stop (lambda (running)
-	     (for-each stop '(SYM ...))
-	     #f)
-    ADDITIONS ...))
 
 
 
