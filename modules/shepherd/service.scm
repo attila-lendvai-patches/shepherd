@@ -795,13 +795,6 @@ is not already running, and will return SERVICE's canonical name in a list."
                  (put-message notification #f)
                  (caught-error key args))))))
 
-        ;; Status message.
-        (if (running? service)
-            (local-output (l10n "Service ~a could not be stopped.")
-                          name)
-            (local-output (l10n "Service ~a has been stopped.")
-                          name))
-
         (when (transient? service)
           (put-message (current-registry-channel)
                        `(unregister ,(list service)))
