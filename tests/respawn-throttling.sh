@@ -58,6 +58,7 @@ count=15
 while [ $count -gt 0 ]
 do
     sleep 1
+    $herd status keeps-respawning
     if $herd status keeps-respawning | grep disabled
     then
 	# The service is now disabled: success!

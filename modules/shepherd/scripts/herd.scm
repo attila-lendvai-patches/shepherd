@@ -92,7 +92,7 @@ of pairs."
   (match service
     (('service ('version 0 _ ...) properties ...)
      (alist-let* properties (provides requires status running respawn? enabled?
-                             conflicts last-respawns one-shot? transient?)
+                             last-respawns one-shot? transient?)
        (format #t (l10n "Status of ~a:~%") (first provides))
 
        ;; Note: Shepherd up to 0.9.x included did not provide 'status', hence
@@ -123,7 +123,6 @@ of pairs."
            (format #t (l10n "  It is disabled.~%")))
        (format #t (l10n "  Provides ~a.~%") provides)
        (format #t (l10n "  Requires ~a.~%") requires)
-       (format #t (l10n "  Conflicts with ~a.~%") conflicts)
        (if respawn?
            (format #t (l10n "  Will be respawned.~%"))
            (format #t (l10n "  Will not be respawned.~%")))

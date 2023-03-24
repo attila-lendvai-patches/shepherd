@@ -69,8 +69,7 @@
             stop
             action
             doc
-            conflicts-with
-            conflicts-with-running
+
             launch-service
             first-running
             lookup-running
@@ -694,16 +693,8 @@ while starting ~a: ~s")
 	 (local-output (l10n "Service ~a is currently disabled.")
 		       (canonical-name obj))
          (service-running-value obj))
-	((let ((conflicts (conflicts-with-running obj)))
-	   (or (null? conflicts)
-	       (local-output (l10n "Service ~a conflicts with running services ~a.")
-			     (canonical-name obj)
-			     (map canonical-name conflicts)))
-	   (not (null? conflicts)))
-	 (service-running-value obj))
 	(else
-	 ;; It is not running and does not conflict with anything
-	 ;; that's running, so we can go on and launch it.
+	 ;; It is not running; go ahead and launch it.
 	 (let ((problems
 		;; Resolve all dependencies.
 		(start-in-parallel (required-by obj))))
@@ -919,23 +910,6 @@ is not already running, and will return SERVICE's canonical name in a list."
        ;; FIXME: Implement doc-help.
        (local-output (l10n "Unknown keyword.  Try 'doc root help'."))))))
 
-;; Return a list of services that conflict with OBJ.
-(define-method (conflicts-with (obj <service>))
-  (delete-duplicates
-   (append-map (lambda (sym)
-                 (filter-map (lambda (service)
-                               (and (not (eq? service obj))
-                                    service))
-                             (lookup-services sym)))
-               (provided-by obj))
-   eq?))
-
-;; Check if this service provides a symbol that is already provided
-;; by any other running services.  If so, return these services.
-;; Otherwise, return the empty list.
-(define-method (conflicts-with-running (obj <service>))
-  (filter running? (conflicts-with obj)))
-
 (define (service->sexp service)
   "Return a representation of SERVICE as an sexp meant to be consumed by
 clients."
@@ -950,7 +924,7 @@ clients."
             ;; like #<undefined> to be sent to the client.
             (enabled? ,(service-enabled? service))
             (running ,(result->sexp (service-running-value service)))
-            (conflicts ,(map canonical-name (conflicts-with service)))
+            (conflicts ())                        ;deprecated
             (last-respawns ,(service-respawn-times service))
             (status ,(service-status service))
             ,@(if (slot-ref service 'one-shot?)

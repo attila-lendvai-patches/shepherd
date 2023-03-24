@@ -760,11 +760,6 @@ with the specified @var{args}, which have a meaning depending on the
 particular action.
 @end deffn
 
-@deffn {method} conflicts-with (obj <service>)
-Returns a list of the canonical names of services that conflict with
-the service @var{obj}.
-@end deffn
-
 @deffn {method} canonical-name (obj <service>)
 Returns the canonical name of @var{obj}, which is the first element of
 the @code{provides} list.
