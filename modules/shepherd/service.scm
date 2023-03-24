@@ -306,6 +306,10 @@ Log abnormal termination reported by @var{status}."
   (define *change-value* (list 'change 'value!))
   (define (change-value-message? obj) (eq? *change-value* obj))
 
+  (define (pid? obj)
+    ;; Return true if OBJ looks like a PID.
+    (and (integer? obj) (exact? obj) (> obj 1)))
+
   (let-loop loop ((status 'stopped)
                   (value #f)
                   (condition #f)
@@ -378,6 +382,9 @@ Log abnormal termination reported by @var{status}."
         (when new-value
           (local-output (l10n "Service ~a running with value ~s.")
                         (canonical-name service) new-value))
+        (when (pid? new-value)
+          (monitor-service-process service new-value))
+
         (signal-condition! condition)
         (loop (status (if (and new-value (not (one-shot? service)))
                           'running
@@ -388,6 +395,8 @@ Log abnormal termination reported by @var{status}."
       (((? change-value-message?) new-value)
        (local-output (l10n "Running value of service ~a changed to ~s.")
                      (canonical-name service) new-value)
+       (when (pid? new-value)
+         (monitor-service-process service new-value))
        (loop (value new-value)))
 
       (('stop reply)
@@ -439,10 +448,13 @@ Log abnormal termination reported by @var{status}."
       ('notify-termination                        ;no reply
        (loop (status 'stopped) (value #f)))
 
-      (('handle-termination exit-status)          ;no reply
+      (('handle-termination pid exit-status)      ;no reply
        ;; Handle premature termination of this service's process, possibly by
-       ;; respawning it, unless STATUS is 'stopping'.
-       (if (eq? status 'stopping)
+       ;; respawning it, unless STATUS is 'stopping' or 'stopped' or PID
+       ;; doesn't match VALUE (which happens with notifications of processes
+       ;; terminated while stopping the service or shortly after).
+       (if (or (memq status '(stopping stopped))
+               (not (eqv? value pid)))
            (loop)
            (begin
              (spawn-fiber
@@ -2195,20 +2207,6 @@ otherwise by updating its state."
   (let loop ((waiters vlist-null))
     (match (get-message channel)
       (('handle-process-termination pid status)
-       ;; Handle the termination of PID.
-       (match (find-service (lambda (serv)
-                              (and (service-enabled? serv)
-                                   (match (service-running-value serv)
-                                     ((? number? pid*)
-                                      (= pid pid*))
-                                     (_ #f)))))
-         (#f
-          ;; SERV can be #f for instance when this code runs just after a
-          ;; service's 'stop' method killed its process and completed.
-          #f)
-         ((? service? service)
-          (handle-service-termination service status)))
-
        ;; Notify any waiters.
        (vhash-foldv* (lambda (waiter _)
                        (put-message waiter status)
@@ -2319,6 +2317,16 @@ while waiting for @var{program} to terminate."
       ;; The old form, which appeared in 0.9.3.
       (spawn-command (cons program arguments))))))
 
+(define (monitor-service-process service pid)
+  "Monitor process @var{pid} and notify @var{service} when it terminates."
+  (let ((reply (make-channel)))
+    (put-message (current-process-monitor)
+                 `(await ,pid ,reply))
+    (spawn-fiber
+     (lambda ()
+       (let ((status (get-message reply)))
+         (handle-service-termination service pid status))))))
+
 (define default-process-termination-grace-period
   ;; Default process termination "grace period" before we send SIGKILL.
   (make-parameter 5))
@@ -2358,13 +2366,13 @@ been sent, send it @code{SIGKILL}."
       (status
        status))))
 
-(define (handle-service-termination service status)
-  "Handle the termination of the process associated with @var{service}, whose
-PID is in its @code{running} slot; @var{status} is the process's exit status
-as returned by @code{waitpid}.  This procedure is called right after the
-process has terminated."
+(define (handle-service-termination service pid status)
+  "Handle the termination of the process @var{pid} associated with
+@var{service}; @var{status} is the process's exit status as returned by
+@code{waitpid}.  This procedure is called right after the process has
+terminated."
   (put-message (service-control service)
-               `(handle-termination ,status)))
+               `(handle-termination ,pid ,status)))
 
 (define (respawn-service serv)
   "Respawn a service that has stopped running unexpectedly. If we have
