@@ -54,6 +54,7 @@
             default-socket-file
             %system-socket-file
 
+            primitive-load*
             load-in-user-module
             eval-in-user-module
 
