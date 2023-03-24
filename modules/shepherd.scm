@@ -224,6 +224,28 @@ already ~a threads running, disabling 'signalfd' support")
 
            (next-command))))))
 
+(define-syntax replace-core-bindings!
+  (syntax-rules (<>)
+    "Replace the given core bindings in the current process, restoring them upon
+fork in the child process."
+    ((_ () <> ((binding value) ...))
+     (let ((real-primitive-fork primitive-fork))
+       (set! primitive-fork
+             (lambda ()
+               (let ((result (real-primitive-fork)))
+                 (when (zero? result)
+                   (set! binding value)
+                   ...
+                   (set! primitive-fork real-primitive-fork))
+                 result)))))
+    ((_ ((binding value) rest ...) <> (saved-bindings ...))
+     (let ((real binding))
+       (set! binding value)
+       (replace-core-bindings! (rest ...) <>
+                               ((binding real) saved-bindings ...))))
+    ((_ (binding value) ...)
+     (replace-core-bindings! ((binding value) ...) <> ()))))
+
 
 ;; Main program.
 (define (main . args)
@@ -396,25 +418,11 @@ already ~a threads running, disabling 'signalfd' support")
                    ;; cooperates instead of blocking on 'waitpid'.  Replace
                    ;; 'primitive-load' (in C as of 3.0.9) with one that does
                    ;; not introduce a continuation barrier.
-                   (let ((real-system* system*)
-                         (real-system  system)
-                         (real-primitive-load primitive-load))
-                     (set! system* (lambda command
-                                     (spawn-command command)))
-                     (set! system spawn-shell-command)
-                     (set! primitive-load primitive-load*)
-
-                     ;; Restore those bindings after fork.
-                     (set! primitive-fork
-                           (let ((real-fork primitive-fork))
-                             (lambda ()
-                               (let ((result (real-fork)))
-                                 (when (zero? result)
-                                   (set! primitive-fork real-fork)
-                                   (set! system* real-system*)
-                                   (set! system real-system)
-                                   (set! primitive-load real-primitive-load))
-                                 result)))))
+                   (replace-core-bindings!
+                    (system* (lambda command
+                               (spawn-command command)))
+                    (system spawn-shell-command)
+                    (primitive-load primitive-load*))
 
                    (run-daemon #:socket-file socket-file
                                #:config-file config-file
