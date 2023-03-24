@@ -461,8 +461,7 @@ Log abnormal termination reported by @var{status}."
               (lambda ()
                 (false-if-exception
                  ((slot-ref service 'handle-termination)
-                  service value exit-status))
-                (put-message channel 'notify-termination)))
+                  service value exit-status))))
              (loop (status 'stopped) (value #f) (condition #f)))))
 
       ('record-respawn-time                       ;no reply
@@ -804,10 +803,6 @@ is not already running, and will return SERVICE's canonical name in a list."
                       (apply quit args))
                  (put-message notification #f)
                  (caught-error key args))))))
-
-        ;; SERVICE is no longer running.
-        (put-message (service-control service)
-                     'notify-termination)
 
         ;; Status message.
         (if (running? service)
