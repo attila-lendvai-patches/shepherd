@@ -2071,7 +2071,8 @@ This must be paired with @code{make-systemd-destructor}."
       ((? integer? pid)
        (destroy pid))
       (((_ . (? port? socks)) ...)
-       (for-each close-port socks)))))
+       (for-each close-port socks)
+       #f))))
 
 
 
