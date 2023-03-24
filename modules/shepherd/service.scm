@@ -303,6 +303,8 @@ Log abnormal termination reported by @var{status}."
   (define (started-message? obj) (eq? *service-started* obj))
   (define *service-stopped* (list 'service 'stopped!))
   (define (stopped-message? obj) (eq? *service-stopped* obj))
+  (define *change-value* (list 'change 'value!))
+  (define (change-value-message? obj) (eq? *change-value* obj))
 
   (let-loop loop ((status 'stopped)
                   (value #f)
@@ -365,15 +367,28 @@ Log abnormal termination reported by @var{status}."
                 (loop (status 'starting)
                       (condition (make-condition)))))))
       (((? started-message?) new-value)           ;no reply
-       (when new-value
-         (local-output (l10n "Service ~a running with value ~s.")
-                       (canonical-name service) new-value))
-       (signal-condition! condition)
-       (loop (status (if (and new-value (not (one-shot? service)))
-                         'running
-                         'stopped))
-             (value (and (not (one-shot? service)) new-value))
-             (condition #f)))
+       ;; When NEW-VALUE is a procedure, call it to get the actual value and
+       ;; pass it a call back so it can eventually change it.
+       (let ((new-value (if (procedure? new-value)
+                            (new-value
+                             (lambda (value)
+                               (put-message channel
+                                            (list *change-value* value))))
+                            new-value)))
+        (when new-value
+          (local-output (l10n "Service ~a running with value ~s.")
+                        (canonical-name service) new-value))
+        (signal-condition! condition)
+        (loop (status (if (and new-value (not (one-shot? service)))
+                          'running
+                          'stopped))
+              (value (and (not (one-shot? service)) new-value))
+              (condition #f))))
+
+      (((? change-value-message?) new-value)
+       (local-output (l10n "Running value of service ~a changed to ~s.")
+                     (canonical-name service) new-value)
+       (loop (value new-value)))
 
       (('stop reply)
        ;; Attempt to stop SERVICE, blocking if it is already being stopped.
@@ -527,15 +542,6 @@ wire."
 (define-method (canonical-name (obj <service>))
   (car (provided-by obj)))
 
-(define (service-running-value service)
-  "Return the \"running value\" of SERVICE."
-  (let ((reply (make-channel)))
-    (put-message (service-control service)
-                 `(running ,reply))
-    (match (get-message reply)
-      ((? procedure? proc) (proc))
-      (value value))))
-
 (define (service-control-message message)
   "Return a procedure to send @var{message} to the given service's control
 channel and wait for its reply."
@@ -543,6 +549,10 @@ channel and wait for its reply."
     (let ((reply (make-channel)))
       (put-message (service-control service) (list message reply))
       (get-message reply))))
+
+(define service-running-value
+  ;; Return the "running value" of @var{service}.
+  (service-control-message 'running))
 
 (define service-status
   ;; Return the status of @var{service}, one of @code{stopped},
@@ -2042,31 +2052,35 @@ This must be paired with @code{make-systemd-destructor}."
                             (string-append "LISTEN_FDNAMES="
                                            (string-join
                                             (map endpoint-name endpoints)
-                                            ":"))))
-           (running   sockets))
-      (spawn-fiber
-       (lambda ()
-         (wait-for-readable ports)
-         (local-output (l10n "Spawning systemd-style service ~a.")
-                       (match command
-                         ((program . _) program)))
-         (let ((pid (fork+exec-command command
-                                       #:extra-ports ports
-                                       #:user user
-                                       #:group group
-                                       #:supplementary-groups
-                                       supplementary-groups
-                                       #:log-file log-file
-                                       #:directory directory
-                                       #:file-creation-mask file-creation-mask
-                                       #:create-session? create-session?
-                                       #:environment-variables
-                                       (append variables environment-variables)
-                                       #:listen-pid-variable? #t
-                                       #:resource-limits resource-limits)))
-           (set! running pid)
-           (for-each close-port ports))))
-      (lambda () running))))
+                                            ":")))))
+      (lambda (change-service-value)
+        ;; Return SOCKETS now as the first running value of the service, and
+        ;; spawn a fiber to eventually change the value to the PID of the
+        ;; process, once started.
+        (spawn-fiber
+         (lambda ()
+           (wait-for-readable ports)
+           (local-output (l10n "Spawning systemd-style service ~a.")
+                         (match command
+                           ((program . _) program)))
+           (let ((pid (fork+exec-command command
+                                         #:extra-ports ports
+                                         #:user user
+                                         #:group group
+                                         #:supplementary-groups
+                                         supplementary-groups
+                                         #:log-file log-file
+                                         #:directory directory
+                                         #:file-creation-mask file-creation-mask
+                                         #:create-session? create-session?
+                                         #:environment-variables
+                                         (append variables environment-variables)
+                                         #:listen-pid-variable? #t
+                                         #:resource-limits resource-limits)))
+             (change-service-value pid)
+             (for-each close-port ports))))
+
+        sockets))))
 
 (define (make-systemd-destructor)
   "Return a procedure that terminates a systemd-style service as created by
