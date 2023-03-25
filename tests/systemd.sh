@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test transient services.
-# Copyright © 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2022-2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -63,7 +63,12 @@ cat > "$conf" <<EOF
    #:provides '(test-systemd-unix)
    #:start (make-systemd-constructor %command %endpoints)
    #:stop  (make-systemd-destructor)
-   #:respawn? #t))
+   #:respawn? #t)
+ (make <service>
+   #:provides '(test-systemd-unix-eager)
+   #:start (make-systemd-constructor %command %endpoints
+                                     #:lazy-start? #f)
+   #:stop  (make-systemd-destructor)))
 EOF
 
 rm -f "$pid"
@@ -98,5 +103,20 @@ do
 done
 
 $herd stop test-systemd-unix
-! converse_with_echo_server \
-  "(make-socket-address AF_UNIX \"$service_socket\")"
+if converse_with_echo_server "(make-socket-address AF_UNIX \"$service_socket\")"
+then false; else true; fi
+
+# Now test the eager systemd-style service.
+$herd start test-systemd-unix-eager
+$herd status test-systemd-unix-eager | grep started
+
+# The process should soon be running, before we've tried to connect to it.
+while ! $herd status test-systemd-unix-eager | grep -E "Running value is [0-9]+"
+do $herd status test-systemd-unix-eager; sleep 0.3; done
+
+child_pid="$($herd status test-systemd-unix-eager | grep Running \
+   | sed '-es/.*Running value is \([0-9]\+\)\./\1/g')"
+kill -0 "$child_pid"
+converse_with_echo_server "(make-socket-address AF_UNIX \"$service_socket\")"
+while ! $herd status test-systemd-unix-eager | grep stopped
+do sleep 0.3; done

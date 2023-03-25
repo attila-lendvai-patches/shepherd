@@ -45,6 +45,7 @@
             report-error
             display-line
             non-blocking-port
+            blocking-port
 
             user-homedir
             user-default-log-file
@@ -276,6 +277,12 @@ There is NO WARRANTY, to the extent permitted by law.")))
   "Return PORT after putting it in non-blocking mode."
   (let ((flags (fcntl port F_GETFL)))
     (fcntl port F_SETFL (logior O_NONBLOCK flags))
+    port))
+
+(define (blocking-port port)
+  "Return PORT after putting it in non-blocking mode."
+  (let ((flags (fcntl port F_GETFL)))
+    (fcntl port F_SETFL (logand (lognot O_NONBLOCK) flags))
     port))
 
 

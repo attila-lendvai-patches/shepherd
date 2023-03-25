@@ -2003,6 +2003,7 @@ reading."
 
 (define* (make-systemd-constructor command endpoints
                                    #:key
+                                   (lazy-start? #t)
                                    (user #f)
                                    (group #f)
                                    (supplementary-groups '())
@@ -2018,7 +2019,8 @@ argument, as a systemd-style service listening on @var{endpoints}, a list of
 @code{<endpoint>} objects.
 
 @var{command} is started on demand on the first connection attempt on one of
-@var{endpoints}.  It is passed the listening sockets for @var{endpoints} in
+@var{endpoints} when @var{lazy-start?} is true; otherwise it is started as
+soon as possible.  It is passed the listening sockets for @var{endpoints} in
 file descriptors 3 and above; as such, it is equivalent to an @code{Accept=no}
 @uref{https://www.freedesktop.org/software/systemd/man/systemd.socket.html,systemd
 socket unit}.  The following environment variables are set in its environment:
@@ -2053,7 +2055,12 @@ This must be paired with @code{make-systemd-destructor}."
         ;; process, once started.
         (spawn-fiber
          (lambda ()
-           (wait-for-readable ports)
+           (if lazy-start?
+               (wait-for-readable ports)
+
+               ;; Hand the child process blocking ports: it may not be ready
+               ;; to handle EAGAIN & co.
+               (for-each blocking-port ports))
            (local-output (l10n "Spawning systemd-style service ~a.")
                          (match command
                            ((program . _) program)))
