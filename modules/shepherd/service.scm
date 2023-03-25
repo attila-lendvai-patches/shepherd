@@ -998,16 +998,36 @@ requests arriving on @var{channel}."
        (put-message reply (vlist->list registered))
        (loop registered)))))
 
-(define (spawn-service-registry)
-  "Spawn a new service monitor fiber and return a channel to send it requests."
-  (define channel
-    (make-channel))
+(define (essential-task-launcher name proc)
+  "Return a thunk that runs @var{proc} in a fiber, endlessly (an essential
+task is one that should never fail)."
+  (lambda ()
+    (define channel
+      (make-channel))
 
-  (spawn-fiber
-   (lambda ()
-     (service-registry channel)))
+    (spawn-fiber
+     (lambda ()
+       ;; PROC should never return.  If it does, log the problem and
+       ;; desperately attempt to restart it.
+       (let loop ()
+         (catch #t
+           (lambda ()
+             (proc channel)
+             (local-output (l10n "Essential task ~a exited unexpectedly.")
+                           name))
+           (lambda args
+             (local-output
+              (l10n "Uncaught exception in essential task ~a: ~s")
+              name args)))
 
-  channel)
+         ;; Restarting is not enough to recover because all state has been
+         ;; lost, but it might be enough to halt the system.
+         (loop))))
+
+    channel))
+
+(define spawn-service-registry
+  (essential-task-launcher 'service-registry service-registry))
 
 (define current-registry-channel
   ;; The channel to communicate with the current service monitor.
@@ -2207,17 +2227,8 @@ otherwise by updating its state."
              (put-message reply 0)
              (loop waiters)))))))
 
-(define (spawn-process-monitor)
-  "Spawn a process monitoring fiber and return a channel to communicate with
-it."
-  (define channel
-    (make-channel))
-
-  (spawn-fiber
-   (lambda ()
-     (process-monitor channel)))
-
-  channel)
+(define spawn-process-monitor
+  (essential-task-launcher 'process-monitor process-monitor))
 
 (define current-process-monitor
   ;; Channel to communicate with the process monitoring fiber.
