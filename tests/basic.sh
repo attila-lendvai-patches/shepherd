@@ -264,6 +264,14 @@ if $herd status | grep "Stopped:"
 then false; else true; fi
 $herd status | grep -e "+ root"
 
+# Check that the "Service * already running" message gets printed only when
+# explicitly starting an already-running service.
+if grep "already running" "$log"
+then false; else true; fi
+
+$herd start root | grep "already running"
+grep "already running" "$log"
+
 $herd stop root
 ! kill -0 $shepherd_pid
 

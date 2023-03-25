@@ -702,8 +702,6 @@ while starting ~a: ~s")
                 (match (get-message reply)
                   (#f
                    ;; We lost the race: OBJ is already running.
-	           (local-output (l10n "Service ~a is already running.")
-		                 (canonical-name obj))
                    (service-running-value obj))
                   ((? channel? notification)
                    ;; We won the race: we're responsible for starting OBJ
@@ -1074,12 +1072,16 @@ Used by `start'."
     (()
      (raise (condition (&missing-service-error (name name)))))
     ((possibilities ...)
-     (or (first-running possibilities)
-
-         ;; None running yet, start one.
-         (find (lambda (service)
-                 (apply start service args))
-               possibilities)))))
+     (let ((running (first-running possibilities)))
+       (if running
+           (begin
+             (local-output (l10n "Service ~a is already running.")
+		           (canonical-name running))
+             running)
+           ;; None running yet, start one.
+           (find (lambda (service)
+                   (apply start service args))
+                 possibilities))))))
 
 ;; Starting by name.
 (define-method (start (obj <symbol>) . args)
