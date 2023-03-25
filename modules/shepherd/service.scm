@@ -685,57 +685,55 @@ while starting ~a: ~s")
 
 ;; Start the service, including dependencies.
 (define-method (start (obj <service>) . args)
-  (cond ((eq? 'running (service-status obj))
-	 (local-output (l10n "Service ~a is already running.")
-		       (canonical-name obj))
-         (service-running-value obj))
-	((not (service-enabled? obj))
-	 (local-output (l10n "Service ~a is currently disabled.")
-		       (canonical-name obj))
-         (service-running-value obj))
-	(else
-	 ;; It is not running; go ahead and launch it.
-	 (let ((problems
-		;; Resolve all dependencies.
-		(start-in-parallel (required-by obj))))
-           (define running
-	     (if (pair? problems)
-                 (for-each (lambda (problem)
-	                     (local-output (l10n "Service ~a depends on ~a.")
-			                   (canonical-name obj)
-			                   problem))
-                           problems)
-                 ;; Start the service itself.
-                 (let ((reply (make-channel)))
-                   (put-message (service-control obj) `(start ,reply))
-                   (match (get-message reply)
-                     (#f
-                      ;; We lost the race: OBJ is already running.
-                      (service-running-value obj))
-                     ((? channel? notification)
-                      ;; We won the race: we're responsible for starting OBJ
-                      ;; and sending its running value on NOTIFICATION.
-                      (let ((running
-                             (catch #t
-                               (lambda ()
-                                 ;; Make sure the 'start' method writes
-                                 ;; messages to the right port.
-                                 (parameterize ((current-output-port
-                                                 (%current-service-output-port))
-                                                (current-error-port
-                                                 (%current-service-output-port)))
-                                   (apply (slot-ref obj 'start) args)))
-                               (lambda (key . args)
-                                 (put-message notification #f)
-                                 (report-exception 'start obj key args)))))
-                        (put-message notification running)
-                        (local-output (if running
-			                  (l10n "Service ~a has been started.")
-                                          (l10n "Service ~a could not be started."))
-			              (canonical-name obj))
-                        running))))))
+  (if (service-enabled? obj)
+      ;; It is not running; go ahead and launch it.
+      (let ((problems
+	     ;; Resolve all dependencies.
+	     (start-in-parallel (required-by obj))))
+        (define running
+	  (if (pair? problems)
+              (for-each (lambda (problem)
+	                  (local-output (l10n "Service ~a depends on ~a.")
+			                (canonical-name obj)
+			                problem))
+                        problems)
+              ;; Start the service itself.
+              (let ((reply (make-channel)))
+                (put-message (service-control obj) `(start ,reply))
+                (match (get-message reply)
+                  (#f
+                   ;; We lost the race: OBJ is already running.
+	           (local-output (l10n "Service ~a is already running.")
+		                 (canonical-name obj))
+                   (service-running-value obj))
+                  ((? channel? notification)
+                   ;; We won the race: we're responsible for starting OBJ
+                   ;; and sending its running value on NOTIFICATION.
+                   (let ((running
+                          (catch #t
+                            (lambda ()
+                              ;; Make sure the 'start' method writes
+                              ;; messages to the right port.
+                              (parameterize ((current-output-port
+                                              (%current-service-output-port))
+                                             (current-error-port
+                                              (%current-service-output-port)))
+                                (apply (slot-ref obj 'start) args)))
+                            (lambda (key . args)
+                              (put-message notification #f)
+                              (report-exception 'start obj key args)))))
+                     (put-message notification running)
+                     (local-output (if running
+			               (l10n "Service ~a has been started.")
+                                       (l10n "Service ~a could not be started."))
+			           (canonical-name obj))
+                     running))))))
 
-           running))))
+        running)
+      (begin
+        (local-output (l10n "Service ~a is currently disabled.")
+		      (canonical-name obj))
+        (service-running-value obj))))
 
 (define (replace-service old-service new-service)
   "Replace OLD-SERVICE with NEW-SERVICE in the services registry.  This
