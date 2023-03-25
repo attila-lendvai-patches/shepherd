@@ -70,7 +70,6 @@
             action
             doc
 
-            launch-service
             first-running
             lookup-running
             lookup-running-or-providing
@@ -1068,7 +1067,7 @@ service state and to send requests to the service monitor."
                  head
                  (loop (cdr lst)))))))))
 
-(define (launch-service name proc args)
+(define (launch-service name args)
   "Try to start (with PROC) a service providing NAME; return #f on failure.
 Used by `start'."
   (match (lookup-services name)
@@ -1079,12 +1078,12 @@ Used by `start'."
 
          ;; None running yet, start one.
          (find (lambda (service)
-                 (apply proc service args))
+                 (apply start service args))
                possibilities)))))
 
 ;; Starting by name.
 (define-method (start (obj <symbol>) . args)
-  (launch-service obj start args))
+  (launch-service obj args))
 
 ;; Stopping by name.
 (define-method (stop (obj <symbol>) . args)
