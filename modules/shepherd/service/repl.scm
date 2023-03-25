@@ -103,6 +103,7 @@ crashes, stop @var{service}."
     #:provides '(repl)
     #:requires '()
     #:start (lambda args
+              (catch-system-error (delete-file socket-file))
               (let ((socket (open-server-socket socket-file)))
                 (spawn-repl-service socket)
                 socket))
