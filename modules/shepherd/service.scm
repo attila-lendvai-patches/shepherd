@@ -50,6 +50,7 @@
   #:use-module (shepherd config)
   #:use-module (shepherd system)
   #:export (<service>
+            service
             service?
             service-provision
             service-requirement
@@ -293,6 +294,32 @@ Log abnormal termination reported by @var{status}."
   ;; Control channel that encapsulates the current state of the service; send
   ;; requests such as 'start' and 'stop' on this channels.
   (control #:init-value #f))
+
+;; The procedure below supersedes (make <service> ...).
+(define* (service provision
+                  #:key
+                  (requirement '())
+                  (one-shot? #f)
+                  (transient? #f)
+                  (respawn? #f)
+                  (start (lambda () #t))
+                  (stop (lambda (running) #f))
+                  (actions (make-actions))
+                  (termination-handler default-service-termination-handler)
+                  (documentation (l10n "[No description].")))
+  "Return a new service with the given @var{provision}, a list of symbols
+denoting what the service provides."
+  (make <service>
+    #:provides provision
+    #:requires requirement
+    #:one-shot? one-shot?
+    #:transient? transient?
+    #:respawn? respawn?
+    #:start start
+    #:stop stop
+    #:actions actions
+    #:handle-termination termination-handler
+    #:docstring documentation))
 
 (define (service-control service)
   "Return the controlling channel of @var{service}."
@@ -1928,9 +1955,9 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
 
   (define (spawn-child-service connection server-address client-address)
     (let* ((name    (child-service-name))
-           (service (make <service>
-                      #:provides (list name)
-                      #:requires requirements
+           (service (service
+                      (list name)
+                      #:requirement requirements
                       #:respawn? #f
                       #:transient? #t
                       #:start (make-inetd-forkexec-constructor
@@ -1947,7 +1974,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
                                                         client-address)
                                    environment-variables)
                                #:resource-limits resource-limits)
-                      #:handle-termination handle-child-termination
+                      #:termination-handler handle-child-termination
                       #:stop (make-kill-destructor))))
       (register-services service)
       (start service)))
@@ -2535,10 +2562,11 @@ where prctl/PR_SET_CHILD_SUBREAPER is unsupported."
                             (respawn-service service))))))
 
 (define root-service
-  (make <service>
-    #:docstring "The root service is used to operate on shepherd itself."
-    #:provides '(root shepherd)
-    #:requires '()
+  (service
+   '(root shepherd)
+    #:documentation
+    (l10n "The root service is used to operate on shepherd itself.")
+    #:requirement '()
     #:respawn? #f
     #:start (lambda args
 	      (when (isatty? (current-output-port))
