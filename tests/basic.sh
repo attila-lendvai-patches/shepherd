@@ -37,8 +37,8 @@ trap "cat $log || true; rm -f $socket $conf $stamp $log;
 cat > "$conf"<<EOF
 (use-modules (srfi srfi-26))
 (register-services
- (make <service>
-   #:provides '(test)
+ (service
+   '(test)
    #:start (lambda _
              (call-with-output-file "$stamp"
                (cut display "foo" <>))
@@ -46,9 +46,9 @@ cat > "$conf"<<EOF
    #:stop  (lambda _
              (delete-file "$stamp"))
    #:respawn? #f)
- (make <service>
-   #:provides '(test-2)
-   #:requires '(test)
+ (service
+   '(test-2)
+   #:requirement '(test)
    #:start (lambda _
              (call-with-output-file "$stamp-2"
                (cut display "bar" <>))
@@ -61,13 +61,13 @@ cat > "$conf"<<EOF
                                  #t))
 			   (fail "Fail." (const #f)))
    #:respawn? #f)
- (make <service>
-   #:provides '(spawn-with-system)
+ (service
+   '(spawn-with-system)
    #:start (make-system-constructor "echo starting from $PWD")
    #:stop (make-system-destructor "echo stopping from $PWD"))
- (make <service>
-   #:provides '(broken)
-   #:requires '()
+ (service
+   '(broken)
+   #:requirement '()
    #:start (lambda _
              (mkdir "/this/throws/a/system/error"))
    #:stop  (const #f)
@@ -185,7 +185,7 @@ test "`$herd status`" == "$pristine_status"
 mkdir -p "$confdir"
 cat > "$confdir/some-conf.scm" <<EOF
 (register-services
- (make <service>
+ (make <service>                ;deprecated
    #:provides '(test-loaded)
    #:start (const 'abc)
    #:stop (const #f)))
@@ -210,7 +210,7 @@ $herd unload root test-loaded
 # make sure that the running value is clamped before being sent over the wire.
 cat > "$confdir/some-conf.scm" <<EOF
 (register-services
- (make <service>
+ (make <service>               ;deprecated
    #:provides '(test-loaded)
    #:start (const (if #f #f))  ;#<undefined>
    #:stop (const #f)))

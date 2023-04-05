@@ -34,8 +34,8 @@ trap "cat $log || true; rm -f $socket $conf $stamp $log;
 
 cat > "$conf" <<EOF
 (register-services
- (make <service>
-   #:provides '(test)
+ (service
+   '(test)
    #:start (const #t)
    #:stop  (lambda _
              (let loop ((n 30))

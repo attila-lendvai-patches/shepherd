@@ -53,9 +53,9 @@ cat > "$conf"<<EOF
   '("$SHELL" "-c" "ulimit -n >$PWD/$service_nofiles; sleep 600 & echo \$! > $PWD/$service_pid"))
 
 (register-services
- (make <service>
+ (service
    ;; A service that forks into a different process.
-   #:provides '(test)
+   '(test)
    #:start (make-forkexec-constructor %command
                                       #:pid-file "$PWD/$service_pid"
                                       #:resource-limits '((nofile 1567 1567)))
@@ -66,9 +66,9 @@ cat > "$conf"<<EOF
   '("$SHELL" "-c" "echo started >> $PWD/$service2_started; sleep 600 & echo \$! > $PWD/$service2_pid"))
 
 (register-services
- (make <service>
+ (service
    ;; A service that forks into a different process.
-   #:provides '(test2)
+   '(test2)
    #:start (make-forkexec-constructor %command2
                                       #:pid-file "$PWD/$service2_pid")
    #:stop  (make-kill-destructor)
@@ -78,9 +78,9 @@ cat > "$conf"<<EOF
   '("$SHELL" "-c" "sleep 600"))
 
 (register-services
- (make <service>
+ (service
    ;; A service that forks into a different process.
-   #:provides '(test3)
+   '(test3)
    #:start (make-forkexec-constructor %command3)
    #:stop  (make-kill-destructor)
    #:respawn? #t))
@@ -89,10 +89,10 @@ cat > "$conf"<<EOF
   '("$SHELL" "-c" "trap 'echo ignoring SIGTERM' SIGTERM; while true ; do : ; done"))
 
 (register-services
- (make <service>
+ (service
    ;; A service that ignores SIGTERM.
-   #:provides '(test4)
-   #:requires '(test3)
+   '(test4)
+   #:requirement '(test3)
    #:start (make-forkexec-constructor %command4)
    #:stop  (make-kill-destructor SIGTERM #:grace-period 3)))
 EOF

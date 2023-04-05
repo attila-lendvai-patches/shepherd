@@ -330,7 +330,7 @@ TARGET should be a string representing a filepath + name."
         "\n"
         (l10n "\
 ;; Services known to shepherd:
-;; Add new services (defined using 'make <service>') to shepherd here by
+;; Add new services (defined using 'service') to shepherd here by
 ;; providing them as arguments to 'register-services'.\n")
         "(register-services)\n\n"
         (l10n "\
@@ -387,7 +387,7 @@ create a template configuration file if non exists."
   "Return a new module, for use when evaluating the user's configuration,
 which has essential bindings pulled in."
   (let ((m (make-fresh-user-module)))
-    ;; The typical configuration file wants to do '(make <service> ...)', and
+    ;; The typical configuration file wants to do '(service ...)', and
     ;; '(register-services ...)', so provide the relevant bindings by default.
     (module-use! m (resolve-interface '(oop goops)))
     (module-use! m (resolve-interface '(shepherd service)))

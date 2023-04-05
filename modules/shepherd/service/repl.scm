@@ -32,22 +32,22 @@
 (define (spawn-child-service client id)
   "Register and start a new service that runs a REPL on @var{client}, a
 socket.  Use @var{id} to create the service name."
-  (letrec* ((name    (string->symbol
-                      (string-append "repl-client-"
-                                     (number->string id))))
-            (service (make <service>
-                       #:provides (list name)
-                       #:transient? #t
-                       #:start (lambda ()
-                                 (spawn-fiber
-                                  (lambda ()
-                                    (run-client-repl service client)))
-                                 client)
-                       #:stop (lambda (client)
-                                (close-port client)
-                                #f))))
-    (register-services service)
-    (start service)))
+  (letrec* ((name  (string->symbol
+                    (string-append "repl-client-"
+                                   (number->string id))))
+            (child (service
+                     (list name)
+                     #:transient? #t
+                     #:start (lambda ()
+                               (spawn-fiber
+                                (lambda ()
+                                  (run-client-repl child client)))
+                               client)
+                     #:stop (lambda (client)
+                              (close-port client)
+                              #f))))
+    (register-services child)
+    (start child)))
 
 (define* (run-repl-service socket)
   (let loop ((client-id 1))
@@ -98,10 +98,10 @@ crashes, stop @var{service}."
 (define* (repl-service #:optional
                        (socket-file (default-repl-socket-file)))
   "Return a REPL service that listens to @var{socket-file}."
-  (make <service>
-    #:docstring (l10n "Run a read-eval-print loop (REPL).")
-    #:provides '(repl)
-    #:requires '()
+  (service
+    '(repl)
+    #:documentation (l10n "Run a read-eval-print loop (REPL).")
+    #:requirement '()
     #:start (lambda args
               (catch-system-error (delete-file socket-file))
               (let ((socket (open-server-socket socket-file)))

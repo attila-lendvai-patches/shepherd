@@ -34,8 +34,8 @@ trap "rm -f $socket $conf $stamp $log;
 cat > "$conf"<<EOF
 (use-modules (srfi srfi-26))
 (register-services
- (make <service>
-   #:provides '(test)
+ (service
+   '(test)
    #:start (const #t)
    #:stop  (lambda _
              (call-with-output-file "$stamp"

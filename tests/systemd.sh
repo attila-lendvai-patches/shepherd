@@ -59,13 +59,13 @@ cat > "$conf" <<EOF
   (list (endpoint (make-socket-address AF_UNIX "$service_socket"))))
 
 (register-services
- (make <service>
-   #:provides '(test-systemd-unix)
+ (service
+   '(test-systemd-unix)
    #:start (make-systemd-constructor %command %endpoints)
    #:stop  (make-systemd-destructor)
    #:respawn? #t)
- (make <service>
-   #:provides '(test-systemd-unix-eager)
+ (service
+   '(test-systemd-unix-eager)
    #:start (make-systemd-constructor %command %endpoints
                                      #:lazy-start? #f)
    #:stop  (make-systemd-destructor)))

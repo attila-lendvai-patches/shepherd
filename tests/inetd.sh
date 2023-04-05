@@ -39,8 +39,8 @@ cat > "$conf" <<EOF
   '("$SHELL" "-c" "echo hello; read line; echo \$line; echo done"))
 
 (register-services
- (make <service>
-   #:provides '(test-inetd)
+ (service
+   '(test-inetd)
    #:start (make-inetd-constructor %command
                                    (list
                                     (endpoint (make-socket-address
@@ -48,8 +48,8 @@ cat > "$conf" <<EOF
                                                INADDR_LOOPBACK
                                                $PORT))))
    #:stop  (make-inetd-destructor))
- (make <service>
-   #:provides '(test-inetd6)
+ (service
+   '(test-inetd6)
    #:start (make-inetd-constructor %command
                                    (list
                                     (endpoint (make-socket-address
@@ -61,8 +61,8 @@ cat > "$conf" <<EOF
                                                IN6ADDR_LOOPBACK
                                                $PORT))))
    #:stop  (make-inetd-destructor))
- (make <service>
-   #:provides '(test-inetd-v6-only)
+ (service
+   '(test-inetd-v6-only)
    #:start (make-inetd-constructor %command
                                    (list
                                     (endpoint (make-socket-address
@@ -70,8 +70,8 @@ cat > "$conf" <<EOF
                                                IN6ADDR_LOOPBACK
                                                $PORT))))
    #:stop  (make-inetd-destructor))
- (make <service>
-   #:provides '(test-inetd-unix)
+ (service
+   '(test-inetd-unix)
    #:start (make-inetd-constructor %command
                                    (list
                                     (endpoint (make-socket-address

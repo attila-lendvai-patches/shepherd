@@ -59,10 +59,10 @@ cat > "$conf"<<EOF
                         (sleep 100))))))
 
 (register-services
- (make <service>
+ (service
    ;; A service that never produces its PID file, yet leaves a process
    ;; behind it.
-   #:provides '(test)
+   '(test)
    #:start (make-forkexec-constructor %command
                                       #:pid-file "/does-not-exist"
 
@@ -74,19 +74,19 @@ cat > "$conf"<<EOF
    #:stop  (make-kill-destructor)
    #:respawn? #f)
 
- (make <service>
+ (service
    ;; Same one, but actually produces the PID file.
-   #:provides '(test-works)
+   '(test-works)
    #:start (make-forkexec-constructor %daemon-command-successful
                                       #:pid-file "$PWD/$service_pid"
                                       #:pid-file-timeout 6)
    #:stop  (make-kill-destructor)
    #:respawn? #f)
 
- (make <service>
+ (service
    ;; This one "daemonizes", fails to create a PID file, but leaves
    ;; a child process behind it.
-   #:provides '(test-daemonizes)
+   '(test-daemonizes)
    #:start (make-forkexec-constructor %daemon-command
                                       #:pid-file "/does-not-exist"
                                       #:pid-file-timeout 6)

@@ -34,20 +34,20 @@ trap "cat $log || true; rm -f $socket $conf $stamp $log;
 cat > "$conf"<<EOF
 (use-modules (srfi srfi-26))
 (register-services
- (make <service>
-   #:provides '(always-fail)
+ (service
+   '(always-fail)
    #:start (const #f)
    #:one-shot? #t)
- (make <service>
-   #:provides '(test)
+ (service
+   '(test)
    #:start (lambda _
              (call-with-output-file "$stamp"
                (cut display "foo" <>))
              #t)
    #:one-shot? #t)
- (make <service>
-   #:provides '(test-2)
-   #:requires '(test)
+ (service
+   '(test-2)
+   #:requirement '(test)
    #:start (lambda _
              (call-with-output-file "$stamp-2"
                (cut display "bar" <>))
@@ -57,21 +57,21 @@ cat > "$conf"<<EOF
              #f))
 
  ;; Several services depending on the same one-shot service.
- (make <service>
-   #:provides '(one-shotty)
+ (service
+   '(one-shotty)
    #:start (const #t)
    #:one-shot? #t)
- (make <service>
-   #:provides '(a)
-   #:requires '(one-shotty)
+ (service
+   '(a)
+   #:requirement '(one-shotty)
    #:start (const #t))
- (make <service>
-   #:provides '(b)
-   #:requires '(a one-shotty)
+ (service
+   '(b)
+   #:requirement '(a one-shotty)
    #:start (const #t))
- (make <service>
-   #:provides '(c)
-   #:requires '(a b one-shotty)
+ (service
+   '(c)
+   #:requirement '(a b one-shotty)
    #:start (const #t)))
 
 (start-in-the-background '(a b c))

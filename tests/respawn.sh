@@ -63,15 +63,15 @@ function assert_killed_service_is_respawned
 
 cat > "$conf"<<EOF
 (register-services
- (make <service>
-   #:provides '(test1)
+ (service
+   '(test1)
    #:start (make-forkexec-constructor
 	    '("$SHELL" "-c"
 	      "echo \$\$ > $PWD/$service1_pid ; while true ; do sleep 1 ; done"))
    #:stop  (make-kill-destructor)
    #:respawn? #t)
- (make <service>
-   #:provides '(test2)
+ (service
+   '(test2)
    #:start (make-forkexec-constructor
             ;; The 'sleep' below is just to make it more likely
             ;; that synchronization issues in handling #:pid-file

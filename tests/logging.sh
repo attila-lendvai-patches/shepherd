@@ -48,17 +48,17 @@ cat > "$conf"<<EOF
   '("$SHELL" "$service_script"))
 
 (register-services
- (make <service>
+ (service
    ;; Service with built-in logging.
-   #:provides '(test-builtin-logging)
+   '(test-builtin-logging)
    #:start (make-forkexec-constructor %command
                                       #:pid-file "$PWD/$service_pid")
    #:stop  (make-kill-destructor)
    #:respawn? #f)
 
- (make <service>
+ (service
    ;; Service with built-in logging.
-   #:provides '(test-file-logging)
+   '(test-file-logging)
    #:start (make-forkexec-constructor %command
                                       #:log-file "$PWD/$service_log"
                                       #:pid-file "$PWD/$service_pid")

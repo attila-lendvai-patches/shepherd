@@ -34,8 +34,8 @@ script="while [ ! -f $PWD/$stamp ] ; do sleep 0.1 ; done ; exit \$(cat $PWD/$sta
 
 cat > "$conf" <<EOF
 (register-services
- (make <service>
-   #:provides '(test)
+ (service
+   '(test)
    #:start (lambda _
              (list 'exit-code
                    (status:exit-val
@@ -44,14 +44,14 @@ cat > "$conf" <<EOF
              (system* "$SHELL" "-c" "echo STOPPING")
              (delete-file "$stamp"))
    #:respawn? #f)
- (make <service>
-   #:provides '(test-command-not-found)
+ (service
+   '(test-command-not-found)
    #:start (lambda _
              (zero? (system* "this command does not exist")))
    #:stop  (const #f)
    #:respawn? #f)
- (make <service>
-   #:provides '(test-with-respawn)
+ (service
+   '(test-with-respawn)
    #:start (make-forkexec-constructor
              (list "$SHELL" "-cex"
                    "[ ! -f $PWD/$stamp ] ; touch $PWD/$stamp ; sleep 60"))

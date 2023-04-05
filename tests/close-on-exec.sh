@@ -82,17 +82,17 @@ EOF
 
 cat > "$conf" <<EOF
 (register-services
- (make <service>
-   #:provides '(system-ctor)
+ (service
+   '(system-ctor)
    #:start (make-system-constructor "$exe")
    #:stop  (const #f)
    #:one-shot? #t)
- (make <service>
-   #:provides '(forkexec-ctor)
+ (service
+   '(forkexec-ctor)
    #:start (make-forkexec-constructor '("$(type -P sleep)" "100"))
    #:stop (make-kill-destructor))
- (make <service>
-   #:provides '(inetd-ctor)
+ (service
+   '(inetd-ctor)
    #:start (make-inetd-constructor '("$exe")
                                    (list
                                     (endpoint (make-socket-address
@@ -100,8 +100,8 @@ cat > "$conf" <<EOF
                                                INADDR_LOOPBACK
                                                5555))))
    #:stop  (make-inetd-destructor))
- (make <service>
-   #:provides '(systemd-ctor)
+ (service
+   '(systemd-ctor)
    #:start (make-systemd-constructor '("$exe")
 				     (list
 				      (endpoint (make-socket-address

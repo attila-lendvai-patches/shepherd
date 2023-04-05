@@ -35,8 +35,8 @@ trap "rm -f $socket $conf $rconf $stamp $log;
 cat > "$conf"<<EOF
 (use-modules (srfi srfi-26))
 (register-services
- (make <service>
-   #:provides '(test)
+ (service
+   '(test)
    #:start (const #t)
    #:actions (make-actions
               (say-hello (lambda _
@@ -60,8 +60,8 @@ fi
 
 cat > "$rconf"<<EOF
 (register-services
- (make <service>
-   #:provides '(test)
+ (service
+   '(test)
    #:start (const #t)
    #:actions (make-actions
               (say-goodbye (lambda _

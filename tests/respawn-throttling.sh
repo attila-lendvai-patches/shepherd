@@ -32,8 +32,8 @@ trap "cat $log || true ;
 
 cat > "$conf"<<EOF
 (register-services
- (make <service>
-   #:provides '(keeps-respawning)
+ (service
+   '(keeps-respawning)
    #:start (make-forkexec-constructor '("false"))
    #:stop  (make-kill-destructor)
    #:respawn? #t))

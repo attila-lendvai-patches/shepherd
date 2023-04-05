@@ -31,12 +31,12 @@ trap "cat $log || true; rm -f $socket $conf $log;
 
 cat > "$conf"<<EOF
 (register-services
- (make <service>
-   #:provides '(transient-test1)
+ (service
+   '(transient-test1)
    #:start (make-forkexec-constructor '("sleep" "600"))
    #:transient? #t)
- (make <service>
-   #:provides '(transient-test2)
+ (service
+   '(transient-test2)
    #:start (make-forkexec-constructor '("sleep" "600"))
    #:transient? #t))
 EOF

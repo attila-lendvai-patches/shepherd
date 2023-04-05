@@ -71,10 +71,10 @@
                              (period (default-monitoring-period)))
   "Return a service that will monitor shepherd resource usage by printing it
 every @var{period} seconds."
-  (make <service>
-    #:docstring "Periodically log shepherd resource usage information."
-    #:provides '(monitoring)
-    #:requires '()
+  (service
+    '(monitoring)
+    #:documentation "Periodically log shepherd resource usage information."
+    #:requirement '()
     #:start (lambda args
               (spawn-monitoring-service #:period period))
     #:stop (lambda (channel)

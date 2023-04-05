@@ -31,18 +31,18 @@ trap "rm -f $socket $conf $stamp $log;
 
 cat > "$conf"<<EOF
 (register-services
- (make <service>
-   #:provides '(foo)
+ (service
+   '(foo)
    #:start (const 'abc)
    #:stop  (const #f)
-   #:docstring "Foo!"
+   #:documentation "Foo!"
    #:respawn? #t)
- (make <service>
-   #:provides '(bar)
-   #:requires '(foo)
+ (service
+   '(bar)
+   #:requirement '(foo)
    #:start (const 'up-and-running)
    #:stop  (const #f)
-   #:docstring "Bar!"
+   #:documentation "Bar!"
    #:respawn? #f))
 
 (start 'foo)

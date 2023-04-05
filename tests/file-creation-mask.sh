@@ -48,8 +48,8 @@ cat > "$conf"<<EOF
   '("$SHELL" "-c" "touch $PWD/$service_new_file; echo foo"))
 
 (register-services
- (make <service>
-   #:provides '(test)
+ (service
+   '(test)
    #:start (make-forkexec-constructor %command
                                       #:log-file "$PWD/$service_log"
                                       ;; Set the umask such that file

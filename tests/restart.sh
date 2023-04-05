@@ -33,18 +33,18 @@ trap "cat $log || true ;
 
 cat > "$conf"<<EOF
 (register-services
- (make <service>
-   #:provides '(test1)
+ (service
+   '(test1)
    #:start (const #t)
    #:stop  (const #t))
- (make <service>
-   #:provides '(test2)
-   #:requires '(test1)
+ (service
+   '(test2)
+   #:requirement '(test1)
    #:start (const #t)
    #:stop  (const #t))
- (make <service>
-   #:provides '(test3)
-   #:requires '(test2)
+ (service
+   '(test3)
+   #:requirement '(test2)
    #:start (const #t)
    #:stop  (const #t)))
 EOF

@@ -1183,8 +1183,8 @@ for this one service:
 
 @lisp
 (define mcron
-  (make <service>
-    #:provides '(mcron)
+  (service
+    '(mcron)
     ;; Run /usr/bin/mcron without any command-line arguments.
     #:start (make-forkexec-constructor '("/usr/bin/mcron"))
     #:stop (make-kill-destructor)
@@ -1221,8 +1221,8 @@ has started and is ready to accept connections:
 
 @lisp
 (define sshd
-  (make <service>
-    #:provides '(sshd ssh-daemon)  ;for convenience, give it two names
+  (service
+    '(sshd ssh-daemon)  ;for convenience, give it two names
     #:start (make-forkexec-constructor
              '("/usr/sbin/sshd" "-D")
              #:pid-file "/etc/ssh/sshd.pid")
@@ -1241,8 +1241,8 @@ enabled by passing the @option{-i} command-line option:
 
 @lisp
 (define sshd
-  (make <service>
-    #:provides '(sshd ssh-daemon)
+  (service
+    '(sshd ssh-daemon)
     #:start (make-inetd-constructor
              '("/usr/sbin/sshd" "-D" "-i")
              (list (endpoint
@@ -1334,8 +1334,8 @@ Then, individual user services can be put in
 (use-modules (shepherd support))
 
 (define ssh-agent
-  (make <service>
-    #:provides '(ssh-agent)
+  (service
+    '(ssh-agent)
     #:docstring "Run `ssh-agent'"
     #:start (lambda ()
               (let ((socket-dir (string-append %user-runtime-dir "/ssh-agent")))
