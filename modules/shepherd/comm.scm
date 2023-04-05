@@ -22,7 +22,6 @@
   #:use-module (shepherd support)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
-  #:use-module (oop goops)
   #:use-module (ice-9 match)
   #:export (open-connection
             open-server-socket
@@ -47,6 +46,7 @@
             read-command
 
             write-reply
+            define-record-type-serializer
             result->sexp
             report-command-error
 
@@ -165,19 +165,37 @@ wrong---premature end-of-file, invalid sexp, etc."
      ;; PORT may be buffered so make sure the command goes out.
      (force-output port))))
 
-;; This generic function must be extended to provide sexp representations of
-;; results that go in <command-reply> objects.
-(define-generic result->sexp)
+(define %record-serializers
+  ;; Hash table mapping record type descriptors (RTDs) to procedures that
+  ;; "convert" instances to an sexp.
+  (make-hash-table 3))
 
-(define-method (result->sexp (bool <boolean>)) bool)
-(define-method (result->sexp (number <number>)) number)
-(define-method (result->sexp (symbol <symbol>)) symbol)
-(define-method (result->sexp (string <string>)) string)
-(define-method (result->sexp (list <list>)) (map result->sexp list))
-(define-method (result->sexp (pair <pair>))
-  (cons (result->sexp (car pair)) (result->sexp (cdr pair))))
-(define-method (result->sexp (kw <keyword>)) kw)
-(define-method (result->sexp (obj <top>)) (object->string obj))
+(define-syntax-rule (define-record-type-serializer (name (obj type))
+                      body ...)
+  "Define @var{name} as a procedure that, given @var{obj}, a record of
+@var{type}, returns an sexp serialization of that record."
+  (hashq-set! %record-serializers type
+              (lambda (obj)
+                body ...)))
+
+(define (result->sexp obj)
+  "Return the sexp representation of @var{obj}, a result meant to go in a
+@code{<command-reply>} object."
+  (cond ((or (boolean? obj) (number? obj) (symbol? obj)
+             (string? obj) (keyword? obj))
+         obj)
+        ((list? obj)
+         (map result->sexp obj))
+        ((pair? obj)
+         (cons (result->sexp (car obj)) (result->sexp (cdr obj))))
+        ((struct? obj)
+         (let ((serializer (hashq-ref %record-serializers
+                                      (struct-vtable obj))))
+           (if serializer
+               (serializer obj)
+               (object->string obj))))
+        (else
+         (object->string obj))))
 
 (define (report-command-error error)
   "Report ERROR, an sexp received by a shepherd client in reply to COMMAND, a

@@ -898,7 +898,7 @@ is not already running, and will return SERVICE's canonical name in a list."
        ;; FIXME: Implement doc-help.
        (local-output (l10n "Unknown keyword.  Try 'doc root help'."))))))
 
-(define (service->sexp service)
+(define-record-type-serializer (service->sexp (service <service>))
   "Return a representation of SERVICE as an sexp meant to be consumed by
 clients."
   `(service (version 0)                           ;protocol version
@@ -921,10 +921,6 @@ clients."
             ,@(if (slot-ref service 'transient?)
                   '((transient? #t))
                   '())))
-
-(define-method (result->sexp (service <service>))
-  ;; Serialize SERVICE to an sexp.
-  (service->sexp service))
 
 
 ;;;
