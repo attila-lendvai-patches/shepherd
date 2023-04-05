@@ -56,6 +56,7 @@
             one-shot-service?
             transient-service?
             respawn-service?
+            service-documentation
 
             canonical-name
             running?
@@ -253,6 +254,7 @@ Log abnormal termination reported by @var{status}."
   ;; starting attempt failed, it must return `#f'.  The return value
   ;; will be stored in the `running' slot.
   (start #:init-keyword #:start
+         #:getter service-start
 	 #:init-value (lambda () #t))
   ;; The action to perform to stop the service.  This must be a
   ;; procedure and may take an arbitrary amount of arguments, but must
@@ -260,19 +262,23 @@ Log abnormal termination reported by @var{status}."
   ;; the `running' slot.  Whatever the procedure returns will be
   ;; ignored.
   (stop #:init-keyword #:stop
+        #:getter service-stop
 	#:init-value (lambda (running) #f))
   ;; Additional actions that can be performed with the service.  This
   ;; currently is a list with each element (and thus each action)
   ;; being ``(name . (proc . docstring))'', but users should not rely
   ;; on this.
   (actions #:init-keyword #:actions
+           #:getter service-actions
 	   #:init-form (make-actions))
   ;; Procedure called to notify that the process associated with this service
   ;; has terminated.
   (handle-termination #:init-keyword #:handle-termination
+                      #:getter service-termination-handler
                       #:init-value default-service-termination-handler)
   ;; A description of the service.
   (docstring #:init-keyword #:docstring
+             #:getter service-documentation
 	     #:init-value "[No description].")
 
   ;; Control channel that encapsulates the current state of the service; send
@@ -467,7 +473,7 @@ Log abnormal termination reported by @var{status}."
              (spawn-fiber
               (lambda ()
                 (false-if-exception
-                 ((slot-ref service 'handle-termination)
+                 ((service-termination-handler service)
                   service value exit-status))))
              (loop (status 'stopped) (value #f) (condition #f)))))
 
@@ -611,14 +617,14 @@ channel and wait for its reply."
 
 ;; Return a list of all actions implemented by OBJ.
 (define-method (action-list (obj <service>))
-  (map action-name (slot-ref obj 'actions)))
+  (map action-name (service-actions obj)))
 
 ;; Return the action ACTION or #f if none was found.
 (define-method (lookup-action (obj <service>) action)
   (find (match-lambda
           (($ <action> name)
            (eq? name action)))
-        (slot-ref obj 'actions)))
+        (service-actions obj)))
 
 ;; Return whether OBJ implements the action ACTION.
 (define-method (defines-action? (obj <service>) action)
@@ -724,7 +730,7 @@ while starting ~a: ~s")
                                               (%current-service-output-port))
                                              (current-error-port
                                               (%current-service-output-port)))
-                                (apply (slot-ref obj 'start) args)))
+                                (apply (service-start obj) args)))
                             (lambda (key . args)
                               (put-message notification #f)
                               (report-exception 'start obj key args)))))
@@ -787,7 +793,7 @@ is not already running, and will return SERVICE's canonical name in a list."
              (catch #t
                (lambda ()
                  (define stopped?
-                   (not (apply (slot-ref service 'stop)
+                   (not (apply (service-stop service)
                                (service-running-value service)
                                args)))
                  (put-message notification stopped?))
@@ -878,14 +884,14 @@ is not already running, and will return SERVICE's canonical name in a list."
 (define-method (doc (obj <service>) . args)
   (if (null? args)
       ;; No further argument given -> Normal level of detail.
-      (local-output (slot-ref obj 'docstring))
+      (local-output (service-documentation obj))
     (case (string->symbol (car args)) ;; Does not work with strings.
       ((full)
        ;; FIXME
-       (local-output (slot-ref obj 'docstring)))
+       (local-output (service-documentation obj)))
       ((short)
        ;; FIXME
-       (local-output (slot-ref obj 'docstring)))
+       (local-output (service-documentation obj)))
       ((action)
        ;; Display documentation of given actions.
        (for-each
@@ -914,7 +920,7 @@ clients."
             (provides ,(service-provision service))
             (requires ,(service-requirement service))
             (respawn? ,(respawn-service? service))
-            (docstring ,(slot-ref service 'docstring))
+            (docstring ,(service-documentation service))
 
             ;; Status.  Use 'result->sexp' for the running value to make sure
             ;; that whole thing is valid read syntax; we do not want things
@@ -924,10 +930,10 @@ clients."
             (conflicts ())                        ;deprecated
             (last-respawns ,(service-respawn-times service))
             (status ,(service-status service))
-            ,@(if (slot-ref service 'one-shot?)
+            ,@(if (one-shot-service? service)
                   '((one-shot? #t))
                   '())
-            ,@(if (slot-ref service 'transient?)
+            ,@(if (transient-service? service)
                   '((transient? #t))
                   '())))
 
