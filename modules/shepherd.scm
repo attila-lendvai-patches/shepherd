@@ -290,54 +290,54 @@ fork in the child process."
 		  ""
 		  "This is a service manager for Unix and GNU."
 		  not ;; Fail on unknown args.
-		  (make <option>
-		    #:long "quiet"
-		    #:takes-arg? #f
+		  (option
+		    #:long-name "quiet"
+		    #:takes-argument? #f
 		    #:description (l10n "synonym for --silent")
 		    #:action (lambda ()
                                ;; XXX: Currently has no effect.
                                #t))
-		  (make <option>
-		    #:long "silent" #:short #\S
-		    #:takes-arg? #f
+		  (option
+		    #:long-name "silent" #:short-name #\S
+		    #:takes-argument? #f
 		    #:description (l10n "don't do output to stdout")
 		    #:action (lambda ()
                                ;; XXX: Currently has no effect.
                                #t))
-		  (make <option>
+		  (option
 		    ;; It might actually be desirable to have an
 		    ;; ``insecure'' setup in some circumstances, thus
 		    ;; we provide it as an option.
-		    #:long "insecure" #:short #\I
-		    #:takes-arg? #f
+		    #:long-name "insecure" #:short-name #\I
+		    #:takes-argument? #f
 		    #:description (l10n "don't ensure that the setup is secure")
 		    #:action (lambda ()
                                (set! secure #f)))
-		  (make <option>
-		    #:long "logfile" #:short #\l
-		    #:takes-arg? #t #:optional-arg? #f
-                    #:arg-name (l10n "FILE")
+		  (option
+		    #:long-name "logfile" #:short-name #\l
+		    #:takes-argument? #t #:argument-is-optional? #f
+                    #:argument-name (l10n "FILE")
 		    #:description (l10n  "log actions in FILE")
 		    #:action (lambda (file)
 			       (set! logfile file)))
-		  (make <option>
-		    #:long "pid"
-		    #:takes-arg? #t #:optional-arg? #t
-                    #:arg-name (l10n "FILE")
+		  (option
+		    #:long-name "pid"
+		    #:takes-argument? #t #:argument-is-optional? #t
+                    #:argument-name (l10n "FILE")
 		    #:description (l10n "when ready, write PID to FILE or stdout")
 		    #:action (lambda (file)
 			       (set! pid-file (or file #t))))
-		  (make <option>
-		    #:long "config" #:short #\c
-		    #:takes-arg? #t #:optional-arg? #f
-                    #:arg-name (l10n "FILE")
+		  (option
+		    #:long-name "config" #:short-name #\c
+		    #:takes-argument? #t #:argument-is-optional? #f
+                    #:argument-name (l10n "FILE")
 		    #:description (l10n "read configuration from FILE")
 		    #:action (lambda (file)
 			       (set! config-file file)))
-		  (make <option>
-		    #:long "socket" #:short #\s
-		    #:takes-arg? #t #:optional-arg? #f
-                    #:arg-name (l10n "FILE")
+		  (option
+		    #:long-name "socket" #:short-name #\s
+		    #:takes-argument? #t #:argument-is-optional? #f
+                    #:argument-name (l10n "FILE")
 		    #:description
 		    (l10n "get commands from socket FILE or from stdin (-)")
 		    #:action (lambda (file)

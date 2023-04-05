@@ -1,5 +1,5 @@
 ;; args.scm -- Command line argument handling.
-;; Copyright (C) 2013, 2016, 2018 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013, 2016, 2018, 2023 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
 ;;
 ;; This file is part of the GNU Shepherd.
@@ -18,12 +18,13 @@
 ;; along with the GNU Shepherd.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (shepherd args)
-  #:use-module (oop goops)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
   #:use-module ((ice-9 control) #:select (call/ec))
   #:use-module (shepherd support)
   #:use-module (shepherd config)
-  #:export (<option>
+  #:export (option
+            option?
             process-args))
 
 ;; This does mostly the same as getopt-long, except for that it is
@@ -31,52 +32,56 @@
 ;; are not ambiguous.  Additionally, output is done in a way that makes
 ;; localization possible.
 
-(define-class <option> ()
+(define-record-type <option>
+  (make-option short long description takes-arg? arg-name
+               optional-arg? action)
+  option?
   ;; Short name for the option.  A character, or `#f' if no short name.
-  (short #:init-keyword #:short
-	 #:init-value #f
-	 #:getter short)
+  (short option-short-name)
   ;; Long name for the option.  A string, or `#f' if no long name.
-  (long #:init-keyword #:long
-	#:init-value #f
-	#:getter long)
+  (long  option-long-name)
   ;; A string describing the option.
-  (description #:init-keyword #:description
-	       #:init-form (l10n "undocumented option"))
+  (description option-description)
   ;; Specifies whether the procedure in the `action' slot takes an
   ;; argument.  If this is the case, it will be called with the
   ;; argument specified on the command line (If there was none
   ;; specified, the procedure will be called with `#f').
-  (takes-arg? #:init-keyword #:takes-arg?
-	      #:getter takes-arg?
-	      #:init-value #f)
+  (takes-arg?  option-takes-argument?)
   ;; Name of the argument, if any.
-  (arg-name #:init-keyword #:arg-name
-	    #:getter arg-name
-	    #:init-value "ARG")
+  (arg-name    option-argument-name)
   ;; Whether the arg is optional.
-  (optional-arg? #:init-keyword #:optional-arg?
-		 #:init-value #f)
+  (optional-arg? option-argument-is-optional?)
   ;; The procedure that will be called when the option is found in the
   ;; argument list.
-  (action #:init-keyword #:action
-	  #:getter action))
+  (action        option-action))
 
-(define-method (optional-arg? (obj <option>))
-  (and (takes-arg? obj)
-       (slot-ref obj 'optional-arg?)))
+(define* (option #:key short-name long-name description
+                 takes-argument? argument-name
+                 argument-is-optional? action)
+  "Return a new record for a command-line option with the given
+characteristics."
+  (make-option short-name long-name
+               (or description (l10n "undocumented option"))
+               takes-argument?
+               (or argument-name (l10n "ARG"))
+               argument-is-optional?
+               action))
 
-(define-method (long-option-string (obj <option>))
-  (assert (long obj))
+(define (optional-arg? opt)
+  (and (option-takes-argument? opt)
+       (option-argument-is-optional? opt)))
+
+(define (long-option-string opt)
+  (assert (option-long-name opt))
   (string-append "--"
-		 (long obj)
-		 (if (optional-arg? obj) "[" "")
-		 (if (takes-arg? obj)
-		     (string-append "=" (slot-ref obj 'arg-name))
-		   "")
-		 (if (optional-arg? obj) "]" "")))
+		 (option-long-name opt)
+		 (if (optional-arg? opt) "[" "")
+		 (if (option-takes-argument? opt)
+		     (string-append "=" (option-argument-name opt))
+		     "")
+		 (if (optional-arg? opt) "]" "")))
 
-(define-method (display-doc (obj <option>))
+(define (display-doc opt)
   (let ((col 0))
     (define (output text)
       (set! col (+ col (string-length text)))
@@ -86,13 +91,13 @@
 	     (output (string #\space))))
 
     (fill-to 2)
-    (and (short obj)
-	 (output (string #\- (short obj) #\,)))
+    (when (option-short-name opt)
+      (output (string #\- (option-short-name opt) #\,)))
     (fill-to 6)
-    (and (long obj)
-	 (output (long-option-string obj)))
+    (when (option-long-name opt)
+      (output (long-option-string opt)))
     (fill-to 30)
-    (output (slot-ref obj 'description)))
+    (output (option-description opt)))
   (newline))
 
 ;; Interpret command line arguments ARGS according to OPTIONS, passing
@@ -109,10 +114,10 @@
 	       (let ((abbrev-for #f))
 		 (for-each (lambda (option)
 			     ;; Matches exactly.
-			     (and (string=? name (long option))
+			     (and (string=? name (option-long-name option))
 				  (return option))
 			     ;; Abbreviation.
-			     (and (string-prefix? name (long option))
+			     (and (string-prefix? name (option-long-name option))
 				  (if abbrev-for
 				      (set! abbrev-for #t)
 				    (set! abbrev-for option))))
@@ -122,24 +127,24 @@
   ;; Return the option, or `#f' if none found.
   (define (find-short-option char)
     (find (lambda (option)
-            (equal? char (short option)))
+            (equal? char (option-short-name option)))
           options))
 
   ;; Interpret ARG as non-option argument.
   (define (no-option arg)
     (or (default arg)
-	((action (find-long-option "help")))))
+	((option-action (find-long-option "help")))))
 
   ;; Add a few standard options first.
   (set! options
-	(cons* (make <option>
-		 #:long "version"
+	(cons* (option
+		 #:long-name "version"
 		 #:description (l10n "display version information and exit")
 		 #:action (lambda ()
 			    (display-version program-name)
 			    (quit)))
-	       (make <option>
-		 #:long "usage"
+	       (option
+		 #:long-name "usage"
 		 #:description (l10n "display short usage message and exit")
 		 #:action (lambda ()
 			    (display program-name)
@@ -148,23 +153,23 @@
 			    ;; Short options first.
 			    (let ((no-arg "[-") (with-arg ""))
 			      (define (add-text opt)
-				(and (short opt)
-				     (if (takes-arg? opt)
+				(and (option-short-name opt)
+				     (if (option-takes-argument? opt)
 					 (let ((opt-arg? (optional-arg? opt)))
 					   (set! with-arg
 						 (string-append
 						  with-arg
 						  " [-"
-						  (string (short opt))
+						  (string (option-short-name opt))
 						  " "
 						  (if opt-arg? "[" "")
-						  (arg-name opt)
+						  (option-argument-name opt)
 						  (if opt-arg? "]" "")
 						  "]")))
 				       (set! no-arg
 					     (string-append
 					      no-arg
-					      (string (short opt)))))))
+					      (string (option-short-name opt)))))))
 			      (for-each add-text options)
 			      (set! no-arg (string-append no-arg "]"))
 			      (display no-arg)
@@ -173,7 +178,7 @@
 			    ;; Long options.
 			    (for-each
 			     (lambda (opt)
-			       (and (long opt)
+			       (and (option-long-name opt)
 				    (display (string-append
 					      " ["
 					      (long-option-string opt)
@@ -185,8 +190,8 @@
 			    (display args-syntax)
 			    (newline)
 			    (quit)))
-	       (make <option>
-		 #:long "help"
+	       (option
+		 #:long-name "help"
 		 #:description (l10n "display this help and exit")
 		 #:action (lambda ()
 			    (for-each display
@@ -223,10 +228,10 @@ General help using GNU software: <http://www.gnu.org/gethelp/>~%")
 	   ;; Call the procedure for OPTION (with the PARAM, if
 	   ;; desired).
 	   (define (apply-option option param)
-	     (apply (action option)
-		    (if (takes-arg? option)
+	     (apply (option-action option)
+		    (if (option-takes-argument? option)
 			(cons param '())
-		      '())))
+		        '())))
 
 	   (cond
 	    ;; Long option.
@@ -257,7 +262,7 @@ General help using GNU software: <http://www.gnu.org/gethelp/>~%")
 			 name)
 			(local-output (l10n "Try `--help'."))
 			(quit 1)))
-		 (and (takes-arg? target-option)
+		 (and (option-takes-argument? target-option)
 		      (not (optional-arg? target-option))
 		      (not param)
 		      (not (null? (cdr ptr)))
@@ -282,7 +287,7 @@ General help using GNU software: <http://www.gnu.org/gethelp/>~%")
 		     (local-output (l10n "Unknown option: `-~a'.")
                                    opt-char)
 		     (quit 1))
-		 (if (takes-arg? target-option)
+		 (if (option-takes-argument? target-option)
 		     (begin
 		       (if (= (string-length arg) 2)
 			   ;; Take next argument as param.

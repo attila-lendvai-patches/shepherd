@@ -1,5 +1,5 @@
 ;; halt.scm -- Halt or power off the system.
-;; Copyright (C) 2013, 2014, 2015, 2016, 2018 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013, 2014, 2015, 2016, 2018, 2023 Ludovic Courtès <ludo@gnu.org>
 ;;
 ;; This file is part of the GNU Shepherd.
 ;;
@@ -20,7 +20,6 @@
   #:use-module (shepherd support)
   #:use-module (shepherd args)
   #:use-module (shepherd comm)
-  #:use-module (oop goops)
   #:use-module (ice-9 match)
   #:use-module (ice-9 rdelim)
   #:export (main))
@@ -38,9 +37,11 @@
                     ""
                     "Halt or power off the system."
                     not ;; Fail on unknown args.
-                    (make <option>
-                      #:long "socket" #:short #\s
-                      #:takes-arg? #t #:optional-arg? #f #:arg-name "FILE"
+                    (option
+                      #:long-name "socket" #:short-name #\s
+                      #:takes-argument? #t
+                      #:argument-is-optional? #f
+                      #:argument-name "FILE"
                       #:description "send commands to FILE"
                       #:action (lambda (file)
                                  (set! socket-file file))))
