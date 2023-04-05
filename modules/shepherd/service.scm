@@ -59,10 +59,12 @@
             service-documentation
 
             service-canonical-name
-            running?
-            action-list
-            lookup-action
-            defines-action?
+            service-running?
+            service-stopped?
+            service-enabled?
+            service-action-list
+            lookup-service-action
+            service-defines-action?
             with-service-registry
 
             action?
@@ -147,7 +149,13 @@
             one-shot?
             transient?
             respawn?
-            canonical-name))
+            canonical-name
+            running?
+            stopped?
+            enabled?
+            action-list
+            lookup-action
+            defines-action?))
 
 
 (define sleep (@ (fibers) sleep))
@@ -608,32 +616,29 @@ channel and wait for its reply."
   "Record the current time as the last respawn time for @var{service}."
   (put-message (service-control service) 'record-respawn-time))
 
-(define-method (running? (service <service>))
+(define (service-running? service)
   "Return true if @var{service} is not stopped."
-  (not (stopped? service)))
+  (not (service-stopped? service)))
 
-(define (stopped? service)
+(define (service-stopped? service)
   "Return true if @var{service} is stopped."
   (eq? 'stopped (service-status service)))
 
-;; Return a list of all actions implemented by OBJ.
-(define-method (action-list (obj <service>))
-  (map action-name (service-actions obj)))
+(define (service-action-list service)
+  "Return the list of actions implemented by @var{service} (a list of
+symbols)."
+  (map action-name (service-actions service)))
 
-;; Return the action ACTION or #f if none was found.
-(define-method (lookup-action (obj <service>) action)
+(define (lookup-service-action service action)
+  "Return the action @var{action} of @var{service} or #f if none was found."
   (find (match-lambda
           (($ <action> name)
            (eq? name action)))
-        (service-actions obj)))
+        (service-actions service)))
 
-;; Return whether OBJ implements the action ACTION.
-(define-method (defines-action? (obj <service>) action)
-  (and (lookup-action obj action) #t))
-
-(define-method (enabled? (service <service>))
-  "Return true if @var{service} is enabled."
-  (service-enabled? service))
+(define (service-defines-action? service action)
+  "Return whether @var{service} implements the action @var{action}."
+  (and (lookup-service-action service action) #t))
 
 ;; Enable the service, allow it to get started.
 (define-method (enable (obj <service>))
@@ -772,14 +777,14 @@ NEW-SERVICE."
 canonical names for all of the services which have been stopped (including
 transitive dependent services).  This method will print a warning if SERVICE
 is not already running, and will return SERVICE's canonical name in a list."
-  (if (stopped? service)
+  (if (service-stopped? service)
       (begin
         (local-output (l10n "Service ~a is not running.")
                       (service-canonical-name service))
         (list (service-canonical-name service)))
       (let ((name (service-canonical-name service))
             (stopped-dependents (fold-services (lambda (other acc)
-                                                 (if (and (running? other)
+                                                 (if (and (service-running? other)
                                                           (required-by? service other))
                                                      (append (stop other) acc)
                                                      acc))
@@ -851,7 +856,7 @@ is not already running, and will return SERVICE's canonical name in a list."
                             (service obj)
                             (action the-action))))))))
 
-  (let ((proc (or (and=> (lookup-action obj the-action)
+  (let ((proc (or (and=> (lookup-service-action obj the-action)
                          action-procedure)
 		  default-action)))
     ;; Invoking THE-ACTION is allowed even when the service is not running, as
@@ -898,7 +903,7 @@ is not already running, and will return SERVICE's canonical name in a list."
        (for-each
 	(lambda (the-action)
           (let ((action-object
-                 (lookup-action obj (string->symbol the-action))))
+                 (lookup-service-action obj (string->symbol the-action))))
             (unless action-object
               (raise (condition (&unknown-action-error
                                  (action the-action)
@@ -982,7 +987,7 @@ requests arriving on @var{channel}."
               (#f (loop (register service
                                   (unregister (list old))))))))))
       (('unregister services)                     ;no reply
-       (match (remove stopped? services)
+       (match (remove service-stopped? services)
          (()
           (loop (unregister services)))
          (lst                                     ;
@@ -1101,7 +1106,8 @@ Used by `start'."
 
 ;; Stopping by name.
 (define-method (stop (obj <symbol>) . args)
-  (let ((which (find (negate stopped?) (lookup-services obj))))
+  (let ((which (find (negate service-stopped?)
+                     (lookup-services obj))))
     (if which
 	(apply stop which args)
         ;; Only print an error if the service does not exist.
@@ -2416,7 +2422,7 @@ This will remove a service either if it is identified by its canonical
 name, or if it is the only service providing the service that is
 requested to be removed."
   (define (deregister service)
-    (when (running? service)
+    (when (service-running? service)
       (stop service))
     ;; Remove services provided by service from the hash table.
     (put-message (current-registry-channel)
@@ -2468,13 +2474,16 @@ requested to be removed."
 ;;; Deprecated aliases.
 ;;;
 
-(define-syntax-rule (define-deprecated-service-getter name alias)
-  (define-method (name (service <service>))
+(define-syntax-rule (define-deprecated-method (name (service class) formals ...) alias)
+  (define-method (name (service class) formals ...)
     (issue-deprecation-warning
      (format #f "GOOPS method '~a' is \
 deprecated in favor of procedure '~a'"
              'name 'alias))
-    (alias service)))
+    (alias service formals ...)))
+
+(define-syntax-rule (define-deprecated-service-getter name alias)
+  (define-deprecated-method (name (service <service>)) alias))
 
 (define-deprecated-service-getter provided-by service-provision)
 (define-deprecated-service-getter required-by service-requirement)
@@ -2483,6 +2492,17 @@ deprecated in favor of procedure '~a'"
 (define-deprecated-service-getter respawn? respawn-service?)
 
 (define-deprecated-service-getter canonical-name service-canonical-name)
+(define-deprecated-service-getter action-list service-action-list)
+
+(define-deprecated-service-getter running? service-running?)
+(define-deprecated-service-getter stopped? service-stopped?)
+(define-deprecated-service-getter enabled? service-enabled?)
+
+(define-deprecated-method (lookup-action (service <service>) action)
+  lookup-service-action)
+(define-deprecated-method (defines-action? (service <service>) action)
+  service-defines-action?)
+
 
 
 
@@ -2495,7 +2515,7 @@ deprecated in favor of procedure '~a'"
   ;; suspending via (@ (fibers) sleep), 'spawn-command', or similar.
   (for-each
    (lambda (service)
-     (when (running? service)
+     (when (service-running? service)
        (stop service)))
    (service-list)))
 
@@ -2619,7 +2639,7 @@ we want to receive these signals."
                (local-output (l10n "Running as PID 1, so not daemonizing.")))
               ((fold-services (lambda (service found?)
                                 (or found?
-                                    (and (running? service)
+                                    (and (service-running? service)
                                          (not (eq? service root-service)))))
                               #f)
                (local-output

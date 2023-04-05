@@ -778,13 +778,18 @@ symbols.
 Return true if @var{service} is a one-shot service.
 @end defun
 
-@deffn {method} running? (obj <service>)
-Returns whether the service @var{obj} is running.
-@end deffn
-
 @defun respawn-service? @var{service}
 Return true if @var{service} is meant to be respawned if its associated
 process terminates prematurely.
+@end defun
+
+The following procedures let you query the current state of a service.
+
+@defun service-running? @var{service}
+@defunx service-stopped? @var{service}
+@defunx service-enabled? @var{service}
+Return true if @var{service} is currently running/stopped/enabled, false
+otherwise.
 @end defun
 
 @deffn {method} default-display-status (obj <service>)
