@@ -51,10 +51,14 @@
   #:use-module (shepherd system)
   #:export (<service>
             service?
+            service-provision
+            service-requirement
+            one-shot-service?
+            transient-service?
+            respawn-service?
+
             canonical-name
             running?
-            one-shot?
-            transient?
             action-list
             lookup-action
             defines-action?
@@ -82,8 +86,6 @@
             spawn-shell-command
             %precious-signals
             register-services
-            provided-by
-            required-by
 
             default-service-termination-handler
             default-environment-variables
@@ -136,7 +138,14 @@
 
             condition->sexp
 
-            get-message*))                    ;XXX: for lack of a better place
+            get-message*                      ;XXX: for lack of a better place
+
+            ;; Deprecated GOOPS methods.
+            provided-by
+            required-by
+            one-shot?
+            transient?
+            respawn?))
 
 
 (define sleep (@ (fibers) sleep))
@@ -217,27 +226,27 @@ Log abnormal termination reported by @var{status}."
   ;; List of provided service-symbols.  The first one is also called
   ;; the `canonical name' and must be unique to this service.
   (provides #:init-keyword #:provides
-	    #:getter provided-by)
+	    #:getter service-provision)
   ;; List of required service-symbols.
   (requires #:init-keyword #:requires
 	    #:init-value '()
-	    #:getter required-by)
+	    #:getter service-requirement)
   ;; If true, the service is a "one-shot" service: it becomes marked as
   ;; stopped as soon as its 'start' method as completed, but services that
   ;; depend on it may be started.
   (one-shot? #:init-keyword #:one-shot?
              #:init-value #f
-             #:getter one-shot?)
+             #:getter one-shot-service?)
   ;; If true, the service is "transient": it is unregistered as soon as it
   ;; terminates, unless it is respawned.
   (transient? #:init-keyword #:transient?
               #:init-value #f
-              #:getter transient?)
+              #:getter transient-service?)
   ;; If `#t', then assume the `running' slot specifies a PID and
   ;; respawn it if that process terminates.  Otherwise `#f'.
   (respawn? #:init-keyword #:respawn?
 	    #:init-value #f
-	    #:getter respawn?)
+	    #:getter respawn-service?)
   ;; The action to perform to start the service.  This must be a
   ;; procedure and may take an arbitrary amount of arguments, but it
   ;; must be possible to call it without any argument.  If the
@@ -384,10 +393,10 @@ Log abnormal termination reported by @var{status}."
           (monitor-service-process service new-value))
 
         (signal-condition! condition)
-        (loop (status (if (and new-value (not (one-shot? service)))
+        (loop (status (if (and new-value (not (one-shot-service? service)))
                           'running
                           'stopped))
-              (value (and (not (one-shot? service)) new-value))
+              (value (and (not (one-shot-service? service)) new-value))
               (condition #f))))
 
       (((? change-value-message?) new-value)
@@ -549,7 +558,7 @@ wire."
 
 ;; Return the canonical name of the service.
 (define-method (canonical-name (obj <service>))
-  (car (provided-by obj)))
+  (car (service-provision obj)))
 
 (define (service-control-message message)
   "Return a procedure to send @var{message} to the given service's control
@@ -662,11 +671,11 @@ while starting ~a: ~s")
                                         (cons (action-runtime-error-key c)
                                               (action-runtime-error-arguments c)))
                                        #f))
-                              (or (and (one-shot? service)
+                              (or (and (one-shot-service? service)
                                        (hashq-ref (%one-shot-services-started)
                                                   service))
                                   (begin
-                                    (when (one-shot? service)
+                                    (when (one-shot-service? service)
                                       (hashq-set! (%one-shot-services-started)
                                                   service #t))
                                     (start service))))))
@@ -688,7 +697,7 @@ while starting ~a: ~s")
       ;; It is not running; go ahead and launch it.
       (let ((problems
 	     ;; Resolve all dependencies.
-	     (start-in-parallel (required-by obj))))
+	     (start-in-parallel (service-requirement obj))))
         (define running
 	  (if (pair? problems)
               (for-each (lambda (problem)
@@ -745,8 +754,8 @@ NEW-SERVICE."
   "Returns #t if DEPENDENT directly requires SERVICE in order to run.  Returns
 #f otherwise."
   (and (find (lambda (dependency)
-               (memq dependency (provided-by service)))
-             (required-by dependent))
+               (memq dependency (service-provision service)))
+             (service-requirement dependent))
        #t))
 
 ;; Stop the service, including services that depend on it.  If the
@@ -790,7 +799,7 @@ is not already running, and will return SERVICE's canonical name in a list."
                  (put-message notification #f)
                  (caught-error key args))))))
 
-        (when (transient? service)
+        (when (transient-service? service)
           (put-message (current-registry-channel)
                        `(unregister ,(list service)))
           (local-output (l10n "Transient service ~a unregistered.")
@@ -902,9 +911,9 @@ is not already running, and will return SERVICE's canonical name in a list."
   "Return a representation of SERVICE as an sexp meant to be consumed by
 clients."
   `(service (version 0)                           ;protocol version
-            (provides ,(provided-by service))
-            (requires ,(required-by service))
-            (respawn? ,(respawn? service))
+            (provides ,(service-provision service))
+            (requires ,(service-requirement service))
+            (respawn? ,(respawn-service? service))
             (docstring ,(slot-ref service 'docstring))
 
             ;; Status.  Use 'result->sexp' for the running value to make sure
@@ -948,13 +957,13 @@ requests arriving on @var{channel}."
       ;; Add SERVICE to REGISTER and return it.
       (fold (cut vhash-consq <> service <>)
             registered
-            (provided-by service)))
+            (service-provision service)))
 
     (match (get-message channel)
       (('register service)                        ;no reply
        (match (any (lambda (name)
                      (vhash-assq name registered))
-                   (provided-by service))
+                   (service-provision service))
          (#f
           (loop (register service)))
          ((_ . old)
@@ -980,7 +989,7 @@ requests arriving on @var{channel}."
        (let ((root (cdr (vhash-assq 'root registered))))
          (loop (fold (cut vhash-consq <> root <>)
                      vlist-null
-                     (provided-by root)))))
+                     (service-provision root)))))
       (('lookup name reply)
        (put-message reply
                     (vhash-foldq* cons '() name registered))
@@ -2354,7 +2363,7 @@ terminated."
   "Respawn a service that has stopped running unexpectedly. If we have
 attempted to respawn the service a number of times already and it keeps dying,
 then disable it."
-  (if (and (respawn? serv)
+  (if (and (respawn-service? serv)
            (not (respawn-limit-hit? (service-respawn-times serv)
                                     (car respawn-limit)
                                     (cdr respawn-limit))))
@@ -2367,11 +2376,11 @@ then disable it."
       (begin
         (local-output (l10n "Service ~a has been disabled.")
                       (canonical-name serv))
-        (when (respawn? serv)
+        (when (respawn-service? serv)
           (local-output (l10n "  (Respawning too fast.)")))
         (disable-service serv)
 
-        (when (transient? serv)
+        (when (transient-service? serv)
           (put-message (current-registry-channel) `(unregister (,serv)))
           (local-output (l10n "Transient service ~a terminated, now unregistered.")
                         (canonical-name serv))))))
@@ -2383,9 +2392,9 @@ been registered, arrange to have it replaced when it is next stopped.  If it
 is currently stopped, replace it immediately."
   (define (register-single-service new)
     ;; Sanity-checks first.
-    (assert (list-of-symbols? (provided-by new)))
-    (assert (list-of-symbols? (required-by new)))
-    (assert (boolean? (respawn? new)))
+    (assert (list-of-symbols? (service-provision new)))
+    (assert (list-of-symbols? (service-requirement new)))
+    (assert (boolean? (respawn-service? new)))
 
     (put-message (current-registry-channel) `(register ,new)))
 
@@ -2446,6 +2455,25 @@ requested to be removed."
 	      (symbol? (car obj)))
 	 (list-of-symbols? (cdr obj)))
 	(else #f)))
+
+
+;;;
+;;; Deprecated aliases.
+;;;
+
+(define-syntax-rule (define-deprecated-service-getter name alias)
+  (define-method (name (service <service>))
+    (issue-deprecation-warning
+     (format #f "GOOPS method '~a' is \
+deprecated in favor of procedure '~a'"
+             'name 'alias))
+    (alias service)))
+
+(define-deprecated-service-getter provided-by service-provision)
+(define-deprecated-service-getter required-by service-requirement)
+(define-deprecated-service-getter one-shot? one-shot-service?)
+(define-deprecated-service-getter transient? transient-service?)
+(define-deprecated-service-getter respawn? respawn-service?)
 
 
 

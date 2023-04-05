@@ -765,26 +765,27 @@ Returns the canonical name of @var{obj}, which is the first element of
 the @code{provides} list.
 @end deffn
 
-@deffn {method} provided-by (obj <service>)
-Returns which symbols are provided by @var{obj}.
-@end deffn
+@defun service-provision @var{service}
+Return the symbols provided by @var{service}.
+@end defun
 
-@deffn {method} required-by (obj <service>)
-Returns which symbols are required by @var{obj}.
-@end deffn
+@defun service-requirement @var{service}
+Return the list of services required by @var{service} as a list of
+symbols.
+@end defun
 
-@deffn {method} one-shot? (obj <service>)
-Returns whether the service @var{obj} is a one-shot service.
-@end deffn
+@defun one-shot-service? @var{service}
+Return true if @var{service} is a one-shot service.
+@end defun
 
 @deffn {method} running? (obj <service>)
 Returns whether the service @var{obj} is running.
 @end deffn
 
-@deffn {method} respawn? (obj <service>)
-Returns whether the service @var{obj} should be respawned if it
-terminates.
-@end deffn
+@defun respawn-service? @var{service}
+Return true if @var{service} is meant to be respawned if its associated
+process terminates prematurely.
+@end defun
 
 @deffn {method} default-display-status (obj <service>)
 Display status information about @var{obj}.  This method is called
