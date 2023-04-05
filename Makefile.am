@@ -139,7 +139,6 @@ EXTRA_DIST +=					\
   ChangeLog-2003				\
   $(templates)					\
   doc/examples/README				\
-  doc/examples/_unknown.scm			\
   doc/examples/wolfgangj.scm
 
 # Create the socket directory (aka. 'default-socket-dir'.)  Make it
