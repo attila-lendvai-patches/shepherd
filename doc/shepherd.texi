@@ -760,10 +760,10 @@ with the specified @var{args}, which have a meaning depending on the
 particular action.
 @end deffn
 
-@deffn {method} canonical-name (obj <service>)
-Returns the canonical name of @var{obj}, which is the first element of
-the @code{provides} list.
-@end deffn
+@defun service-canonical-name @var{service}
+Return the @dfn{canonical name} of @var{service}, which is the first
+element of the list returned by @code{service-provision}.
+@end defun
 
 @defun service-provision @var{service}
 Return the symbols provided by @var{service}.

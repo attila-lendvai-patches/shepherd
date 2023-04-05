@@ -58,7 +58,7 @@
             respawn-service?
             service-documentation
 
-            canonical-name
+            service-canonical-name
             running?
             action-list
             lookup-action
@@ -146,7 +146,8 @@
             required-by
             one-shot?
             transient?
-            respawn?))
+            respawn?
+            canonical-name))
 
 
 (define sleep (@ (fibers) sleep))
@@ -208,17 +209,17 @@ Log abnormal termination reported by @var{status}."
            =>
            (lambda (code)
              (local-output (l10n "Service ~a (PID ~a) exited with ~a.")
-                           (canonical-name service) pid code)))
+                           (service-canonical-name service) pid code)))
           ((status:term-sig status)
            =>
            (lambda (signal)
              (local-output (l10n "Service ~a (PID ~a) terminated with signal ~a.")
-                           (canonical-name service) pid signal)))
+                           (service-canonical-name service) pid signal)))
           ((status:stop-sig status)
            =>
            (lambda (signal)
              (local-output (l10n "Service ~a (PID ~a) stopped with signal ~a.")
-                           (canonical-name service)
+                           (service-canonical-name service)
                            pid signal)))))
 
   (respawn-service service))
@@ -373,13 +374,13 @@ Log abnormal termination reported by @var{status}."
                    (let ((running (get-message notification)))
                      (if running
                          (local-output (l10n "Service ~a started.")
-                                       (canonical-name service))
+                                       (service-canonical-name service))
                          (local-output (l10n "Service ~a failed to start.")
-                                       (canonical-name service)))
+                                       (service-canonical-name service)))
                      (put-message channel
                                   (list *service-started* running)))))
                 (local-output (l10n "Starting service ~a...")
-                              (canonical-name service))
+                              (service-canonical-name service))
                 (put-message reply notification)
                 (loop (status 'starting)
                       (condition (make-condition)))))))
@@ -394,7 +395,7 @@ Log abnormal termination reported by @var{status}."
                             new-value)))
         (when new-value
           (local-output (l10n "Service ~a running with value ~s.")
-                        (canonical-name service) new-value))
+                        (service-canonical-name service) new-value))
         (when (pid? new-value)
           (monitor-service-process service new-value))
 
@@ -407,7 +408,7 @@ Log abnormal termination reported by @var{status}."
 
       (((? change-value-message?) new-value)
        (local-output (l10n "Running value of service ~a changed to ~s.")
-                     (canonical-name service) new-value)
+                     (service-canonical-name service) new-value)
        (when (pid? new-value)
          (monitor-service-process service new-value))
        (loop (value new-value)))
@@ -441,19 +442,19 @@ Log abnormal termination reported by @var{status}."
                      ;; stopped, hence "might have failed" below.
                      (if stopped?
                          (local-output (l10n "Service ~a stopped.")
-                                       (canonical-name service))
+                                       (service-canonical-name service))
                          (local-output
                           (l10n "Service ~a might have failed to stop.")
-                          (canonical-name service)))
+                          (service-canonical-name service)))
                      (put-message channel *service-stopped*))))
                 (local-output (l10n "Stopping service ~a...")
-                              (canonical-name service))
+                              (service-canonical-name service))
                 (put-message reply notification)
                 (loop (status 'stopping)
                       (condition (make-condition)))))))
       ((? stopped-message?)                       ;no reply
        (local-output (l10n "Service ~a is now stopped.")
-                     (canonical-name service))
+                     (service-canonical-name service))
        (signal-condition! condition)
        (loop (status 'stopped) (value #f) (condition #f)
              (respawns '())))
@@ -484,7 +485,7 @@ Log abnormal termination reported by @var{status}."
        (if (eq? status 'running)
            (begin
              (local-output (l10n "Recording replacement for ~a.")
-                           (canonical-name service))
+                           (service-canonical-name service))
              (put-message reply #t)
              (loop (replacement new-service)))
            (begin
@@ -504,7 +505,7 @@ Log abnormal termination reported by @var{status}."
              ;; Oops, that shouldn't happen!
              (local-output
               (l10n "Attempt to terminate controller of ~a in ~a state!")
-              (canonical-name service) status)
+              (service-canonical-name service) status)
              (loop)))))))
 
 (define (service? obj)
@@ -552,19 +553,19 @@ wire."
     ((? unknown-action-error?)
      `(error (version 0) action-not-found
              ,(unknown-action-name condition)
-             ,(canonical-name (unknown-action-service condition))))
+             ,(service-canonical-name (unknown-action-service condition))))
     ((? action-runtime-error?)
      `(error (version 0) action-exception
              ,(action-runtime-error-action condition)
-             ,(canonical-name (action-runtime-error-service condition))
+             ,(service-canonical-name (action-runtime-error-service condition))
              ,(action-runtime-error-key condition)
              ,(map result->sexp (action-runtime-error-arguments condition))))
     ((? service-error?)
      `(error (version 0) service-error))))
 
-;; Return the canonical name of the service.
-(define-method (canonical-name (obj <service>))
-  (car (service-provision obj)))
+(define (service-canonical-name service)
+  "Return the \"canonical\" name of @var{service}."
+  (car (service-provision service)))
 
 (define (service-control-message message)
   "Return a procedure to send @var{message} to the given service's control
@@ -637,12 +638,12 @@ channel and wait for its reply."
 ;; Enable the service, allow it to get started.
 (define-method (enable (obj <service>))
   (enable-service obj)
-  (local-output (l10n "Enabled service ~a.") (canonical-name obj)))
+  (local-output (l10n "Enabled service ~a.") (service-canonical-name obj)))
 
 ;; Disable the service, make it unstartable.
 (define-method (disable (obj <service>))
   (disable-service obj)
-  (local-output (l10n "Disabled service ~a.") (canonical-name obj)))
+  (local-output (l10n "Disabled service ~a.") (service-canonical-name obj)))
 
 (define %one-shot-services-started
   ;; Bookkeeping of one-shot services already started.
@@ -708,7 +709,7 @@ while starting ~a: ~s")
 	  (if (pair? problems)
               (for-each (lambda (problem)
 	                  (local-output (l10n "Service ~a depends on ~a.")
-			                (canonical-name obj)
+			                (service-canonical-name obj)
 			                problem))
                         problems)
               ;; Start the service itself.
@@ -738,13 +739,13 @@ while starting ~a: ~s")
                      (local-output (if running
 			               (l10n "Service ~a has been started.")
                                        (l10n "Service ~a could not be started."))
-			           (canonical-name obj))
+			           (service-canonical-name obj))
                      running))))))
 
         running)
       (begin
         (local-output (l10n "Service ~a is currently disabled.")
-		      (canonical-name obj))
+		      (service-canonical-name obj))
         (service-running-value obj))))
 
 (define (replace-service old-service new-service)
@@ -774,9 +775,9 @@ is not already running, and will return SERVICE's canonical name in a list."
   (if (stopped? service)
       (begin
         (local-output (l10n "Service ~a is not running.")
-                      (canonical-name service))
-        (list (canonical-name service)))
-      (let ((name (canonical-name service))
+                      (service-canonical-name service))
+        (list (service-canonical-name service)))
+      (let ((name (service-canonical-name service))
             (stopped-dependents (fold-services (lambda (other acc)
                                                  (if (and (running? other)
                                                           (required-by? service other))
@@ -809,7 +810,7 @@ is not already running, and will return SERVICE's canonical name in a list."
           (put-message (current-registry-channel)
                        `(unregister ,(list service)))
           (local-output (l10n "Transient service ~a unregistered.")
-                        (canonical-name service)))
+                        (service-canonical-name service)))
 
         ;; Replace the service with its replacement, if it has one.
         (let ((replacement (service-replacement service)))
@@ -907,7 +908,7 @@ is not already running, and will return SERVICE's canonical name in a list."
         (cdr args)))
       ((list-actions)
        (local-output "~a ~a"
-		     (canonical-name obj)
+		     (service-canonical-name obj)
 		     (action-list obj)))
       (else
        ;; FIXME: Implement doc-help.
@@ -989,7 +990,7 @@ requests arriving on @var{channel}."
            (l10n "Cannot unregister service ~a, which is still running"
                  "Cannot unregister services~{ ~a,~} which are still running"
                  (length lst))
-           (map canonical-name lst))
+           (map service-canonical-name lst))
           (loop registered))))
       (('unregister-all)                          ;no reply
        (let ((root (cdr (vhash-assq 'root registered))))
@@ -1087,7 +1088,7 @@ Used by `start'."
        (if running
            (begin
              (local-output (l10n "Service ~a is already running.")
-		           (canonical-name running))
+		           (service-canonical-name running))
              running)
            ;; None running yet, start one.
            (find (lambda (service)
@@ -1143,7 +1144,7 @@ background:~{ ~a~}."
                "The following services could not be started in the \
 background:~{ ~a~}."
                (length failures))
-         (map canonical-name failures))))))
+         (map service-canonical-name failures))))))
 
   ;; 'spawn-fiber' returns zero values, which can confuse callees; return one.
   *unspecified*)
@@ -1916,7 +1917,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
     (local-output (l10n "~a connection still in use after ~a termination."
                         "~a connections still in use after ~a termination."
                         connection-count)
-                  connection-count (canonical-name service))
+                  connection-count (service-canonical-name service))
     (default-service-termination-handler service pid status))
 
   (define (spawn-child-service connection server-address client-address)
@@ -2120,7 +2121,7 @@ result.  Works in a manner akin to `fold' from SRFI-1."
                    `(service-list ,reply))
       (fold (match-lambda*
               (((name . service) result)
-               (if (eq? name (canonical-name service))
+               (if (eq? name (service-canonical-name service))
                    (proc service result)
                    result)))
             init
@@ -2376,12 +2377,12 @@ then disable it."
       (begin
         ;; Everything is okay, start it.
         (local-output (l10n "Respawning ~a.")
-                      (canonical-name serv))
+                      (service-canonical-name serv))
         (record-service-respawn-time serv)
         (start serv))
       (begin
         (local-output (l10n "Service ~a has been disabled.")
-                      (canonical-name serv))
+                      (service-canonical-name serv))
         (when (respawn-service? serv)
           (local-output (l10n "  (Respawning too fast.)")))
         (disable-service serv)
@@ -2389,7 +2390,7 @@ then disable it."
         (when (transient-service? serv)
           (put-message (current-registry-channel) `(unregister (,serv)))
           (local-output (l10n "Transient service ~a terminated, now unregistered.")
-                        (canonical-name serv))))))
+                        (service-canonical-name serv))))))
 
 ;; Add NEW-SERVICES to the list of known services.
 (define (register-services . new-services)
@@ -2433,18 +2434,18 @@ requested to be removed."
               (raise (condition (&missing-service-error (name name)))))
              ((service)                     ; only SERVICE provides NAME
               ;; Are we removing a user service…
-              (if (eq? (canonical-name service) name)
+              (if (eq? (service-canonical-name service) name)
                   (local-output (l10n "Removing service '~a'...") name)
                   ;; or a virtual service?
                   (local-output
                    "Removing service '~a' providing '~a'..."
-                   (canonical-name service) name))
+                   (service-canonical-name service) name))
               (deregister service)
               (local-output (l10n "Done.")))
              ((services ...)                      ; ambiguous NAME
               (local-output
                "Not unloading: '~a' names several services: '~a'."
-               name (map canonical-name services))))))))
+               name (map service-canonical-name services))))))))
 
 (define (load-config file-name)
   (local-output (l10n "Loading ~a.") file-name)
@@ -2481,6 +2482,8 @@ deprecated in favor of procedure '~a'"
 (define-deprecated-service-getter transient? transient-service?)
 (define-deprecated-service-getter respawn? respawn-service?)
 
+(define-deprecated-service-getter canonical-name service-canonical-name)
+
 
 
 ;; The 'root' service.
@@ -2508,7 +2511,7 @@ where prctl/PR_SET_CHILD_SUBREAPER is unsupported."
                         (when (and (integer? running)
                                    (not (process-exists? running)))
                           (local-output (l10n "PID ~a (~a) is dead!")
-                                        running (canonical-name service))
+                                        running (service-canonical-name service))
                             (respawn-service service))))))
 
 (define root-service
