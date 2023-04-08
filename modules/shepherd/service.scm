@@ -78,9 +78,7 @@
             action
             doc
 
-            first-running
             lookup-running
-            lookup-running-or-providing
             for-each-service
             respawn-service
             handle-SIGCHLD
@@ -684,11 +682,11 @@ that could not be started."
   (parameterize ((%one-shot-services-started
                   (or (%one-shot-services-started)
                       (make-hash-table))))
-    (let ((services (append-map (lambda (service)
-                                  (if (symbol? service)
-                                      (lookup-services service)
-                                      (list service)))
-                                services))
+    (let ((services (map (lambda (service)
+                           (if (symbol? service)
+                               (lookup-service service)
+                               service))
+                         services))
           (channel  (make-channel)))
       (for-each (lambda (service)
                   (spawn-fiber
@@ -1114,47 +1112,45 @@ service state and to send requests to the service monitor."
 (define (launch-service name args)
   "Try to start (with PROC) a service providing NAME; return #f on failure.
 Used by `start'."
-  (match (lookup-services name)
-    (()
+  (match (lookup-service name)
+    (#f
      (raise (condition (&missing-service-error (name name)))))
-    ((possibilities ...)
-     (let ((running (first-running possibilities)))
-       (if running
-           (begin
-             (local-output (l10n "Service ~a is already running.")
-		           (service-canonical-name running))
-             running)
-           ;; None running yet, start one.
-           (find (lambda (service)
-                   (apply start service args))
-                 possibilities))))))
+    (service
+     (if (eq? 'running (service-status service))
+         (begin
+           (local-output (l10n "Service ~a is already running.")
+		         (service-canonical-name service))
+           service)
+         (apply start service args)))))
 
 ;; Starting by name.
 (define-method (start (obj <symbol>) . args)
   (launch-service obj args))
 
 ;; Stopping by name.
-(define-method (stop (obj <symbol>) . args)
-  (let ((which (find (negate service-stopped?)
-                     (lookup-services obj))))
-    (if which
-	(apply stop which args)
-        ;; Only print an error if the service does not exist.
-        (match (lookup-services obj)
-          (()
-           (raise (condition (&missing-service-error (name obj)))))
-          ((stopped . _)
-           (list))))))
+(define-method (stop (name <symbol>) . args)
+  (match (lookup-service name)
+    (#f
+     (raise (condition (&missing-service-error (name name)))))
+    (service
+     ;; XXX: This used to return a list of results, on the grounds that there
+     ;; could be several services called NAME.  Clients like 'herd' expect a
+     ;; list.
+     (if (service-stopped? service)
+         '()
+         (apply stop service args)))))
 
-(define-method (action (obj <symbol>) the-action . args)
+(define-method (action (name <symbol>) the-action . args)
   "Perform THE-ACTION on all the services named OBJ.  Return the list of
 results."
-  (let ((which-services (lookup-running-or-providing obj)))
-    (if (null? which-services)
-        (raise (condition (&missing-service-error (name obj))))
-        (map (lambda (service)
-               (apply action service the-action args))
-             which-services))))
+  (match (lookup-service name)
+    (#f
+     (raise (condition (&missing-service-error (name name)))))
+    (service
+     ;; XXX: This used to return a list of action results, on the grounds that
+     ;; there could be several services called NAME.  Clients like 'herd'
+     ;; expect a list so now we return a singleton.
+     (list (apply action service the-action args)))))
 
 (define (start-in-the-background services)
   "Start the services named by @var{services}, a list of symbols, in the
@@ -1184,31 +1180,13 @@ background:~{ ~a~}."
   ;; 'spawn-fiber' returns zero values, which can confuse callees; return one.
   *unspecified*)
 
-
-
-;; Check if any of SERVICES is running.  If this is the case, return
-;; it.  If none, return `#f'.  Only the first one found will be
-;; returned; this is because this is mainly intended to be applied on
-;; the return value of `lookup-services', where no more than one will
-;; ever run at the same time.
-(define (first-running services)
-  (find (lambda (service)
-          (eq? 'running (service-status service)))
-        services))
-
-;; Return the running service that provides NAME, or false if none.
 (define (lookup-running name)
-  (first-running (lookup-services name)))
-
-;; Lookup the running service providing SYM, and return it as a
-;; one-element list.  If none is running, return a list of all
-;; services which provide SYM.
-(define (lookup-running-or-providing sym)
-  (match (lookup-running sym)
-    ((? service? service)
-     (list service))
-    (#f
-     (lookup-services sym))))
+  "Return the running service that provides @var{name}, or false if none."
+  (match (lookup-service name)
+    (#f #f)
+    (service
+     (and (eq? 'running (service-status service))
+          service))))
 
 
 ;;;
@@ -2472,10 +2450,10 @@ requested to be removed."
            #t)
           (else
            ;; Removing only one service.
-           (match (lookup-services name)
-             (()                                  ; unknown service
+           (match (lookup-service name)
+             (#f
               (raise (condition (&missing-service-error (name name)))))
-             ((service)                     ; only SERVICE provides NAME
+             (service
               ;; Are we removing a user service…
               (if (eq? (service-canonical-name service) name)
                   (local-output (l10n "Removing service '~a'...") name)
@@ -2484,11 +2462,7 @@ requested to be removed."
                    "Removing service '~a' providing '~a'..."
                    (service-canonical-name service) name))
               (deregister service)
-              (local-output (l10n "Done.")))
-             ((services ...)                      ; ambiguous NAME
-              (local-output
-               "Not unloading: '~a' names several services: '~a'."
-               name (map service-canonical-name services))))))))
+              (local-output (l10n "Done."))))))))
 
 (define (load-config file-name)
   (local-output (l10n "Loading ~a.") file-name)
