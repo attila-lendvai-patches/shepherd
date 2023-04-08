@@ -813,9 +813,8 @@ Register all @var{services}, so that they can be taken into account
 when trying to resolve dependencies.
 @end deffn
 
-@deffn {procedure} lookup-services name
-Return a list of all registered services which provide the symbol
-@var{name}.
+@deffn {procedure} lookup-service name
+Return the service that provides @var{name}, @code{#f} if there is none.
 @end deffn
 
 @deffn {macro} make-actions (name proc) ...

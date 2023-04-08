@@ -82,7 +82,6 @@
             lookup-running
             lookup-running-or-providing
             for-each-service
-            lookup-services
             respawn-service
             handle-SIGCHLD
             with-process-monitor
@@ -144,7 +143,7 @@
 
             get-message*                      ;XXX: for lack of a better place
 
-            ;; Deprecated GOOPS methods.
+            ;; Deprecated bindings.
             provided-by
             required-by
             one-shot?
@@ -158,7 +157,8 @@
             disable
             action-list
             lookup-action
-            defines-action?))
+            defines-action?
+            lookup-services))
 
 
 (define sleep (@ (fibers) sleep))
@@ -996,6 +996,9 @@ requests arriving on @var{channel}."
 
     (match (get-message channel)
       (('register service)                        ;no reply
+       ;; Register SERVICE or, if its name is provided by an
+       ;; already-registered service, make it a replacement for that service.
+       ;; There cannot be two services providing the same name.
        (match (any (lambda (name)
                      (vhash-assq name registered))
                    (service-provision service))
@@ -1026,8 +1029,11 @@ requests arriving on @var{channel}."
                      vlist-null
                      (service-provision root)))))
       (('lookup name reply)
+       ;; Look up NAME and return it, or #f, to REPLY.
        (put-message reply
-                    (vhash-foldq* cons '() name registered))
+                    (match (vhash-assq name registered)
+                      (#f #f)
+                      ((_ . service) service)))
        (loop registered))
       (('service-list reply)
        (put-message reply (vlist->list registered))
@@ -2179,12 +2185,20 @@ returned in unspecified."
                                (return service)))
                         #f))))))
 
-(define lookup-services
+(define lookup-service
   (let ((reply (make-channel)))
     (lambda (name)
-      "Return a (possibly empty) list of services that provide NAME."
+      "Return the service that provides @var{name}, @code{#f} if there is none."
       (put-message (current-registry-channel) `(lookup ,name ,reply))
       (get-message reply))))
+
+(define (lookup-services name)
+  "Deprecated.  Use @code{lookup-service} instead."
+  (issue-deprecation-warning "The 'lookup-services' procedure is deprecated; \
+use 'lookup-service' instead.")
+  (match (lookup-service name)
+    (#f '())
+    (service (list service))))
 
 (define waitpid*
   (lambda (what flags)
