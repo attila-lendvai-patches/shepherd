@@ -70,8 +70,8 @@
 
             action?
 
-            enable
-            disable
+            enable-service
+            disable-service
             start
             start-in-the-background
             stop
@@ -154,6 +154,8 @@
             running?
             stopped?
             enabled?
+            enable
+            disable
             action-list
             lookup-action
             defines-action?))
@@ -667,16 +669,6 @@ symbols)."
   "Return whether @var{service} implements the action @var{action}."
   (and (lookup-service-action service action) #t))
 
-;; Enable the service, allow it to get started.
-(define-method (enable (obj <service>))
-  (enable-service obj)
-  (local-output (l10n "Enabled service ~a.") (service-canonical-name obj)))
-
-;; Disable the service, make it unstartable.
-(define-method (disable (obj <service>))
-  (disable-service obj)
-  (local-output (l10n "Disabled service ~a.") (service-canonical-name obj)))
-
 (define %one-shot-services-started
   ;; Bookkeeping of one-shot services already started.
   (make-parameter #f))                            ;#f | hash table
@@ -869,10 +861,14 @@ is not already running, and will return SERVICE's canonical name in a list."
        (lambda (_) obj))
       ((enable)
        (lambda (_)
-         (enable obj)))
+         (enable-service obj)
+         (local-output (l10n "Enabled service ~a.")
+                       (service-canonical-name obj))))
       ((disable)
        (lambda (_)
-         (disable obj)))
+         (disable-service obj)
+         (local-output (l10n "Disabled service ~a.")
+                       (service-canonical-name obj))))
       ((doc)
        (lambda (_ . args)
          (apply doc obj args)))
@@ -2524,6 +2520,9 @@ deprecated in favor of procedure '~a'"
 (define-deprecated-service-getter running? service-running?)
 (define-deprecated-service-getter stopped? service-stopped?)
 (define-deprecated-service-getter enabled? service-enabled?)
+
+(define-deprecated-service-getter enable enable-service)
+(define-deprecated-service-getter disable disable-service)
 
 (define-deprecated-method (lookup-action (service <service>) action)
   lookup-service-action)
