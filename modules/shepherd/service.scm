@@ -77,7 +77,6 @@
             start-in-the-background
             stop
             action
-            doc
 
             lookup-running
             for-each-service
@@ -870,7 +869,7 @@ is not already running, and will return SERVICE's canonical name in a list."
                        (service-canonical-name obj))))
       ((doc)
        (lambda (_ . args)
-         (apply doc obj args)))
+         (apply display-service-documentation obj args)))
       (else
        (lambda _
          ;; FIXME: Unknown service.
@@ -909,34 +908,34 @@ is not already running, and will return SERVICE's canonical name in a list."
                (report-exception the-action obj key args)))))))
 
 ;; Display documentation about the service.
-(define-method (doc (obj <service>) . args)
+(define (display-service-documentation service . args)
   (if (null? args)
       ;; No further argument given -> Normal level of detail.
-      (local-output (service-documentation obj))
+      (local-output (service-documentation service))
     (case (string->symbol (car args)) ;; Does not work with strings.
       ((full)
        ;; FIXME
-       (local-output (service-documentation obj)))
+       (local-output (service-documentation service)))
       ((short)
        ;; FIXME
-       (local-output (service-documentation obj)))
+       (local-output (service-documentation service)))
       ((action)
        ;; Display documentation of given actions.
        (for-each
 	(lambda (the-action)
           (let ((action-object
-                 (lookup-service-action obj (string->symbol the-action))))
+                 (lookup-service-action service (string->symbol the-action))))
             (unless action-object
               (raise (condition (&unknown-action-error
                                  (action the-action)
-                                 (service obj)))))
+                                 (service service)))))
             (local-output "~a: ~a" the-action
                           (action-documentation action-object))))
         (cdr args)))
       ((list-actions)
        (local-output "~a ~a"
-		     (service-canonical-name obj)
-		     (action-list obj)))
+		     (service-canonical-name service)
+		     (action-list service)))
       (else
        ;; FIXME: Implement doc-help.
        (local-output (l10n "Unknown keyword.  Try 'doc root help'."))))))
