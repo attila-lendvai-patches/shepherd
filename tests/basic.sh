@@ -222,7 +222,7 @@ $herd status test-loaded | grep -i "running.*#<unspecified>"
 $herd stop test-loaded
 
 # Deregister 'test-loaded' via 'eval'.
-$herd eval root "(action root-service 'unload \"test-loaded\")"
+$herd eval root "(perform-service-action root-service 'unload \"test-loaded\")"
 if $herd status test-loaded
 then false; else true; fi
 

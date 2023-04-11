@@ -754,11 +754,11 @@ succeed, though.  Otherwise, the behaviour is very similar to the
 value, thus @code{#f} if the service was stopped.
 @end deffn
 
-@deffn {method} action (obj <service>) the-action . args
-Calls the action @var{the-action} (a symbol) of the service @var{obj},
-with the specified @var{args}, which have a meaning depending on the
-particular action.
-@end deffn
+@defun perform-service-action @var{service} @var{the-action} . @var{args}
+Perform @var{the-action} (a symbol such as @code{'restart} or @code{'status})
+on @var{service}, passing it @var{args}.  The meaning of @var{args} depends on
+the action.
+@end defun
 
 @defun service-canonical-name @var{service}
 Return the @dfn{canonical name} of @var{service}, which is the first
@@ -840,11 +840,6 @@ interact right away with shepherd using the @command{herd} command.
 
 @deffn {method} stop (obj <symbol>)
 Stop a registered service providing @var{obj}.
-@end deffn
-
-@deffn {method} action (obj <symbol>) the-action . args
-The same as the @code{action} method of class @code{<service>}, but
-uses a service that provides @var{obj} and is running.
 @end deffn
 
 @deffn {procedure} for-each-service proc
@@ -1305,7 +1300,7 @@ load individual service definitions from
              ((ice-9 ftw) #:select (scandir)))
 
 ;; Send shepherd into the background
-(action 'shepherd 'daemonize)
+(perform-service-action 'shepherd 'daemonize)
 
 ;; Load all the files in the directory 'init.d' with a suffix '.scm'.
 (for-each

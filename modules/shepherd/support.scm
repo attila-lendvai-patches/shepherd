@@ -335,7 +335,7 @@ TARGET should be a string representing a filepath + name."
         "(register-services)\n\n"
         (l10n "\
 ;; Send shepherd into the background\n")
-        "(action 'shepherd 'daemonize)\n\n"
+        "(perform-service-action 'shepherd 'daemonize)\n\n"
         (l10n "\
 ;; Services to start when shepherd starts:
 ;; Add the name of each service that should be started to the list

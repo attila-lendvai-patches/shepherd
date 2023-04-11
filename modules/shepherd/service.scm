@@ -67,6 +67,7 @@
             lookup-service-action
             service-defines-action?
             with-service-registry
+            lookup-service
             service-name-count
 
             action?
@@ -76,7 +77,7 @@
             start
             start-in-the-background
             stop
-            action
+            perform-service-action
 
             lookup-running
             for-each-service
@@ -153,6 +154,7 @@
             enabled?
             enable
             disable
+            action
             action-list
             lookup-action
             defines-action?
@@ -841,8 +843,10 @@ is not already running, and will return SERVICE's canonical name in a list."
 
         (cons name stopped-dependents))))
 
-;; Call action THE-ACTION with ARGS.
-(define-method (action (obj <service>) the-action . args)
+(define (perform-service-action service the-action . args)
+  "Perform @var{the-action} (a symbol such as @code{'restart} or @code{'status})
+on @var{service}, passing it @var{args}.  The meaning of @var{args} depends on
+the action."
   (define default-action
     ;; All actions which are handled here might be called even if the
     ;; service is not running, so they have to take this into account.
@@ -850,34 +854,34 @@ is not already running, and will return SERVICE's canonical name in a list."
       ;; Restarting is done in the obvious way.
       ((restart)
        (lambda (running . args)
-         (let ((stopped-services (stop obj)))
+         (let ((stopped-services (stop service)))
            (for-each start stopped-services)
            #t)))
       ((status)
        ;; Return the service itself.  It is automatically converted to an sexp
        ;; via 'result->sexp' and sent to the client.
-       (lambda (_) obj))
+       (lambda (_) service))
       ((enable)
        (lambda (_)
-         (enable-service obj)
+         (enable-service service)
          (local-output (l10n "Enabled service ~a.")
-                       (service-canonical-name obj))))
+                       (service-canonical-name service))))
       ((disable)
        (lambda (_)
-         (disable-service obj)
+         (disable-service service)
          (local-output (l10n "Disabled service ~a.")
-                       (service-canonical-name obj))))
+                       (service-canonical-name service))))
       ((doc)
        (lambda (_ . args)
-         (apply display-service-documentation obj args)))
+         (apply display-service-documentation service args)))
       (else
        (lambda _
          ;; FIXME: Unknown service.
          (raise (condition (&unknown-action-error
-                            (service obj)
+                            (service service)
                             (action the-action))))))))
 
-  (let ((proc (or (and=> (lookup-service-action obj the-action)
+  (let ((proc (or (and=> (lookup-service-action service the-action)
                          action-procedure)
 		  default-action)))
     ;; Invoking THE-ACTION is allowed even when the service is not running, as
@@ -889,13 +893,13 @@ is not already running, and will return SERVICE's canonical name in a list."
         ;; single value.  Deal with it gracefully.
         (call-with-values
             (lambda ()
-              (apply proc (service-running-value obj) args))
+              (apply proc (service-running-value service) args))
           (case-lambda
             (() *unspecified*)
             ((first . rest) first))))
       (lambda (key . args)
         ;; Special case: 'root' may quit.
-        (and (eq? root-service obj)
+        (and (eq? root-service service)
              (eq? key 'quit)
              (apply quit args))
 
@@ -905,7 +909,7 @@ is not already running, and will return SERVICE's canonical name in a list."
               ((eq? key '%exception)              ;Guile 3.x
                (raise-exception (car args)))
               (else
-               (report-exception the-action obj key args)))))))
+               (report-exception the-action service key args)))))))
 
 ;; Display documentation about the service.
 (define (display-service-documentation service . args)
@@ -1142,18 +1146,6 @@ Used by `start'."
      (if (service-stopped? service)
          '()
          (apply stop service args)))))
-
-(define-method (action (name <symbol>) the-action . args)
-  "Perform THE-ACTION on all the services named OBJ.  Return the list of
-results."
-  (match (lookup-service name)
-    (#f
-     (raise (condition (&missing-service-error (name name)))))
-    (service
-     ;; XXX: This used to return a list of action results, on the grounds that
-     ;; there could be several services called NAME.  Clients like 'herd'
-     ;; expect a list so now we return a singleton.
-     (list (apply action service the-action args)))))
 
 (define (start-in-the-background services)
   "Start the services named by @var{services}, a list of symbols, in the
@@ -2495,13 +2487,21 @@ requested to be removed."
 ;;; Deprecated aliases.
 ;;;
 
+(define (issue-method-deprecation-warning name alias)
+  (issue-deprecation-warning
+   (format #f "GOOPS method '~a' is \
+deprecated in favor of procedure '~a'"
+           name alias)))
+
 (define-syntax-rule (define-deprecated-method (name (service class) formals ...) alias)
   (define-method (name (service class) formals ...)
-    (issue-deprecation-warning
-     (format #f "GOOPS method '~a' is \
-deprecated in favor of procedure '~a'"
-             'name 'alias))
+    (issue-method-deprecation-warning 'name 'alias)
     (alias service formals ...)))
+
+(define-syntax-rule (define-deprecated-method/rest (name (service class)) alias)
+  (define-method (name (service class) . rest)
+    (issue-method-deprecation-warning 'name 'alias)
+    (apply alias service rest)))
 
 (define-syntax-rule (define-deprecated-service-getter name alias)
   (define-deprecated-method (name (service <service>)) alias))
@@ -2527,6 +2527,16 @@ deprecated in favor of procedure '~a'"
 (define-deprecated-method (defines-action? (service <service>) action)
   service-defines-action?)
 
+(define-deprecated-method/rest (action (service <service>))
+  perform-service-action)
+(define-method (action (name <symbol>) the-action . args)
+  "Perform THE-ACTION on all the services named OBJ.  Return the list of
+results."
+  (match (lookup-service name)
+    (#f
+     (raise (condition (&missing-service-error (name name)))))
+    (service
+     (list (apply action service the-action args)))))
 
 
 

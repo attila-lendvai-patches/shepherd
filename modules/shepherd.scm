@@ -30,6 +30,7 @@
   #:use-module (srfi srfi-1)    ;; List library.
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-34)
+  #:use-module (srfi srfi-35)
   #:use-module (shepherd config)
   #:use-module (shepherd support)
   #:use-module (shepherd service)
@@ -505,14 +506,22 @@ fork in the child process."
                                                   (get-messages))
                                    port)))
 
+             (define service
+               (or (lookup-service service-symbol)
+                   (raise (condition
+                           (&missing-service-error (name service-symbol))))))
+
              (define result
                (case the-action
                  ((start) (apply start service-symbol args))
                  ((stop) (apply stop service-symbol args))
 
-                 ;; Actions which have the semantics of `action' are
-                 ;; handled there.
-                 (else (apply action service-symbol the-action args))))
+                 ;; XXX: This used to return a list of action results, on the
+                 ;; grounds that there could be several services called NAME.
+                 ;; Clients like 'herd' expect a list so now we return a
+                 ;; singleton.
+                 (else (list (apply perform-service-action
+                                    service the-action args)))))
 
              (write-reply (command-reply command result #f (get-messages))
                           port))))
