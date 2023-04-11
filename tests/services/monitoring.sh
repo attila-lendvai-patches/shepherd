@@ -55,6 +55,7 @@ test $n -lt 10
 
 $herd log monitoring
 $herd log monitoring | grep "heap:"
+$herd log monitoring | grep "service names: 3"
 $herd period monitoring 1
 ! $herd period monitoring not-a-number
 

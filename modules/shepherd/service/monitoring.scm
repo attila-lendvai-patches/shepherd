@@ -28,7 +28,8 @@
 
 (define (log-monitoring-stats)
   "Log info about useful metrics: heap size, open file descriptors, etc."
-  (local-output (l10n "heap: ~,2f MiB; file descriptors: ~a")
+  (local-output (l10n "service names: ~a; heap: ~,2f MiB; file descriptors: ~a")
+                (service-name-count)
                 (/ (assoc-ref (gc-stats) 'heap-size) (expt 2. 20))
                 (length
                  (or (scandir "/proc/self/fd"

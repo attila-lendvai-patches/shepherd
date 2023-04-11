@@ -67,6 +67,7 @@
             lookup-service-action
             service-defines-action?
             with-service-registry
+            service-name-count
 
             action?
 
@@ -1035,6 +1036,9 @@ requests arriving on @var{channel}."
        (loop registered))
       (('service-list reply)
        (put-message reply (vlist->list registered))
+       (loop registered))
+      (('service-name-count reply)
+       (put-message reply (vlist-length registered))
        (loop registered)))))
 
 (define (essential-task-launcher name proc)
@@ -2151,6 +2155,13 @@ result.  Works in a manner akin to `fold' from SRFI-1."
   "Return the list of services currently defined.  Note: The order of the list
 returned in unspecified."
   (fold-services cons '()))
+
+(define (service-name-count)
+  "Return the number of currently-registered service names."
+  (let ((reply (make-channel)))
+    (put-message (current-registry-channel)
+                 `(service-name-count ,reply))
+    (get-message* reply 5 'no-reply)))
 
 (define find-service
   (let ((reply (make-channel)))

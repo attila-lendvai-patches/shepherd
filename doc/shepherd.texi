@@ -1451,7 +1451,7 @@ logging:
 
 @example
 $ herd log monitoring
-heap: 8.77 MiB; file descriptors: 20
+service names: 3; heap: 8.77 MiB; file descriptors: 20
 @end example
 
 You can also change the logging period; for instance, here is how you'd
