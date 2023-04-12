@@ -77,7 +77,7 @@
             disable-service
             start-service
             start-in-the-background
-            stop
+            stop-service
             perform-service-action
 
             lookup-running
@@ -156,6 +156,7 @@
             enable
             disable
             start
+            stop
             action
             action-list
             lookup-action
@@ -794,23 +795,26 @@ NEW-SERVICE."
 
 ;; Stop the service, including services that depend on it.  If the
 ;; latter fails, continue anyway.  Return `#f' if it could be stopped.
-(define-method (stop (service <service>) . args)
-  "Stop SERVICE, and any services which depend on it.  Returns a list of
-canonical names for all of the services which have been stopped (including
-transitive dependent services).  This method will print a warning if SERVICE
-is not already running, and will return SERVICE's canonical name in a list."
+(define (stop-service service . args)
+  "Stop @var{service} and any service that depends on it.  Return the list of
+canonical names for all of the services that have been stopped (including
+transitive dependent services).
+
+If @var{service} is not running, print a warning and return its canonical name
+in a list."
   (if (service-stopped? service)
       (begin
         (local-output (l10n "Service ~a is not running.")
                       (service-canonical-name service))
         (list (service-canonical-name service)))
       (let ((name (service-canonical-name service))
-            (stopped-dependents (fold-services (lambda (other acc)
-                                                 (if (and (service-running? other)
-                                                          (required-by? service other))
-                                                     (append (stop other) acc)
-                                                     acc))
-                                               '())))
+            (stopped-dependents
+             (fold-services (lambda (other acc)
+                              (if (and (service-running? other)
+                                       (required-by? service other))
+                                  (append (stop-service other) acc)
+                                  acc))
+                            '())))
         ;; Stop the service itself.
         (let ((reply (make-channel)))
           (put-message (service-control service) `(stop ,reply))
@@ -857,7 +861,7 @@ the action."
       ;; Restarting is done in the obvious way.
       ((restart)
        (lambda (running . args)
-         (let ((stopped-services (stop service)))
+         (let ((stopped-services (stop-service service)))
            (for-each (compose start-service lookup-service)
                      stopped-services)
            #t)))
@@ -1119,19 +1123,6 @@ service state and to send requests to the service monitor."
              (if (pred head)
                  head
                  (loop (cdr lst)))))))))
-
-;; Stopping by name.
-(define-method (stop (name <symbol>) . args)
-  (match (lookup-service name)
-    (#f
-     (raise (condition (&missing-service-error (name name)))))
-    (service
-     ;; XXX: This used to return a list of results, on the grounds that there
-     ;; could be several services called NAME.  Clients like 'herd' expect a
-     ;; list.
-     (if (service-stopped? service)
-         '()
-         (apply stop service args)))))
 
 (define (start-in-the-background services)
   "Start the services named by @var{services}, a list of symbols, in the
@@ -2426,7 +2417,7 @@ name, or if it is the only service providing the service that is
 requested to be removed."
   (define (deregister service)
     (when (service-running? service)
-      (stop service))
+      (stop-service service))
     ;; Remove services provided by service from the hash table.
     (put-message (current-registry-channel)
                  `(unregister ,(list service))))
@@ -2535,6 +2526,17 @@ Used by `start'."
      (if (eq? 'running (service-status service))
          service
          (apply start service args)))))
+(define-deprecated-method/rest (stop (service <service>))
+  stop-service)
+(define-method (stop (name <symbol>) . args)
+  (match (lookup-service name)
+    (#f
+     (raise (condition (&missing-service-error (name name)))))
+    (service
+     (if (service-stopped? service)
+         '()
+         (apply stop service args)))))
+
 
 
 
@@ -2548,7 +2550,7 @@ Used by `start'."
   (for-each
    (lambda (service)
      (when (service-running? service)
-       (stop service)))
+       (stop-service service)))
    (service-list)))
 
 (define (check-for-dead-services)

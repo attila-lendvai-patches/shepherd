@@ -75,7 +75,7 @@ socket file at FILE-NAME upon exit of PROC.  Return the values of PROC."
                                    (strerror (system-error-errno args)))
                      ;; Stop services that were started from the config file
                      ;; and quit.
-                     (stop 'root)))))))
+                     (stop-service root-service)))))))
     (unwind-protect (proc sock)
                     (begin
                       (close sock)
@@ -122,7 +122,7 @@ already ~a threads running, disabling 'signalfd' support")
    (lambda ()
      (catch 'quit
        (lambda ()
-         (stop root-service))
+         (stop-service root-service))
        quit-exception-handler))))
 
 (define (signal-handler signal)
@@ -520,7 +520,10 @@ fork in the child process."
 		                      (service-canonical-name service))
                         service)
                       (apply start-service service args)))
-                 ((stop) (apply stop service-symbol args))
+                 ((stop)
+                  (if (service-stopped? service)
+                      '()
+                      (apply stop-service service args)))
 
                  ;; XXX: This used to return a list of action results, on the
                  ;; grounds that there could be several services called NAME.
@@ -542,7 +545,7 @@ would write them on the 'herd' command line."
     (if (eof-object? line)
 
         ;; Exit on `C-d'.
-        (stop root-service)
+        (stop-service root-service)
 
         (begin
           (match (string-tokenize line)

@@ -89,7 +89,7 @@ crashes, stop @var{service}."
              (start-repl))))))
     (lambda args
       (local-output (l10n "Uncaught REPL exception: ~s.") args)))
-  (stop service))
+  (stop-service service))
 
 (define default-repl-socket-file
   ;; Default socket file for the REPL.

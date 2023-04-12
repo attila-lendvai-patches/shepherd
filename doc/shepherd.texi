@@ -739,14 +739,14 @@ Start @var{service} and its dependencies, passing @var{args} to its
 @code{start} method.
 @end defun
 
-@deffn {method} stop (obj <service>)
-This will stop the service @var{obj}, trying to stop services that
-depend in it first, so they can be shutdown cleanly.  If this will
-fail, it will continue anyway.  Stopping of services should usually
-succeed, though.  Otherwise, the behaviour is very similar to the
-@code{start} method.  The return value is also the new running
-value, thus @code{#f} if the service was stopped.
-@end deffn
+@defun stop-service @var{service} . @var{args}
+Stop @var{service} and any service that depends on it.  Return the list of
+canonical names for all of the services that have been stopped (including
+transitive dependent services).
+
+If @var{service} is not running, print a warning and return its canonical name
+in a list.
+@end defun
 
 @defun perform-service-action @var{service} @var{the-action} . @var{args}
 Perform @var{the-action} (a symbol such as @code{'restart} or @code{'status})
@@ -826,10 +826,6 @@ waiting until all of @var{services} have been started.
 
 This procedure can be useful in a configuration file because it lets you
 interact right away with shepherd using the @command{herd} command.
-@end deffn
-
-@deffn {method} stop (obj <symbol>)
-Stop a registered service providing @var{obj}.
 @end deffn
 
 @deffn {procedure} for-each-service proc
