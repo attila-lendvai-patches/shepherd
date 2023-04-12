@@ -797,8 +797,7 @@ NEW-SERVICE."
 ;; latter fails, continue anyway.  Return `#f' if it could be stopped.
 (define (stop-service service . args)
   "Stop @var{service} and any service that depends on it.  Return the list of
-canonical names for all of the services that have been stopped (including
-transitive dependent services).
+services that have been stopped (including transitive dependent services).
 
 If @var{service} is not running, print a warning and return its canonical name
 in a list."
@@ -806,9 +805,8 @@ in a list."
       (begin
         (local-output (l10n "Service ~a is not running.")
                       (service-canonical-name service))
-        (list (service-canonical-name service)))
-      (let ((name (service-canonical-name service))
-            (stopped-dependents
+        (list service))
+      (let ((stopped-dependents
              (fold-services (lambda (other acc)
                               (if (and (service-running? other)
                                        (required-by? service other))
@@ -848,7 +846,7 @@ in a list."
           (when replacement
             (replace-service service replacement)))
 
-        (cons name stopped-dependents))))
+        (cons service stopped-dependents))))
 
 (define (perform-service-action service the-action . args)
   "Perform @var{the-action} (a symbol such as @code{'restart} or @code{'status})
@@ -862,8 +860,7 @@ the action."
       ((restart)
        (lambda (running . args)
          (let ((stopped-services (stop-service service)))
-           (for-each (compose start-service lookup-service)
-                     stopped-services)
+           (for-each start-service stopped-services)
            #t)))
       ((status)
        ;; Return the service itself.  It is automatically converted to an sexp
@@ -2535,7 +2532,7 @@ Used by `start'."
     (service
      (if (service-stopped? service)
          '()
-         (apply stop service args)))))
+         (map service-canonical-name (apply stop service args))))))
 
 
 

@@ -523,7 +523,8 @@ fork in the child process."
                  ((stop)
                   (if (service-stopped? service)
                       '()
-                      (apply stop-service service args)))
+                      (map service-canonical-name
+                           (apply stop-service service args))))
 
                  ;; XXX: This used to return a list of action results, on the
                  ;; grounds that there could be several services called NAME.

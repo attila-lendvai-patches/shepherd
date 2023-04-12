@@ -741,8 +741,7 @@ Start @var{service} and its dependencies, passing @var{args} to its
 
 @defun stop-service @var{service} . @var{args}
 Stop @var{service} and any service that depends on it.  Return the list of
-canonical names for all of the services that have been stopped (including
-transitive dependent services).
+services that have been stopped (including transitive dependent services).
 
 If @var{service} is not running, print a warning and return its canonical name
 in a list.
