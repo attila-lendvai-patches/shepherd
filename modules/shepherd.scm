@@ -410,7 +410,7 @@ fork in the child process."
 
              ;; Register and start the 'root' service.
              (register-services root-service)
-             (start root-service)
+             (start-service root-service)
 
              (catch 'quit
                (lambda ()
@@ -513,7 +513,13 @@ fork in the child process."
 
              (define result
                (case the-action
-                 ((start) (apply start service-symbol args))
+                 ((start)
+                  (if (eq? 'running (service-status service))
+                      (begin
+                        (local-output (l10n "Service ~a is already running.")
+		                      (service-canonical-name service))
+                        service)
+                      (apply start-service service args)))
                  ((stop) (apply stop service-symbol args))
 
                  ;; XXX: This used to return a list of action results, on the

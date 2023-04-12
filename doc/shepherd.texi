@@ -734,16 +734,10 @@ format for this slot.  (It actually is a hash currently.)
 @node Methods of services
 @section Methods of services
 
-@deffn {method} start (obj <service>)
-Start the service @var{obj}, including all the services it depends on.
-It tries quite hard to do this: When a service that provides a
-required symbol can not be started, it will look for another service
-that also provides this symbol, until starting one such service
-succeeds.  There is some room for theoretical improvement here, of
-course, but in practice the current strategy already works very well.
-This method returns the new ``running value'' of the service,
-@code{#f} if the service could not be started.
-@end deffn
+@defun start-service @var{service} . @var{args}
+Start @var{service} and its dependencies, passing @var{args} to its
+@code{start} method.
+@end defun
 
 @deffn {method} stop (obj <service>)
 This will stop the service @var{obj}, trying to stop services that
@@ -823,10 +817,6 @@ service object @ref{Slots of services}.  Each @var{name} is a symbol
 and each @var{proc} the corresponding procedure that will be called to
 perform the action.  A @var{proc} has one argument, which will be the
 running value of the service.
-@end deffn
-
-@deffn {method} start (obj <symbol>)
-Start a registered service providing @var{obj}.
 @end deffn
 
 @deffn {procedure} start-in-the-background @var{services}
@@ -1343,7 +1333,7 @@ Then, individual user services can be put in
     #:respawn? #t))
 
 (register-services ssh-agent)
-(start ssh-agent)
+(start-service ssh-agent)
 @end lisp
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1438,7 +1428,7 @@ nothing else would look like this:
   (monitoring-service #:period (* 15 60)))
 
 ;; Start it!
-(start 'monitoring)
+(start-service (lookup-service 'monitoring))
 @end lisp
 
 Using the @code{herd} command, you can get immediate resource usage

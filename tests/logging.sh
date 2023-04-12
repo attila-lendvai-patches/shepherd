@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test the logging capabilities of 'make-forkexec-constructor'.
-# Copyright © 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2022, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -66,7 +66,7 @@ cat > "$conf"<<EOF
    #:respawn? #f))
 
 ;; Start it upfront to make sure the logging fiber works.
-(start 'test-file-logging)
+(start-service (lookup-service 'test-file-logging))
 EOF
 
 rm -f "$pid"

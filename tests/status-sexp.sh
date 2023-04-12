@@ -45,7 +45,7 @@ cat > "$conf"<<EOF
    #:documentation "Bar!"
    #:respawn? #f))
 
-(start 'foo)
+(start-service (lookup-service 'foo))
 EOF
 
 rm -f "$pid"

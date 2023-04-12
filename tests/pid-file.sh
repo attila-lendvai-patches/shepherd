@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test the #:pid-file option of 'make-forkexec-constructor'.
-# Copyright © 2016, 2019, 2020, 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2016, 2019, 2020, 2022, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -95,7 +95,7 @@ cat > "$conf"<<EOF
 
 ;; Start it upfront.  This ensures the whole machinery works even
 ;; when called in a non-suspendable context (continuation barrier).
-(start 'test-works)
+(start-service (lookup-service 'test-works))
 EOF
 
 rm -f "$pid"

@@ -60,6 +60,7 @@
             service-documentation
 
             service-canonical-name
+            service-status
             service-running?
             service-stopped?
             service-enabled?
@@ -74,7 +75,7 @@
 
             enable-service
             disable-service
-            start
+            start-service
             start-in-the-background
             stop
             perform-service-action
@@ -154,6 +155,7 @@
             enabled?
             enable
             disable
+            start
             action
             action-list
             lookup-action
@@ -709,7 +711,7 @@ while starting ~a: ~s")
                                     (when (one-shot-service? service)
                                       (hashq-set! (%one-shot-services-started)
                                                   service #t))
-                                    (start service))))))
+                                    (start-service service))))))
                        (put-message channel (cons service value))))))
                 services)
       (let loop ((i (length services))
@@ -722,29 +724,30 @@ while starting ~a: ~s")
                (loop (- i 1) failures)))
             failures)))))
 
-;; Start the service, including dependencies.
-(define-method (start (obj <service>) . args)
-  (if (service-enabled? obj)
+(define (start-service service . args)
+  "Start @var{service} and its dependencies, passing @var{args} to its
+@code{start} method."
+  (if (service-enabled? service)
       ;; It is not running; go ahead and launch it.
       (let ((problems
 	     ;; Resolve all dependencies.
-	     (start-in-parallel (service-requirement obj))))
+	     (start-in-parallel (service-requirement service))))
         (define running
 	  (if (pair? problems)
               (for-each (lambda (problem)
 	                  (local-output (l10n "Service ~a depends on ~a.")
-			                (service-canonical-name obj)
+			                (service-canonical-name service)
 			                problem))
                         problems)
               ;; Start the service itself.
               (let ((reply (make-channel)))
-                (put-message (service-control obj) `(start ,reply))
+                (put-message (service-control service) `(start ,reply))
                 (match (get-message reply)
                   (#f
-                   ;; We lost the race: OBJ is already running.
-                   (service-running-value obj))
+                   ;; We lost the race: SERVICE is already running.
+                   (service-running-value service))
                   ((? channel? notification)
-                   ;; We won the race: we're responsible for starting OBJ
+                   ;; We won the race: we're responsible for starting SERVICE
                    ;; and sending its running value on NOTIFICATION.
                    (let ((running
                           (catch #t
@@ -755,22 +758,22 @@ while starting ~a: ~s")
                                               (%current-service-output-port))
                                              (current-error-port
                                               (%current-service-output-port)))
-                                (apply (service-start obj) args)))
+                                (apply (service-start service) args)))
                             (lambda (key . args)
                               (put-message notification #f)
-                              (report-exception 'start obj key args)))))
+                              (report-exception 'start service key args)))))
                      (put-message notification running)
                      (local-output (if running
 			               (l10n "Service ~a has been started.")
                                        (l10n "Service ~a could not be started."))
-			           (service-canonical-name obj))
+			           (service-canonical-name service))
                      running))))))
 
         running)
       (begin
         (local-output (l10n "Service ~a is currently disabled.")
-		      (service-canonical-name obj))
-        (service-running-value obj))))
+		      (service-canonical-name service))
+        (service-running-value service))))
 
 (define (replace-service old-service new-service)
   "Replace OLD-SERVICE with NEW-SERVICE in the services registry.  This
@@ -855,7 +858,8 @@ the action."
       ((restart)
        (lambda (running . args)
          (let ((stopped-services (stop service)))
-           (for-each start stopped-services)
+           (for-each (compose start-service lookup-service)
+                     stopped-services)
            #t)))
       ((status)
        ;; Return the service itself.  It is automatically converted to an sexp
@@ -1115,24 +1119,6 @@ service state and to send requests to the service monitor."
              (if (pred head)
                  head
                  (loop (cdr lst)))))))))
-
-(define (launch-service name args)
-  "Try to start (with PROC) a service providing NAME; return #f on failure.
-Used by `start'."
-  (match (lookup-service name)
-    (#f
-     (raise (condition (&missing-service-error (name name)))))
-    (service
-     (if (eq? 'running (service-status service))
-         (begin
-           (local-output (l10n "Service ~a is already running.")
-		         (service-canonical-name service))
-           service)
-         (apply start service args)))))
-
-;; Starting by name.
-(define-method (start (obj <symbol>) . args)
-  (launch-service obj args))
 
 ;; Stopping by name.
 (define-method (stop (name <symbol>) . args)
@@ -1952,7 +1938,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
                       #:termination-handler handle-child-termination
                       #:stop (make-kill-destructor))))
       (register-services service)
-      (start service)))
+      (start-service service)))
 
   (define (accept-clients server-address sock)
     ;; Return a thunk that accepts client connections from SOCK.
@@ -2402,7 +2388,7 @@ then disable it."
         (local-output (l10n "Respawning ~a.")
                       (service-canonical-name serv))
         (record-service-respawn-time serv)
-        (start serv))
+        (start-service serv))
       (begin
         (local-output (l10n "Service ~a has been disabled.")
                       (service-canonical-name serv))
@@ -2537,6 +2523,18 @@ results."
      (raise (condition (&missing-service-error (name name)))))
     (service
      (list (apply action service the-action args)))))
+(define-deprecated-method/rest (start (service <service>))
+  start-service)
+(define-method (start (name <symbol>) . args)
+  "Try to start (with PROC) a service providing NAME; return #f on failure.
+Used by `start'."
+  (match (lookup-service name)
+    (#f
+     (raise (condition (&missing-service-error (name name)))))
+    (service
+     (if (eq? 'running (service-status service))
+         service
+         (apply start service args)))))
 
 
 

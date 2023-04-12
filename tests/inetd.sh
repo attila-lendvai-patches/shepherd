@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test transient services.
-# Copyright © 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2022, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -79,7 +79,7 @@ cat > "$conf" <<EOF
                                    #:max-connections 5)
    #:stop  (make-inetd-destructor)))
 
-(start 'test-inetd)
+(start-service (lookup-service 'test-inetd))
 EOF
 
 rm -f "$pid"

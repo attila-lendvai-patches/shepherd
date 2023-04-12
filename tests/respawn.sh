@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test respawnable services.
-# Copyright © 2013, 2014, 2016 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2013, 2014, 2016, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -81,7 +81,7 @@ cat > "$conf"<<EOF
             #:pid-file "$PWD/$service2_pid")
    #:stop  (make-kill-destructor)
    #:respawn? #t))
-(start 'test1)
+(start-service (lookup-service 'test1))
 EOF
 
 rm -f "$pid"

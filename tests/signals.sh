@@ -1,5 +1,5 @@
 # GNU Shepherd --- Make sure SIGINT, SIGTERM, and SIGHUP are correctly handled.
-# Copyright © 2014, 2016 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2014, 2016, 2023 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 #
 # This file is part of the GNU Shepherd.
@@ -42,7 +42,7 @@ cat > "$conf"<<EOF
                (lambda (port)
                  (display "stopped" port))))
    #:respawn? #f))
- (start 'test)
+ (start-service (lookup-service 'test))
 EOF
 
 for signal in INT TERM HUP; do
