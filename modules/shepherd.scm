@@ -469,6 +469,40 @@ fork in the child process."
         (local-output (l10n "Exiting."))
         (primitive-exit 0))))              ;leave without going through Fibers
 
+(define (call-with-command-message-port command proc)
+  "Call @var{proc} passing it a procedure to retrieve the messages emitted
+while evaluating @var{command}."
+  (define message-port
+    (with-fluids ((%default-port-encoding "UTF-8"))
+      (open-output-string)))
+
+  (define (get-messages)
+    (let* ((str (get-output-string message-port))
+           (lst (string-split str #\newline)))
+      ;; 'string-tokenize' swallows empty lines, which is not great,
+      ;; and 'string-split' doesn't distinguish between an empty line
+      ;; and this empty string, which is not great either.  So we hack
+      ;; our way the best we can.
+      (cond ((string-null? str)
+             '())
+            ;; If STR ends in \n, drop the trailing empty string since
+            ;; that would lead the client to print an extra newline.
+            ((string-suffix? "\n" str)
+             (drop-right lst 1))
+            (else lst))))
+
+  (parameterize ((%current-client-socket message-port))
+    (proc get-messages)))
+
+(define-syntax-rule (with-command-message-port command get-messages
+                                               body ...)
+  "Evaluate @var{command} and bind @var{get-messages} in the lexical extent of
+@var{body} to a thunk to fetch messages emitted while evaluating
+@var{command}."
+  (call-with-command-message-port command
+                                  (lambda (get-messages)
+                                    body ...)))
+
 (define (process-command command port)
   "Interpret COMMAND, a command sent by the user, represented as a
 <shepherd-command> object.  Send the reply to PORT."
@@ -480,26 +514,7 @@ fork in the child process."
      ;; line to herd before we actually quit.
      (catch 'quit
        (lambda ()
-         (define message-port
-           (with-fluids ((%default-port-encoding "UTF-8"))
-             (open-output-string)))
-
-         (define (get-messages)
-           (let* ((str (get-output-string message-port))
-                  (lst (string-split str #\newline)))
-             ;; 'string-tokenize' swallows empty lines, which is not great,
-             ;; and 'string-split' doesn't distinguish between an empty line
-             ;; and this empty string, which is not great either.  So we hack
-             ;; our way the best we can.
-             (cond ((string-null? str)
-                    '())
-                   ;; If STR ends in \n, drop the trailing empty string since
-                   ;; that would lead the client to print an extra newline.
-                   ((string-suffix? "\n" str)
-                    (drop-right lst 1))
-                   (else lst))))
-
-         (parameterize ((%current-client-socket message-port))
+         (with-command-message-port command get-messages
            (guard (c ((service-error? c)
                       (write-reply (command-reply command #f
                                                   (condition->sexp c)
@@ -558,3 +573,7 @@ would write them on the 'herd' command line."
             (_
              (local-output (l10n "invalid command line") line)))
           (loop (read-line port))))))
+
+;; Local Variables:
+;; eval: (put 'with-command-message-port 'scheme-indent-function 2)
+;; End:
