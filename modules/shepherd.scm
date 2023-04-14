@@ -507,7 +507,7 @@ while evaluating @var{command}."
   "Interpret COMMAND, a command sent by the user, represented as a
 <shepherd-command> object.  Send the reply to PORT."
   (match command
-    (($ <shepherd-command> the-action service-symbol (args ...)
+    (($ <shepherd-command> version the-action service-symbol (args ...)
                            directory)             ;ignored
 
      ;; We have to catch `quit' so that we can send the terminator

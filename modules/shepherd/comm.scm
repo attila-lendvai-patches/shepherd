@@ -29,6 +29,7 @@
             <shepherd-command>
             shepherd-command?
             shepherd-command
+            shepherd-command-version
             shepherd-command-directory
             shepherd-command-action
             shepherd-command-service
@@ -61,17 +62,24 @@
 
 ;; Command for shepherd.
 (define-record-type <shepherd-command>
-  (%shepherd-command action service args directory)
+  (%shepherd-command version action service args directory)
   shepherd-command?
+  (version   shepherd-command-version)            ; list of integers
   (action    shepherd-command-action)             ; symbol
   (service   shepherd-command-service)            ; symbol
   (args      shepherd-command-arguments)          ; list of strings
   (directory shepherd-command-directory))         ; directory name
 
+(define %protocol-version
+  ;; Current client protocol version.
+  '(0))
+
 (define* (shepherd-command action service
-                           #:key (arguments '()) (directory (getcwd)))
+                           #:key
+                           (version %protocol-version)
+                           (arguments '()) (directory (getcwd)))
   "Return a new command for ACTION on SERVICE."
-  (%shepherd-command action service arguments directory))
+  (%shepherd-command version action service arguments directory))
 
 (define* (open-connection #:optional (file default-socket-file))
   "Open a connection to the daemon, using the Unix-domain socket at FILE, and
@@ -110,14 +118,19 @@ wrong---premature end-of-file, invalid sexp, etc."
   (catch 'read-error
     (lambda ()
       (match (read port)
-        (('shepherd-command ('version 0 _ ...)
+        (('shepherd-command ('version version ...)
                             ('action action)
                             ('service service)
                             ('arguments (args ...))
                             ('directory directory))
-         (shepherd-command action service
-                           #:arguments args
-                           #:directory directory))
+         (match version
+           ((0 _ ...)
+            (shepherd-command action service
+                              #:version version
+                              #:arguments args
+                              #:directory directory))
+           (_
+            #f)))
         (_                                        ;EOF or unmatched sexp
          #f)))
     (lambda _
@@ -127,8 +140,9 @@ wrong---premature end-of-file, invalid sexp, etc."
 (define (write-command command port)
   "Write COMMAND to PORT."
   (match command
-    (($ <shepherd-command> action service (arguments ...) directory)
-     (write `(shepherd-command (version 0)        ; protocol version
+    (($ <shepherd-command> version
+        action service (arguments ...) directory)
+     (write `(shepherd-command (version ,@version) ;protocol version
                                (action ,action)
                                (service ,service)
                                (arguments ,arguments)
