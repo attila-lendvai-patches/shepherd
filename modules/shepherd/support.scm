@@ -27,6 +27,7 @@
   #:export (caught-error
             assert
             let-loop
+            at-most
 
             buffering
             catch-system-error
@@ -123,6 +124,20 @@ That reduces the amount of boilerplate for loops with many variables."
                               (extract-value variable (args (... ...)))
                               ...)))))
       body ...)))
+
+(define (at-most max-length lst)
+  "If @var{lst} is shorter than @var{max-length}, return it and the empty list;
+otherwise return its @var{max-length} first elements and its tail."
+  (let loop ((len 0)
+             (lst lst)
+             (result '()))
+    (match lst
+      (()
+       (values (reverse result) '()))
+      ((head . tail)
+       (if (>= len max-length)
+           (values (reverse result) lst)
+           (loop (+ 1 len) tail (cons head result)))))))
 
 (define (buffering port type . args)
   "Return PORT after changing its buffering to TYPE and ARGS."

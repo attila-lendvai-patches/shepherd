@@ -72,6 +72,7 @@ root_service_sexp="
       (respawn? #f)
       (docstring \"The root service is used to operate on shepherd itself.\")
       (enabled? #t) (running #t) (conflicts ()) (last-respawns ())
+      (startup-failures ())
       (status running))"
 
 "$GUILE" -c "
@@ -87,13 +88,13 @@ root_service_sexp="
 	       (provides (foo)) (requires ())
 	       (respawn? #t) (docstring \"Foo!\")
 	       (enabled? #t) (running abc) (conflicts ())
-	       (last-respawns ())
+	       (last-respawns ()) (startup-failures ())
                (status running))
 	     (service (version 0)
 	       (provides (bar)) (requires (foo))
 	       (respawn? #f) (docstring \"Bar!\")
 	       (enabled? #t) (running #f) (conflicts ())
-	       (last-respawns ())
+	       (last-respawns ()) (startup-failures ())
                (status stopped)))))))
 "
 

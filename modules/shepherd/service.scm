@@ -350,6 +350,10 @@ denoting what the service provides."
          (service-controller service channel))))
     channel))
 
+(define %max-recorded-startup-failures
+  ;; Maximum number of service startup failures that are recorded.
+  10)
+
 (define (service-controller service channel)
   "Encapsulate @var{service} state and serve requests arriving on
 @var{channel}."
@@ -368,6 +372,7 @@ denoting what the service provides."
                   (value #f)
                   (condition #f)
                   (enabled? #t)
+                  (failures '())
                   (respawns '())
                   (replacement #f))
     (match (get-message channel)
@@ -382,6 +387,9 @@ denoting what the service provides."
        (loop))
       (('respawn-times reply)
        (put-message reply respawns)
+       (loop))
+      (('startup-failures reply)
+       (put-message reply failures)
        (loop))
 
       ('enable                                    ;no reply
@@ -444,7 +452,11 @@ denoting what the service provides."
                           'running
                           'stopped))
               (value (and (not (one-shot-service? service)) new-value))
-              (condition #f))))
+              (condition #f)
+              (failures (if new-value
+                            failures
+                            (at-most %max-recorded-startup-failures
+                                     (cons (current-time) failures)))))))
 
       (((? change-value-message?) new-value)
        (local-output (l10n "Running value of service ~a changed to ~s.")
@@ -497,7 +509,7 @@ denoting what the service provides."
                      (service-canonical-name service))
        (signal-condition! condition)
        (loop (status 'stopped) (value #f) (condition #f)
-             (respawns '())))
+             (respawns '()) (failures '())))
 
       ('notify-termination                        ;no reply
        (loop (status 'stopped) (value #f)))
@@ -627,6 +639,10 @@ channel and wait for its reply."
 (define service-respawn-times
   ;; Return the list of respawn times of @var{service}.
   (service-control-message 'respawn-times))
+
+(define service-startup-failures
+  ;; Return the list of recent startup failure times for @var{service}.
+  (service-control-message 'startup-failures))
 
 (define service-enabled?
   ;; Return true if @var{service} is enabled, false otherwise.
@@ -965,6 +981,7 @@ clients."
             (running ,(result->sexp (service-running-value service)))
             (conflicts ())                        ;deprecated
             (last-respawns ,(service-respawn-times service))
+            (startup-failures ,(service-startup-failures service))
             (status ,(service-status service))
             ,@(if (one-shot-service? service)
                   '((one-shot? #t))
