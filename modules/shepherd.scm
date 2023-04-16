@@ -289,7 +289,7 @@ fork in the child process."
     ;; Process command line arguments.
     (process-args (program-name) args
 		  ""
-		  "This is a service manager for Unix and GNU."
+		  (l10n "This is a service manager for Unix and GNU.")
 		  not ;; Fail on unknown args.
 		  (option
 		    #:long-name "quiet"

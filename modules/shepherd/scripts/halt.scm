@@ -35,7 +35,7 @@
           (command-args '()))
       (process-args (program-name) args
                     ""
-                    "Halt or power off the system."
+                    (l10n "Halt or power off the system.")
                     not ;; Fail on unknown args.
                     (option
                       #:long-name "socket" #:short-name #\s

@@ -35,7 +35,7 @@
           (command-args '()))
       (process-args (program-name) args
                     ""
-                    "Reboot the system."
+                    (l10n "Reboot the system.")
                     not ;; Fail on unknown args.
                     (option
                       #:long-name "socket" #:short-name #\s
