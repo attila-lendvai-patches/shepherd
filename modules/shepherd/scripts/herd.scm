@@ -91,7 +91,8 @@ of pairs."
   (match service
     (('service ('version 0 _ ...) properties ...)
      (alist-let* properties (provides requires status running respawn? enabled?
-                             last-respawns one-shot? transient?)
+                             last-respawns startup-failures
+                             one-shot? transient?)
        (format #t (l10n "Status of ~a:~%") (first provides))
 
        ;; Note: Shepherd up to 0.9.x included did not provide 'status', hence
@@ -109,7 +110,9 @@ of pairs."
          ('stopped
           (if one-shot?
               (format #t (l10n "  It is stopped (one-shot).~%"))
-              (format #t (l10n "  It is stopped.~%"))))
+              (if (pair? startup-failures)
+                  (format #t (l10n "  It is stopped (failing).~%"))
+                  (format #t (l10n "  It is stopped.~%")))))
          ('starting
           (format #t (l10n "  It is starting.~%")))
          ('stopping
@@ -130,7 +133,14 @@ of pairs."
           (format #t (l10n "  Last respawned on ~a.~%")
                   (date->string
                    (time-utc->date (make-time time-utc 0 time)))))
-         (_ #t))))))
+         (_ #t))
+       (when (or (eq? status 'stopped) (not running))
+         (match startup-failures
+           ((time _ ...)
+            (format #t (l10n "  Failed to start at ~a.~%")
+                    (date->string
+                     (time-utc->date (make-time time-utc 0 time)))))
+           (_ #t)))))))
 
 (define root-service?
   ;; XXX: This procedure is written in a surprising way to work around a
