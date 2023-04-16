@@ -41,7 +41,7 @@ cat > "$conf" <<EOF
    #:respawn? #f))
 EOF
 
-rm -f "$pid" "$stamp" "$socket"
+rm -f "$pid" "$socket"
 shepherd -I -s "$socket" -c /dev/null --pid="$pid" --log="$log" &
 
 while ! test -f "$pid"; do sleep 0.5 ; done
