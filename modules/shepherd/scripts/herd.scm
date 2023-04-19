@@ -25,7 +25,7 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-11)
+  #:use-module (srfi srfi-71)
   #:use-module (srfi srfi-19)
   #:export (main))
 
@@ -58,19 +58,19 @@ of pairs."
                           (service-canonical-name service)))
                 (sort services service<?))))      ;get deterministic output
 
-  (let*-values (((started stopped)
-                 (partition (match-lambda
-                              (('service ('version 0 _ ...) properties ...)
-                               (car (assoc-ref properties 'running))))
-                            services))
-                ((one-shot stopped)
-                 (partition (match-lambda
-                              (('service ('version 0 _ ...) properties ...)
-                               ;; Prior to 0.6.1, shepherd did not send the
-                               ;; 'one-shot?' property; thus, do not assume
-                               ;; that it's available.
-                               (and=> (assoc-ref properties 'one-shot?) car)))
-                            stopped)))
+  (let* ((started stopped
+                  (partition (match-lambda
+                               (('service ('version 0 _ ...) properties ...)
+                                (car (assoc-ref properties 'running))))
+                             services))
+         (one-shot stopped
+                   (partition (match-lambda
+                                (('service ('version 0 _ ...) properties ...)
+                                 ;; Prior to 0.6.1, shepherd did not send the
+                                 ;; 'one-shot?' property; thus, do not assume
+                                 ;; that it's available.
+                                 (and=> (assoc-ref properties 'one-shot?) car)))
+                              stopped)))
     (display-services (l10n "Started:\n") "+"
                       started)
     (display-services (l10n "Stopped:\n") "-"

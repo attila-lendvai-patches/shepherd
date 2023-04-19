@@ -1,5 +1,5 @@
 ;; system.scm -- Low-level operating system interface.
-;; Copyright (C) 2013-2014, 2016, 2018, 2020, 2022 Ludovic Courtès <ludo@gnu.org>
+;; Copyright (C) 2013-2014, 2016, 2018, 2020, 2022-2023 Ludovic Courtès <ludo@gnu.org>
 ;; Copyright (C) 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 ;; Copyright (C) 2020 Jan (janneke) Nieuwenhuizen <janneke@gnu.org>
 ;;
@@ -22,7 +22,7 @@
   #:use-module (system foreign)
   #:use-module (ice-9 binary-ports)
   #:use-module (rnrs bytevectors)
-  #:use-module (srfi srfi-11)
+  #:use-module (srfi srfi-71)
   #:use-module (srfi srfi-26)
   #:export (disable-reboot-on-ctrl-alt-del
             reboot
@@ -75,7 +75,7 @@ the returned procedure is called."
             (else howto)))
 
     (lambda (howto)
-      (let-values (((ret err) (proc howto)))
+      (let ((ret err (proc howto)))
         (unless (zero? ret)
           (throw 'system-error "reboot" "~A: ~S"
                  (list (strerror err) (howto->symbol howto))
@@ -107,7 +107,7 @@ ctrlaltdel(8) and see kernel/reboot.c in Linux."
   (let ((proc (syscall->procedure long "sysconf" (list int))))
     (lambda (name)
       "Return the system configuration for NAME."
-      (let-values (((result err) (proc name)))
+      (let ((result err (proc name)))
         (if (= -1 result)
             (throw 'system-error "sysconf" "~A: ~S"
                    (list (strerror err) name)
@@ -120,7 +120,7 @@ ctrlaltdel(8) and see kernel/reboot.c in Linux."
   (let ((proc (syscall->procedure long "prctl" (list int int))))
     (lambda (process operation)
       "Perform an operation on the given process"
-      (let-values (((result err) (proc process operation)))
+      (let ((result err (proc process operation)))
         (if (= -1 result)
             (throw 'system-error "prctl" "~A"
                    (list (strerror err))
@@ -136,7 +136,7 @@ ctrlaltdel(8) and see kernel/reboot.c in Linux."
   (let ((proc (syscall->procedure int "getpgid" (list int))))
     (lambda (pid)
       "Return the process group ID for process PID."
-      (let-values (((result err) (proc pid)))
+      (let ((result err (proc pid)))
         (if (= -1 result)
             (throw 'system-error "getpgid" "~A"
                    (list (strerror err))
@@ -180,7 +180,7 @@ local machine.  The car is the input port, and the cdr is the output port.
 The difference compared to 'pipe' is that is the optional FLAGS argument."
       (let* ((bv  (make-bytevector (* (sizeof int) 2)))
              (ptr (bytevector->pointer bv)))
-        (let-values (((result err) (proc ptr flags)))
+        (let ((result err (proc ptr flags)))
           (if (zero? result)
               (let ((in  (bytevector-sint-ref bv 0
                                               (native-endianness)
@@ -265,8 +265,7 @@ set of blocked signals as a list of SIG* values."
       (define old
         (allocate-sigset))
 
-      (let-values (((result err)
-                    (proc how (sigset signals) old)))
+      (let ((result err (proc how (sigset signals) old)))
         (if (= -1 result)
             (throw 'system-error "sigprocmask" "~A"
                    (list (strerror err)) (list err))
