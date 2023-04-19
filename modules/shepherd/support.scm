@@ -22,6 +22,7 @@
 
 (define-module (shepherd support)
   #:use-module (shepherd config)
+  #:autoload   (shepherd colors) (color-output? color colorize-string)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:export (caught-error
@@ -153,22 +154,6 @@ otherwise return its @var{max-length} first elements and its tail."
     (lambda (key . args)
       #f)))
 
-(define (call-with-system-error-handling thunk)
-  "Call THUNK, catching any 'system-error' exception."
-  (catch 'system-error
-    thunk
-    (lambda (key proc format-string format-args . rest)
-      (format (current-error-port) "error: ~a: ~a~%" proc
-              (apply format #f format-string format-args))
-      (quit 1))))
-
-(define-syntax-rule (with-system-error-handling body ...)
-  "Evaluate BODY in a context where 'system-error' throws are caught and
-turned into user error messages."
-  (call-with-system-error-handling
-   (lambda ()
-     body ...)))
-
 (define (with-atomic-file-output file proc)       ;copied from Guix
   "Call PROC with an output port for the file that is going to replace FILE.
 Upon success, FILE is atomically replaced by what has been written to the
@@ -272,16 +257,42 @@ There is NO WARRANTY, to the extent permitted by law.")))
   ;; Name of the program currently executing.
   (make-parameter "shepherd"))
 
+(define (print-error-message message)
+  "Print @var{message} to the current error port, prefixing it in standard GNU
+error format."
+  (define colorize
+    (if (color-output? (current-error-port))
+        (lambda (str)
+          (colorize-string str (color BOLD RED)))
+        identity))
+
+  (format (current-error-port) "~a: ~a: ~a~%" (program-name)
+          (colorize (l10n "error")) message))
+
 (define-syntax report-error
   (lambda (s)
     "Report the given error message to stderr in standard GNU error format."
-    (syntax-case s ()
-      ((_ (p message) args ...)
-       (and (free-identifier=? #'p #'l10n)
-            (string? (syntax->datum #'message)))
+    (syntax-case s (l10n)
+      ((_ (l10n message) args ...)
+       (string? (syntax->datum #'message))
 
-       #'(format (current-error-port) "~a: ~a~%" (program-name)
-                 (format #f (l10n message) args ...))))))
+       #'(print-error-message (format #f (l10n message) args ...))))))
+
+(define (call-with-system-error-handling thunk)
+  "Call THUNK, catching any 'system-error' exception."
+  (catch 'system-error
+    thunk
+    (lambda (key proc format-string format-args . rest)
+      (report-error (l10n "~a")
+                    (apply format #f format-string format-args))
+      (quit 1))))
+
+(define-syntax-rule (with-system-error-handling body ...)
+  "Evaluate BODY in a context where 'system-error' throws are caught and
+turned into user error messages."
+  (call-with-system-error-handling
+   (lambda ()
+     body ...)))
 
 (define* (display-line message #:optional (port (current-output-port)))
   "Display MESSAGE followed by a newline to PORT."
