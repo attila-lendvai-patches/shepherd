@@ -451,5 +451,6 @@ directory are not checked."
     (let ((dir-stat (stat dir)))
       (unless (and (= (stat:uid dir-stat) (getuid))
                    (= (stat:perms dir-stat) #o700))
-        (local-output (l10n "Socket directory setup is insecure."))
+        (report-error (l10n "~a: socket directory has insecure permissions")
+                      dir)
         (exit 1)))))
