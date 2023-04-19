@@ -39,6 +39,7 @@ shepherdsubdir = $(guilemoduledir)/shepherd
 servicesubdir = $(guilemoduledir)/shepherd/service
 dist_shepherdsub_DATA =				\
   modules/shepherd/args.scm			\
+  modules/shepherd/colors.scm			\
   modules/shepherd/service.scm			\
   modules/shepherd/support.scm			\
   modules/shepherd/comm.scm
