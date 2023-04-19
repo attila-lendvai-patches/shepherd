@@ -48,11 +48,13 @@ while ! test -f "$pid"; do sleep 0.5 ; done
 if $herd start may-fail; then false; else true; fi
 $herd status may-fail | grep stopped
 $herd status may-fail | grep "Failed to start"
+$herd status | grep "Failed to start:"
 
 touch "$stamp"
 $herd start may-fail
 $herd status may-fail | grep started
 $herd status may-fail | grep -v "Failed to start"
+$herd status | grep -v "Failed to start:"
 
 # Once the service has been stopped gracefully, the "Failed to start" message
 # should not appear any longer.

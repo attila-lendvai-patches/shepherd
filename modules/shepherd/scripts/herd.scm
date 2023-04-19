@@ -70,7 +70,13 @@ of pairs."
                                  ;; 'one-shot?' property; thus, do not assume
                                  ;; that it's available.
                                  (and=> (assoc-ref properties 'one-shot?) car)))
-                              stopped)))
+                              stopped))
+         (failing stopped
+                  (partition (match-lambda
+                               (('service ('version 0 _ ...) properties ...)
+                                (and=> (assoc-ref properties 'startup-failures)
+                                       (compose pair? car))))
+                             stopped)))
     (display-services (l10n "Started:\n") "+"
                       started)
     (display-services (l10n "Stopped:\n") "-"
@@ -80,7 +86,10 @@ of pairs."
     ;; services that are immediately marked as stopped once their 'start'
     ;; method has completed.
     (display-services (l10n "One-shot:\n") "*"
-                      one-shot)))
+                      one-shot)
+
+    (display-services (l10n "Failed to start:\n") "!"
+                      failing)))
 
 (define (display-detailed-status services)
   "Display the detailed status of SERVICES."
