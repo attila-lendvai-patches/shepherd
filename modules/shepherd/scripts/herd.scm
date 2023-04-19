@@ -22,6 +22,7 @@
   #:use-module (shepherd support)
   #:use-module (shepherd args)
   #:use-module (shepherd comm)
+  #:use-module (shepherd colors)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
@@ -77,18 +78,18 @@ of pairs."
                                 (and=> (assoc-ref properties 'startup-failures)
                                        (compose pair? car))))
                              stopped)))
-    (display-services (l10n "Started:\n") "+"
+    (display-services (highlight (l10n "Started:\n")) "+"
                       started)
-    (display-services (l10n "Stopped:\n") "-"
+    (display-services (highlight (l10n "Stopped:\n")) "-"
                       stopped)
 
     ;; TRANSLATORS: Here "one-shot" refers to "one-shot services".  These are
     ;; services that are immediately marked as stopped once their 'start'
     ;; method has completed.
-    (display-services (l10n "One-shot:\n") "*"
+    (display-services (highlight (l10n "One-shot:\n")) "*"
                       one-shot)
 
-    (display-services (l10n "Failed to start:\n") "!"
+    (display-services (highlight/error (l10n "Failed to start:\n")) "!"
                       failing)))
 
 (define (display-detailed-status services)
@@ -102,7 +103,7 @@ of pairs."
      (alist-let* properties (provides requires status running respawn? enabled?
                              last-respawns startup-failures
                              one-shot? transient?)
-       (format #t (l10n "Status of ~a:~%") (first provides))
+       (format #t (highlight (l10n "Status of ~a:~%")) (first provides))
 
        ;; Note: Shepherd up to 0.9.x included did not provide 'status', hence
        ;; the 'or' below.
@@ -120,8 +121,10 @@ of pairs."
           (if one-shot?
               (format #t (l10n "  It is stopped (one-shot).~%"))
               (if (pair? startup-failures)
-                  (format #t (l10n "  It is stopped (failing).~%"))
-                  (format #t (l10n "  It is stopped.~%")))))
+                  (format #t (highlight/error
+                              (l10n "  It is stopped (failing).~%")))
+                  (format #t (highlight/warn
+                              (l10n "  It is stopped.~%"))))))
          ('starting
           (format #t (l10n "  It is starting.~%")))
          ('stopping
@@ -131,7 +134,7 @@ of pairs."
 
        (if enabled?
            (format #t (l10n "  It is enabled.~%"))
-           (format #t (l10n "  It is disabled.~%")))
+           (format #t (highlight/warn (l10n "  It is disabled.~%"))))
        (format #t (l10n "  Provides ~a.~%") provides)
        (format #t (l10n "  Requires ~a.~%") requires)
        (if respawn?
@@ -146,7 +149,7 @@ of pairs."
        (when (or (eq? status 'stopped) (not running))
          (match startup-failures
            ((time _ ...)
-            (format #t (l10n "  Failed to start at ~a.~%")
+            (format #t (highlight/error (l10n "  Failed to start at ~a.~%"))
                     (date->string
                      (time-utc->date (make-time time-utc 0 time)))))
            (_ #t)))))))

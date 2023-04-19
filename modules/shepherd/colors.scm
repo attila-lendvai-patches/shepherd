@@ -33,6 +33,7 @@
             colorize-string
             highlight
             highlight/warn
+            highlight/error
             dim
 
             colorize-full-matches
@@ -158,6 +159,7 @@ that subsequent output will not have any colors in effect."
 
 (define highlight (coloring-procedure (color BOLD)))
 (define highlight/warn (coloring-procedure (color BOLD MAGENTA)))
+(define highlight/error (coloring-procedure (color BOLD RED)))
 (define dim (coloring-procedure (color DARK)))
 
 (define (colorize-full-matches rules)
