@@ -53,6 +53,12 @@
   "Return the 'canonical name' of @var{service}."
   (first (live-service-provision service)))
 
+(define (live-service-status-predicate status)
+  "Return a predicate that returns true when passed a service with the given
+@var{status}."
+  (lambda (service)
+    (eq? status (live-service-status service))))
+
 (define-syntax alist-let*
   (syntax-rules ()
     "Bind the given KEYs in EXP to the corresponding items in ALIST.  ALIST
@@ -96,15 +102,23 @@ into a @code{live-service} record."
                           (live-service-canonical-name service)))
                 (sort services service<?))))      ;get deterministic output
 
-  (let* ((started stopped (partition live-service-running-value services))
+  (let* ((started  (filter (live-service-status-predicate 'running) services))
+         (stopped  (filter (live-service-status-predicate 'stopped) services))
+         (starting (filter (live-service-status-predicate 'starting) services))
+         (stopping (filter (live-service-status-predicate 'stopping) services))
          (one-shot stopped (partition live-service-one-shot? stopped))
          (failing stopped
                   (partition (compose pair? live-service-startup-failures)
                              stopped)))
     (display-services (highlight (l10n "Started:\n")) "+"
                       started)
+    (display-services (highlight (l10n "Starting:\n")) "^"
+                      starting)
+
     (display-services (highlight (l10n "Stopped:\n")) "-"
                       stopped)
+    (display-services (highlight (l10n "Stopping:\n")) "v"
+                      stopping)
 
     ;; TRANSLATORS: Here "one-shot" refers to "one-shot services".  These are
     ;; services that are immediately marked as stopped once their 'start'

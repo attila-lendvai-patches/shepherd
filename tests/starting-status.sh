@@ -60,6 +60,7 @@ $herd start test &
 herd_pid=$!
 
 $herd status
+$herd status | grep ' ^ test'
 $herd status test
 $herd status test | grep starting
 
