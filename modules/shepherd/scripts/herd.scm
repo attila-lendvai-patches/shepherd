@@ -26,11 +26,33 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-71)
   #:use-module (srfi srfi-19)
   #:export (main))
 
 
+;; Information about live services.
+(define-record-type <live-service>
+  (live-service provision requirement one-shot? transient? respawn?
+                enabled? status running last-respawns startup-failures)
+  live-service?
+  (provision        live-service-provision)       ;list of symbols
+  (requirement      live-service-requirement)     ;list of symbols
+  (one-shot?        live-service-one-shot?)       ;Boolean
+  (transient?       live-service-transient?)      ;Boolean
+  (respawn?         live-service-respawn?)        ;Boolean
+
+  (enabled?         live-service-enabled?)         ;Boolean
+  (status           live-service-status)           ;symbol
+  (running          live-service-running-value)    ;#f | object
+  (last-respawns    live-service-last-respawns)    ;list of integers
+  (startup-failures live-service-startup-failures)) ;list of integers
+
+(define (live-service-canonical-name service)
+  "Return the 'canonical name' of @var{service}."
+  (first (live-service-provision service)))
+
 (define-syntax alist-let*
   (syntax-rules ()
     "Bind the given KEYs in EXP to the corresponding items in ALIST.  ALIST
@@ -40,43 +62,44 @@ of pairs."
      (let ((key (and=> (assoc-ref alist 'key) car)) ...)
        exp ...))))
 
-(define service-canonical-name
-  (match-lambda
-    (('service ('version 0 _ ...) (provides (name0 _ ...)) _ ...)
-     name0)))
+(define (sexp->live-service sexp)
+  "Turn @var{sexp}, the wire representation of a service returned by shepherd,
+into a @code{live-service} record."
+  (match sexp
+    (('service ('version 0 _ ...) properties ...)
+     (alist-let* properties (provides requires status running respawn? enabled?
+                             last-respawns startup-failures
+                             one-shot? transient?)
+       (live-service provides requires one-shot?
+                     (if (sloppy-assq 'transient? properties)
+                         transient?
+                         (and running *unspecified*))
+                     respawn?
+
+                     enabled?
+                     (or status (if running 'running 'stopped))
+                     running
+                     (or last-respawns '())
+                     (or startup-failures '()))))))
 
 (define (display-status-summary services)
   "Display a summary of the status of all of SERVICES."
   (define (service<? service1 service2)
-    (string<? (symbol->string (service-canonical-name service1))
-              (symbol->string (service-canonical-name service2))))
+    (string<? (symbol->string (live-service-canonical-name service1))
+              (symbol->string (live-service-canonical-name service2))))
 
   (define (display-services header bullet services)
     (unless (null? services)
       (display header)
       (for-each (lambda (service)
                   (format #t " ~a ~a~%" bullet
-                          (service-canonical-name service)))
+                          (live-service-canonical-name service)))
                 (sort services service<?))))      ;get deterministic output
 
-  (let* ((started stopped
-                  (partition (match-lambda
-                               (('service ('version 0 _ ...) properties ...)
-                                (car (assoc-ref properties 'running))))
-                             services))
-         (one-shot stopped
-                   (partition (match-lambda
-                                (('service ('version 0 _ ...) properties ...)
-                                 ;; Prior to 0.6.1, shepherd did not send the
-                                 ;; 'one-shot?' property; thus, do not assume
-                                 ;; that it's available.
-                                 (and=> (assoc-ref properties 'one-shot?) car)))
-                              stopped))
+  (let* ((started stopped (partition live-service-running-value services))
+         (one-shot stopped (partition live-service-one-shot? stopped))
          (failing stopped
-                  (partition (match-lambda
-                               (('service ('version 0 _ ...) properties ...)
-                                (and=> (assoc-ref properties 'startup-failures)
-                                       (compose pair? car))))
+                  (partition (compose pair? live-service-startup-failures)
                              stopped)))
     (display-services (highlight (l10n "Started:\n")) "+"
                       started)
@@ -98,61 +121,58 @@ of pairs."
 
 (define (display-service-status service)
   "Display the status of SERVICE, an sexp."
-  (match service
-    (('service ('version 0 _ ...) properties ...)
-     (alist-let* properties (provides requires status running respawn? enabled?
-                             last-respawns startup-failures
-                             one-shot? transient?)
-       (format #t (highlight (l10n "Status of ~a:~%")) (first provides))
+  (format #t (highlight (l10n "Status of ~a:~%"))
+          (live-service-canonical-name service))
 
-       ;; Note: Shepherd up to 0.9.x included did not provide 'status', hence
-       ;; the 'or' below.
-       (match (or status (if running 'running 'stopped))
-         ('running
-          (if transient?
-              (format #t (l10n "  It is started and transient.~%"))
-              (format #t (l10n "  It is started.~%")))
+  ;; Note: Shepherd up to 0.9.x included did not provide 'status', hence
+  ;; the 'or' below.
+  (match (live-service-status service)
+    ('running
+     (if (live-service-transient? service)
+         (format #t (l10n "  It is started and transient.~%"))
+         (format #t (l10n "  It is started.~%")))
 
-          ;; TRANSLATORS: The "~s" bit is most of the time a placeholder
-          ;; for the PID (an integer) of the running process, and
-          ;; occasionally for another Scheme object.
-          (format #t (l10n "  Running value is ~s.~%") running))
-         ('stopped
-          (if one-shot?
-              (format #t (l10n "  It is stopped (one-shot).~%"))
-              (if (pair? startup-failures)
-                  (format #t (highlight/error
-                              (l10n "  It is stopped (failing).~%")))
-                  (format #t (highlight/warn
-                              (l10n "  It is stopped.~%"))))))
-         ('starting
-          (format #t (l10n "  It is starting.~%")))
-         ('stopping
-          (format #t (l10n "  It is being stopped.~%")))
-         (x
-          (format #t (l10n "  Unknown status '~a'~%.") x)))
+     ;; TRANSLATORS: The "~s" bit is most of the time a placeholder
+     ;; for the PID (an integer) of the running process, and
+     ;; occasionally for another Scheme object.
+     (format #t (l10n "  Running value is ~s.~%")
+             (live-service-running-value service)))
+    ('stopped
+     (if (live-service-one-shot? service)
+         (format #t (l10n "  It is stopped (one-shot).~%"))
+         (if (pair? (live-service-startup-failures service))
+             (format #t (highlight/error
+                         (l10n "  It is stopped (failing).~%")))
+             (format #t (highlight/warn
+                         (l10n "  It is stopped.~%"))))))
+    ('starting
+     (format #t (l10n "  It is starting.~%")))
+    ('stopping
+     (format #t (l10n "  It is being stopped.~%")))
+    (x
+     (format #t (l10n "  Unknown status '~a'~%.") x)))
 
-       (if enabled?
-           (format #t (l10n "  It is enabled.~%"))
-           (format #t (highlight/warn (l10n "  It is disabled.~%"))))
-       (format #t (l10n "  Provides ~a.~%") provides)
-       (format #t (l10n "  Requires ~a.~%") requires)
-       (if respawn?
-           (format #t (l10n "  Will be respawned.~%"))
-           (format #t (l10n "  Will not be respawned.~%")))
-       (match last-respawns
-         ((time _ ...)
-          (format #t (l10n "  Last respawned on ~a.~%")
-                  (date->string
-                   (time-utc->date (make-time time-utc 0 time)))))
-         (_ #t))
-       (when (or (eq? status 'stopped) (not running))
-         (match startup-failures
-           ((time _ ...)
-            (format #t (highlight/error (l10n "  Failed to start at ~a.~%"))
-                    (date->string
-                     (time-utc->date (make-time time-utc 0 time)))))
-           (_ #t)))))))
+  (if (live-service-enabled? service)
+      (format #t (l10n "  It is enabled.~%"))
+      (format #t (highlight/warn (l10n "  It is disabled.~%"))))
+  (format #t (l10n "  Provides ~a.~%") (live-service-provision service))
+  (format #t (l10n "  Requires ~a.~%") (live-service-requirement service))
+  (if (live-service-respawn? service)
+      (format #t (l10n "  Will be respawned.~%"))
+      (format #t (l10n "  Will not be respawned.~%")))
+  (match (live-service-last-respawns service)
+    ((time _ ...)
+     (format #t (l10n "  Last respawned on ~a.~%")
+             (date->string
+              (time-utc->date (make-time time-utc 0 time)))))
+    (_ #t))
+  (when (eq? (live-service-status service) 'stopped)
+    (match (live-service-startup-failures service)
+      ((time _ ...)
+       (format #t (highlight/error (l10n "  Failed to start at ~a.~%"))
+               (date->string
+                (time-utc->date (make-time time-utc 0 time)))))
+      (_ #t))))
 
 (define root-service?
   ;; XXX: This procedure is written in a surprising way to work around a
@@ -187,9 +207,11 @@ the daemon via SOCKET-FILE."
         ;; Then interpret the result
         (match (list action service)
           (('status (or 'root 'shepherd))
-           (display-status-summary (first result)))
+           (display-status-summary
+            (map sexp->live-service (first result))))
           (('detailed-status (or 'root 'shepherd))
-           (display-detailed-status (first result)))
+           (display-detailed-status
+            (map sexp->live-service (first result))))
           (('help (or 'root 'shepherd))
            (match result
              ((help-text)
@@ -202,8 +224,10 @@ the daemon via SOCKET-FILE."
               (newline))))
           (('status _)
            ;; We get a list of statuses, in case several services have the
-           ;; same name.
-           (for-each display-service-status result))
+           ;; same name.  FIXME: These days each name maps to exactly one
+           ;; service so RESULT is always a singleton.
+           (for-each (compose display-service-status sexp->live-service)
+                     result))
           (('start _)
            (unless result
              (report-error (l10n "failed to start service ~a")
