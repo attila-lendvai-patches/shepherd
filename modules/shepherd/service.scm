@@ -60,10 +60,14 @@
             service-documentation
 
             service-canonical-name
+            service-running-value
             service-status
             service-running?
             service-stopped?
             service-enabled?
+            service-respawn-times
+            service-startup-failures
+            service-replacement
             service-action-list
             lookup-service-action
             service-defines-action?
