@@ -73,7 +73,8 @@
     (source source-checkout)
     (build-system gnu-build-system)
     (arguments
-     (list #:phases
+     (list #:configure-flags #~'("--localstatedir=/var")
+           #:phases
            (if (%current-target-system)
                #~(modify-phases %standard-phases
                    (add-before 'configure 'set-fibers-directory
