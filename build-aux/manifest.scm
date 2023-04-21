@@ -19,6 +19,13 @@
 (use-modules (guix)
              (guix profiles)
              (shepherd-package)
+             (gnu system)
+             ((gnu system vm)
+              #:select (virtual-machine
+                        virtualized-operating-system))
+             (gnu services shepherd)
+             (gnu tests)
+             (gnu tests base)
              (srfi srfi-1))
 
 (define* (package->manifest-entry* package system
@@ -57,4 +64,44 @@ TARGET."
           "aarch64-linux-gnu"
           "riscv64-linux-gnu"))))
 
-(concatenate-manifests (list native-builds cross-builds))
+(define (operating-system-with-latest-shepherd os)
+  "Return @var{os}, running with the current Shepherd."
+  (operating-system
+    (inherit os)
+    (essential-services
+     (modify-services (operating-system-default-essential-services
+                       this-operating-system)
+       (shepherd-root-service-type
+        config => (shepherd-configuration
+                   (shepherd shepherd)))))))
+
+(define system-test/base
+  ;; "Base" system test running against the latest Shepherd.
+  (system-test
+   (name "system-test-base")
+   (description "Test Guix System with the latest Shepherd.")
+   (value
+    (let* ((os (marionette-operating-system
+                (operating-system-with-latest-shepherd %simple-os)
+                #:imported-modules '((gnu services herd)
+                                     (guix combinators))))
+           (vm (virtual-machine os)))
+      ;; XXX: Add call to 'virtualized-operating-system' to get the exact same
+      ;; set of services as the OS in VM.
+      (run-basic-test (virtualized-operating-system os '())
+                      #~(list #$vm)
+                      name)))))
+
+(define (system-test->manifest-entry test)
+  "Return a manifest entry for @var{test}, a system test."
+  (manifest-entry
+    (name (system-test-name test))
+    (version "0")
+    (item test)))
+
+(define system-tests
+  (manifest
+   (map system-test->manifest-entry
+        (list system-test/base))))
+
+(concatenate-manifests (list native-builds cross-builds system-tests))
