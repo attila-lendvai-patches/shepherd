@@ -67,6 +67,7 @@
             service-enabled?
             service-respawn-times
             service-startup-failures
+            service-status-changes
             service-replacement
             service-action-list
             lookup-service-action
@@ -354,6 +355,10 @@ denoting what the service provides."
          (service-controller service channel))))
     channel))
 
+(define %max-recorded-status-changes
+  ;; Maximum number of service status changes that are recorded.
+  10)
+
 (define %max-recorded-startup-failures
   ;; Maximum number of service startup failures that are recorded.
   10)
@@ -376,9 +381,15 @@ denoting what the service provides."
                   (value #f)
                   (condition #f)
                   (enabled? #t)
-                  (failures '())
-                  (respawns '())
+                  (changes '())                ;list of status/timestamp pairs
+                  (failures '())               ;list of timestamps
+                  (respawns '())               ;list of timestamps
                   (replacement #f))
+    (define (update-status-changes status)
+      ;; Add STATUS to CHANGES, the alist of status changes.
+      (at-most %max-recorded-status-changes
+               (alist-cons status (current-time) changes)))
+
     (match (get-message channel)
       (('running reply)
        (put-message reply value)
@@ -394,6 +405,9 @@ denoting what the service provides."
        (loop))
       (('startup-failures reply)
        (put-message reply failures)
+       (loop))
+      (('status-changes reply)
+       (put-message reply changes)
        (loop))
 
       ('enable                                    ;no reply
@@ -435,6 +449,7 @@ denoting what the service provides."
                               (service-canonical-name service))
                 (put-message reply notification)
                 (loop (status 'starting)
+                      (changes (update-status-changes 'starting))
                       (condition (make-condition)))))))
       (((? started-message?) new-value)           ;no reply
        ;; When NEW-VALUE is a procedure, call it to get the actual value and
@@ -452,15 +467,17 @@ denoting what the service provides."
           (monitor-service-process service new-value))
 
         (signal-condition! condition)
-        (loop (status (if (and new-value (not (one-shot-service? service)))
-                          'running
-                          'stopped))
-              (value (and (not (one-shot-service? service)) new-value))
-              (condition #f)
-              (failures (if new-value
-                            failures
-                            (at-most %max-recorded-startup-failures
-                                     (cons (current-time) failures)))))))
+        (let ((new-status (if (and new-value (not (one-shot-service? service)))
+                              'running
+                              'stopped)))
+          (loop (status new-status)
+                (value (and (not (one-shot-service? service)) new-value))
+                (changes (update-status-changes new-status))
+                (condition #f)
+                (failures (if new-value
+                              failures
+                              (at-most %max-recorded-startup-failures
+                                       (cons (current-time) failures))))))))
 
       (((? change-value-message?) new-value)
        (local-output (l10n "Running value of service ~a changed to ~s.")
@@ -507,16 +524,21 @@ denoting what the service provides."
                               (service-canonical-name service))
                 (put-message reply notification)
                 (loop (status 'stopping)
+                      (changes (update-status-changes 'stopping))
                       (condition (make-condition)))))))
       ((? stopped-message?)                       ;no reply
        (local-output (l10n "Service ~a is now stopped.")
                      (service-canonical-name service))
        (signal-condition! condition)
-       (loop (status 'stopped) (value #f) (condition #f)
+       (loop (status 'stopped)
+             (changes (update-status-changes 'stopped))
+             (value #f) (condition #f)
              (respawns '()) (failures '())))
 
       ('notify-termination                        ;no reply
-       (loop (status 'stopped) (value #f)))
+       (loop (status 'stopped)
+             (changes (update-status-changes 'stopped))
+             (value #f)))
 
       (('handle-termination pid exit-status)      ;no reply
        ;; Handle premature termination of this service's process, possibly by
@@ -532,7 +554,9 @@ denoting what the service provides."
                 (false-if-exception
                  ((service-termination-handler service)
                   service value exit-status))))
-             (loop (status 'stopped) (value #f) (condition #f)))))
+             (loop (status 'stopped)
+                   (changes (update-status-changes 'stopped))
+                   (value #f) (condition #f)))))
 
       ('record-respawn-time                       ;no reply
        (loop (respawns (cons (current-time) respawns))))
@@ -647,6 +671,11 @@ channel and wait for its reply."
 (define service-startup-failures
   ;; Return the list of recent startup failure times for @var{service}.
   (service-control-message 'startup-failures))
+
+(define service-status-changes
+  ;; Return the list of symbol/timestamp pairs representing recent state
+  ;; changes for @var{service}.
+  (service-control-message 'status-changes))
 
 (define service-enabled?
   ;; Return true if @var{service} is enabled, false otherwise.
