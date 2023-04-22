@@ -109,7 +109,7 @@ $herd start test-2
 test -f "$stamp"
 test -f "$stamp-2"
 $herd status test | grep stopped.*one-shot
-$herd status test-2 | grep started
+$herd status test-2 | grep running
 $herd stop test-2
 if test -f "$stamp-2"; then false; else true; fi
 

@@ -1014,6 +1014,7 @@ clients."
             (running ,(result->sexp (service-running-value service)))
             (conflicts ())                        ;deprecated
             (last-respawns ,(service-respawn-times service))
+            (status-changes ,(service-status-changes service))
             (startup-failures ,(service-startup-failures service))
             (status ,(service-status service))
             ,@(if (one-shot-service? service)

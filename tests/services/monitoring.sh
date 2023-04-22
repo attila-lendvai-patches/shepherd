@@ -43,7 +43,7 @@ shepherd -I -s "$socket" -c "$conf" -l "$log" --pid="$pid" &
 while ! test -f "$pid" ; do sleep 0.3 ; done
 
 $herd start monitoring
-$herd status monitoring | grep "started"
+$herd status monitoring | grep running
 
 n=0
 while ! grep "heap:" "$log" && test $n -lt 10

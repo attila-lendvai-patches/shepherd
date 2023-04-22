@@ -35,7 +35,8 @@
 ;; Information about live services.
 (define-record-type <live-service>
   (live-service provision requirement one-shot? transient? respawn?
-                enabled? status running last-respawns startup-failures)
+                enabled? status running
+                status-changes last-respawns startup-failures)
   live-service?
   (provision        live-service-provision)       ;list of symbols
   (requirement      live-service-requirement)     ;list of symbols
@@ -46,6 +47,7 @@
   (enabled?         live-service-enabled?)         ;Boolean
   (status           live-service-status)           ;symbol
   (running          live-service-running-value)    ;#f | object
+  (status-changes   live-service-status-changes)   ;symbol/integer pairs
   (last-respawns    live-service-last-respawns)    ;list of integers
   (startup-failures live-service-startup-failures)) ;list of integers
 
@@ -74,7 +76,7 @@ into a @code{live-service} record."
   (match sexp
     (('service ('version 0 _ ...) properties ...)
      (alist-let* properties (provides requires status running respawn? enabled?
-                             last-respawns startup-failures
+                             status-changes last-respawns startup-failures
                              one-shot? transient?)
        (live-service provides requires one-shot?
                      (if (sloppy-assq 'transient? properties)
@@ -85,6 +87,7 @@ into a @code{live-service} record."
                      enabled?
                      (or status (if running 'running 'stopped))
                      running
+                     (or status-changes '())
                      (or last-respawns '())
                      (or startup-failures '()))))))
 
@@ -135,16 +138,27 @@ into a @code{live-service} record."
 
 (define (display-service-status service)
   "Display the status of SERVICE, an sexp."
+  (define (timestamp->string time)
+    (date->string
+     (time-utc->date (make-time time-utc 0 time))))
+
   (format #t (highlight (l10n "Status of ~a:~%"))
           (live-service-canonical-name service))
 
-  ;; Note: Shepherd up to 0.9.x included did not provide 'status', hence
-  ;; the 'or' below.
   (match (live-service-status service)
     ('running
-     (if (live-service-transient? service)
-         (format #t (l10n "  It is started and transient.~%"))
-         (format #t (l10n "  It is started.~%")))
+     (match (live-service-status-changes service)
+       ((('running . time) . _)
+        (if (live-service-transient? service)
+            (format #t (l10n "  It is transient, running since ~a.~%")
+                    (timestamp->string time))
+            (format #t (l10n "  It is running since ~a.~%")
+                    (timestamp->string time))))
+       (_
+        ;; Shepherd 0.9.x did not provide status change times.
+        (if (live-service-transient? service)
+            (format #t (l10n "  It is started and transient.~%"))
+            (format #t (l10n "  It is started.~%")))))
 
      ;; TRANSLATORS: The "~s" bit is most of the time a placeholder
      ;; for the PID (an integer) of the running process, and
@@ -157,8 +171,14 @@ into a @code{live-service} record."
          (if (pair? (live-service-startup-failures service))
              (format #t (highlight/error
                          (l10n "  It is stopped (failing).~%")))
-             (format #t (highlight/warn
-                         (l10n "  It is stopped.~%"))))))
+             (match (live-service-status-changes service)
+               ((('stopped . time) . _)
+                (format #t (highlight/warn
+                            (l10n "  It is stopped since ~a.~%"))
+                        (timestamp->string time)))
+               (_
+                (format #t (highlight/warn
+                            (l10n "  It is stopped.~%"))))))))
     ('starting
      (format #t (l10n "  It is starting.~%")))
     ('stopping
@@ -177,15 +197,13 @@ into a @code{live-service} record."
   (match (live-service-last-respawns service)
     ((time _ ...)
      (format #t (l10n "  Last respawned on ~a.~%")
-             (date->string
-              (time-utc->date (make-time time-utc 0 time)))))
+             (timestamp->string time)))
     (_ #t))
   (when (eq? (live-service-status service) 'stopped)
     (match (live-service-startup-failures service)
       ((time _ ...)
        (format #t (highlight/error (l10n "  Failed to start at ~a.~%"))
-               (date->string
-                (time-utc->date (make-time time-utc 0 time)))))
+               (timestamp->string time)))
       (_ #t))))
 
 (define root-service?

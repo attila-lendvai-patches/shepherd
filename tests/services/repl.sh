@@ -44,7 +44,7 @@ shepherd -I -s "$socket" -c "$conf" -l "$log" --pid="$pid" &
 while ! test -f "$pid" ; do sleep 0.3 ; done
 
 $herd start repl
-$herd status repl | grep "started"
+$herd status repl | grep running
 
 $herd status
 test $($herd status | grep '^ ' | wc -l) -eq 2
@@ -56,7 +56,7 @@ child_pid=$!
 
 $herd status
 $herd status repl-client-1
-$herd status repl-client-1 | grep "started"
+$herd status repl-client-1 | grep running
 $herd status repl-client-1 | grep "transient"
 test $($herd status | grep '^ ' | wc -l) = 3
 
@@ -115,7 +115,7 @@ guile -c '
 '
 
 $herd status monitoring
-$herd status monitoring | grep "started"
+$herd status monitoring | grep running
 grep "heap:" "$log"
 
 $herd log monitoring | grep "heap:"

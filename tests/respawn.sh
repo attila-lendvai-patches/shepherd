@@ -95,10 +95,10 @@ shepherd_pid="`cat $pid`"
 kill -0 $shepherd_pid
 test -S "$socket"
 $herd status
-$herd status test1 | grep started
+$herd status test1 | grep running
 
 $herd start test2
-$herd status test2 | grep started
+$herd status test2 | grep running
 
 # When 'herd start test2' returns, the PID file must already be created.
 test -f "$service2_pid"

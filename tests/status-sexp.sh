@@ -71,30 +71,56 @@ root_service_sexp="
       (requires ())
       (respawn? #f)
       (docstring \"The root service is used to operate on shepherd itself.\")
-      (enabled? #t) (running #t) (conflicts ()) (last-respawns ())
+      (enabled? #t) (running #t) (conflicts ())
+      (last-respawns ())
+      (status-changes ((running . 0) (starting . 0)))
       (startup-failures ())
       (status running))"
 
+# Define a helper procedure that resets timestamps in the 'status-changes'
+# property to make it easier to compare them.
+define_reset_timestamps="
+(define (reset-timestamps service)
+  (match service
+    (('service version properties ...)
+     (cons* 'service version
+	    (map (match-lambda
+		   (('status-changes alist)
+                    (list 'status-changes
+			  (map (match-lambda
+				 ((status . _)
+				  (cons status 0)))
+			       alist)))
+                   (prop prop))
+		 properties)))))
+"
+
 "$GUILE" -c "
 (use-modules (shepherd comm) (srfi srfi-1) (ice-9 match))
+
+$define_reset_timestamps
 
 (exit
  (match $fetch_status
    (('reply _ ('result (services)) ('error #f) ('messages ()))
     (lset= equal?
-            services
+           (pk 'ACTUAL (map reset-timestamps services))
 	   '($root_service_sexp
 	     (service (version 0)
 	       (provides (foo)) (requires ())
 	       (respawn? #t) (docstring \"Foo!\")
 	       (enabled? #t) (running abc) (conflicts ())
-	       (last-respawns ()) (startup-failures ())
+	       (last-respawns ())
+               (status-changes ((running . 0) (starting . 0)))
+               (startup-failures ())
                (status running))
 	     (service (version 0)
 	       (provides (bar)) (requires (foo))
 	       (respawn? #f) (docstring \"Bar!\")
 	       (enabled? #t) (running #f) (conflicts ())
-	       (last-respawns ()) (startup-failures ())
+	       (last-respawns ())
+               (status-changes ())
+               (startup-failures ())
                (status stopped)))))))
 "
 
@@ -117,10 +143,17 @@ root_service_sexp="
 $herd unload root all
 
 "$GUILE" -c "
-(use-modules (shepherd comm))
+(use-modules (shepherd comm) (ice-9 match))
+
+$define_reset_timestamps
 
 (exit
-  (equal? $fetch_status
+  (equal? (match $fetch_status
+            (('reply version ('result ((service))) rest ...)
+             (cons* 'reply version
+                     (list 'result
+                            (list (list (reset-timestamps service))))
+                     rest)))
           '(reply
             (version 0)
             (result (($root_service_sexp)))

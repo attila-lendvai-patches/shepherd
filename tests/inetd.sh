@@ -102,7 +102,7 @@ $herd eval root '(gc)'
 
 initial_fd_count=$(file_descriptor_count)
 
-$herd status test-inetd | grep started
+$herd status test-inetd | grep running
 test $($herd status | grep '\+' | wc -l) -eq 2
 
 converse_with_echo_server ()

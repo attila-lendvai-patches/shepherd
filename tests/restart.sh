@@ -57,21 +57,21 @@ while ! test -f "$pid" ; do sleep 0.3 ; done
 # Start some test services, and make sure they behave how we expect
 $herd start test1
 $herd start test2
-$herd status test1 | grep started
-$herd status test2 | grep started
+$herd status test1 | grep running
+$herd status test2 | grep running
 
 # Restart test1 and make sure that both services are still running (ie. that
 # test2 hasn't been stopped)
 $herd restart test1
-$herd status test1 | grep started
-$herd status test2 | grep started
+$herd status test1 | grep running
+$herd status test2 | grep running
 
 # Now let's test with a transitive dependency
 $herd start test3
-$herd status test3 | grep started
+$herd status test3 | grep running
 
 # After restarting test1 we want test3 to still be running
 $herd restart test1
-$herd status test1 | grep started
-$herd status test2 | grep started
-$herd status test3 | grep started
+$herd status test1 | grep running
+$herd status test2 | grep running
+$herd status test3 | grep running

@@ -93,7 +93,7 @@ converse_with_echo_server ()
 
 
 $herd start test-systemd-unix
-$herd status test-systemd-unix | grep started
+$herd status test-systemd-unix | grep running
 test $($herd status | grep '\+' | wc -l) -eq 2
 
 for i in $(seq 1 3)
@@ -108,7 +108,7 @@ then false; else true; fi
 
 # Now test the eager systemd-style service.
 $herd start test-systemd-unix-eager
-$herd status test-systemd-unix-eager | grep started
+$herd status test-systemd-unix-eager | grep running
 
 # The process should soon be running, before we've tried to connect to it.
 while ! $herd status test-systemd-unix-eager | grep -E "Running value is [0-9]+"

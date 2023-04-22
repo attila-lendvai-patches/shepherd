@@ -76,7 +76,7 @@ touch "$stamp"
 # Make sure the service is marked as "started" soon shortly after.
 n=0
 while : ; do
-    if $herd status test | grep started
+    if $herd status test | grep running
     then break
     else n=$(expr $n + 1)
     fi

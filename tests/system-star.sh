@@ -86,7 +86,7 @@ echo 123 > "$stamp"
 n=0
 while [ $n -lt 20 ]
 do
-    if $herd status test | grep "started"
+    if $herd status test | grep running
     then
 	break
     else
@@ -94,7 +94,7 @@ do
 	sleep 1
     fi
 done
-$herd status test | grep "started"
+$herd status test | grep running
 $herd status test | grep "exit-code 123"
 
 $herd stop test
@@ -109,14 +109,14 @@ $herd status test-command-not-found | grep "stopped"
 # What about a service with a custom 'stop' procedure that uses 'system*'?
 # Stopping the service should not trigger the respawn machinery.
 $herd start test-with-respawn
-$herd status test-with-respawn | grep "started"
+$herd status test-with-respawn | grep running
 $herd stop test-with-respawn
 $herd status test-with-respawn | grep "stopped"
 
 for i in `seq 1 5`
 do
     $herd restart test-with-respawn
-    $herd status test-with-respawn | grep "started"
+    $herd status test-with-respawn | grep running
 done
 $herd stop test-with-respawn
 

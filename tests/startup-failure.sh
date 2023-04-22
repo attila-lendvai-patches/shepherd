@@ -52,7 +52,7 @@ $herd status | grep "Failed to start:"
 
 touch "$stamp"
 $herd start may-fail
-$herd status may-fail | grep started
+$herd status may-fail | grep running
 $herd status may-fail | grep -v "Failed to start"
 $herd status | grep -v "Failed to start:"
 

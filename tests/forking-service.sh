@@ -111,7 +111,7 @@ $herd start test
 $herd start test2
 
 # make sure "test" is started
-until $herd status test | grep started; do sleep 0.3; done
+until $herd status test | grep running; do sleep 0.3; done
 test -f "$service_pid"
 service_pid_value="`cat $service_pid`"
 # now kill it
@@ -124,7 +124,7 @@ $herd status test | grep stopped
 
 
 # make sure "test2" has started
-until $herd status test2 | grep started; do sleep 0.3; done
+until $herd status test2 | grep running; do sleep 0.3; done
 test -f "$service2_pid"
 service2_pid_value="`cat $service2_pid`"
 test "`cat $PWD/$service2_started`" = "started"
@@ -134,7 +134,7 @@ kill $service2_pid_value
 while kill -0 "$service2_pid_value"; do sleep 0.3; done
 # shepherd should notice that the service has stopped, and restart it, within one second
 sleep 1;
-$herd status test2 | grep started
+$herd status test2 | grep running
 test "`cat $PWD/$service2_started`" = "started
 started"
 
@@ -154,7 +154,7 @@ done
 
 # Make sure 'herd stop' eventually terminates processes that ignore SIGTERM.
 $herd start test4
-$herd status test3 | grep started
+$herd status test3 | grep running
 child_pid="$($herd status test4 | grep Running | sed '-es/.*Running value is \([0-9]\+\)\./\1/g')"
 kill -0 "$child_pid"
 $herd stop test3		# this will also stop 'test4'

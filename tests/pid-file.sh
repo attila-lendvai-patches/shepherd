@@ -107,7 +107,7 @@ while ! test -f "$pid" ; do sleep 0.3 ; done
 shepherd_pid="`cat $pid`"
 
 # This service should already be running.
-$herd status test-works | grep started
+$herd status test-works | grep running
 test -f "$service_pid"
 kill -0 `cat "$service_pid"`
 $herd stop test-works
@@ -140,7 +140,7 @@ then false; else true; fi
 
 # Now start the service that works.
 $herd start test-works
-$herd status test-works | grep started
+$herd status test-works | grep running
 test -f "$service_pid"
 kill -0 "`cat $service_pid`"
 known_pid="`$herd status test-works | grep Running \

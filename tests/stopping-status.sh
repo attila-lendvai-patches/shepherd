@@ -59,7 +59,7 @@ while ! test -f "$pid" ; do sleep 0.3 ; done
 shepherd_pid="`cat $pid`"
 
 $herd start test
-$herd status test | grep started
+$herd status test | grep running
 
 $herd stop test &
 herd_pid=$!

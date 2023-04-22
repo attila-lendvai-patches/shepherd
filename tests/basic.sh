@@ -89,7 +89,7 @@ echo $pristine_status | grep -E '(Start.*root|Stop.*test)'
 
 $herd start test
 test -f "$stamp"
-$herd status test | grep started
+$herd status test | grep running
 
 $herd stop test
 ! test -f "$stamp"
@@ -128,7 +128,7 @@ if $herd fail test-2; then false; else true; fi
 if $herd enable test-2 with extra arguments
 then false; else true; fi
 
-$herd status test-2 | grep started
+$herd status test-2 | grep running
 
 # Make sure extra arguments lead to an error.
 if $herd status test-2 something else that is useless
@@ -151,7 +151,7 @@ $herd status broken | grep "stopped"
 
 # Check 'make-system-constructor' and 'make-system-destructor'.
 $herd start spawn-with-system
-$herd status spawn-with-system | grep "started"
+$herd status spawn-with-system | grep running
 $herd stop spawn-with-system
 $herd status spawn-with-system | grep "stopped"
 
@@ -298,7 +298,7 @@ while ! test -f "$pid" ; do sleep 0.3 ; done
 # Launch a service from $confdir/shepherd/init.scm.
 $herd start test
 test -f "$stamp"
-$herd status test | grep started
+$herd status test | grep running
 
 $herd stop test
 ! test -f "$stamp"
