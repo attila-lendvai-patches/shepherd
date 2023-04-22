@@ -136,12 +136,56 @@ into a @code{live-service} record."
   "Display the detailed status of SERVICES."
   (for-each display-service-status services))
 
+(define (time->string time)
+  "Return a string representing TIME in a concise, human-readable way."
+  (define now*
+    (current-time time-utc))
+
+  (define now
+    (time-second now*))
+
+  (define elapsed
+    (- now time))
+
+  (define relative
+    (cond ((< elapsed 120)
+           (format #f (l10n "~a second ago" "~a seconds ago" elapsed)
+                   elapsed))
+          ((< elapsed 7200)
+           (let ((minutes (inexact->exact
+                           (round (/ elapsed 60)))))
+             (format #f (l10n "~a minute ago" "~a minutes ago" minutes)
+                     minutes)))
+          ((< elapsed (* 48 3600))
+           (let ((hours (inexact->exact
+                         (round (/ elapsed 3600)))))
+             (format #f (l10n "~a hour ago" "~a hours ago" hours)
+                     hours)))
+          (else
+           (let ((days (inexact->exact
+                        (round (/ elapsed (* 3600 24))))))
+             (format #f (l10n "~a day ago" "~a days ago" days)
+                     days)))))
+
+  (define absolute
+    (let* ((time    (make-time time-utc 0 time))
+           (date    (time-utc->date time))
+           (year    (date-year date))
+           (now     (time-utc->date now*))
+           (format  (if (= year (date-year now))
+                        (if (= (date-day date) (date-day now))
+                            "~H:~M:~S"
+                            "~e ~b ~H:~M:~S")
+                        "~e ~b ~Y ~H:~M:~S")))
+      (date->string date format)))
+
+  ;; TRANSLATORS: The first placeholder is for a date string such as "April 22
+  ;; 19:07:46" and the parenthesized placeholder is for the corresponding
+  ;; relative date string like "2 hours ago".
+  (format #f (l10n "~a (~a)") absolute relative))
+
 (define (display-service-status service)
   "Display the status of SERVICE, an sexp."
-  (define (timestamp->string time)
-    (date->string
-     (time-utc->date (make-time time-utc 0 time))))
-
   (format #t (highlight (l10n "Status of ~a:~%"))
           (live-service-canonical-name service))
 
@@ -151,9 +195,9 @@ into a @code{live-service} record."
        ((('running . time) . _)
         (if (live-service-transient? service)
             (format #t (l10n "  It is transient, running since ~a.~%")
-                    (timestamp->string time))
+                    (time->string time))
             (format #t (l10n "  It is running since ~a.~%")
-                    (timestamp->string time))))
+                    (time->string time))))
        (_
         ;; Shepherd 0.9.x did not provide status change times.
         (if (live-service-transient? service)
@@ -175,7 +219,7 @@ into a @code{live-service} record."
                ((('stopped . time) . _)
                 (format #t (highlight/warn
                             (l10n "  It is stopped since ~a.~%"))
-                        (timestamp->string time)))
+                        (time->string time)))
                (_
                 (format #t (highlight/warn
                             (l10n "  It is stopped.~%"))))))))
@@ -197,13 +241,13 @@ into a @code{live-service} record."
   (match (live-service-last-respawns service)
     ((time _ ...)
      (format #t (l10n "  Last respawned on ~a.~%")
-             (timestamp->string time)))
+             (time->string time)))
     (_ #t))
   (when (eq? (live-service-status service) 'stopped)
     (match (live-service-startup-failures service)
       ((time _ ...)
        (format #t (highlight/error (l10n "  Failed to start at ~a.~%"))
-               (timestamp->string time)))
+               (time->string time)))
       (_ #t))))
 
 (define root-service?
