@@ -250,6 +250,56 @@ into a @code{live-service} record."
                (time->string time)))
       (_ #t))))
 
+(define (display-event-log services)
+  "Display status changes of @var{services} as a chronologically-sorted log."
+  (define events
+    (map (lambda (service)
+           (map (match-lambda
+                  ((status . time)
+                   (list time service status)))
+                (live-service-status-changes service)))
+         services))
+
+  (define event>?
+    (match-lambda*
+      (((time1 . _) (time2 . _))
+       (> time1 time2))))
+
+  (define sorted
+    ;; Each event list is already sorted, so merge them.  (They cannot be
+    ;; resorted based on timestamps because there may be several events with
+    ;; the same timestamps so resorting would lose causal ordering.)
+    (reduce (lambda (events1 events2)
+              (merge events1 events2 event>?))
+            '()
+            events))
+
+  (for-each (match-lambda
+              ((time service status)
+               (let ((name (live-service-canonical-name service)))
+                 (format #t "~a\t"
+                         (date->string
+                          (time-utc->date
+                           (make-time time-utc 0 time))
+                          "~e ~b ~Y ~H:~M:~S"))
+                 (match status
+                   ('running
+                    (format #t (highlight (l10n "service ~a is running~%"))
+                            name))
+                   ('stopped
+                    (format #t (highlight/warn (l10n "service ~a is stopped~%"))
+                            name))
+                   ('starting
+                    (format #t (l10n "service ~a is being started~%")
+                            name))
+                   ('stopping
+                    (format #t (l10n "service ~a is being stopped~%")
+                            name))
+                   (_
+                    (format #t (l10n "service ~a is entering state '~a'~%")
+                            name status))))))
+            (reverse sorted)))
+
 (define root-service?
   ;; XXX: This procedure is written in a surprising way to work around a
   ;; compilation bug in Guile 3.0.5 to 3.0.7: <https://bugs.gnu.org/47172>.
@@ -262,7 +312,7 @@ into a @code{live-service} record."
 the daemon via SOCKET-FILE."
   (with-system-error-handling
    (let ((sock    (open-connection socket-file))
-         (action* (if (and (eq? action 'detailed-status)
+         (action* (if (and (memq action '(detailed-status log))
                            (root-service? service))
                       'status
                       action)))
@@ -287,6 +337,9 @@ the daemon via SOCKET-FILE."
             (map sexp->live-service (first result))))
           (('detailed-status (or 'root 'shepherd))
            (display-detailed-status
+            (map sexp->live-service (first result))))
+          (('log (or 'root 'shepherd))
+           (display-event-log
             (map sexp->live-service (first result))))
           (('help (or 'root 'shepherd))
            (match result
@@ -355,7 +408,8 @@ SERVICE with the ARGs.")
                                  (set! socket-file file))))
 
       (match (reverse command-args)
-        (((and action (or "status" "detailed-status" "help"))) ;one argument
+        (((and action
+               (or "status" "detailed-status" "help" "log"))) ;one argument
          (run-command socket-file (string->symbol action) 'root '()))
         ((action service args ...)
          (run-command socket-file

@@ -201,6 +201,13 @@ services as started.  If you just want to know the status of the
 herd status apache
 @end example
 
+You may also view a log of service events, including the time at which
+each service was started or stopped, by running:
+
+@example
+herd log
+@end example
+
 @cindex Stopping a service
 You can stop
 a service and all the services that depend on it will be stopped.

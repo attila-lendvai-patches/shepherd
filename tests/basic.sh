@@ -94,6 +94,10 @@ $herd status test | grep running
 $herd stop test
 ! test -f "$stamp"
 
+$herd log
+$herd log | grep "service test is running"
+$herd log | grep "service test is stopped"
+
 $herd status test | grep stopped
 
 # Stopping a stopped service should be a no-op.
