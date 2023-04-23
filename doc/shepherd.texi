@@ -83,11 +83,8 @@ service manager for the GNU system.
 This manual documents the GNU@tie{}Daemon Shepherd, or GNU@tie{}Shepherd
 for short.  The Shepherd looks after system services, typically @dfn{daemons}.
 It is used to start and stop them in a reliable
-fashion.  For instance it will dynamically determine and start any
-other services that our desired service depends upon.  As another
-example, the Shepherd might detect conflicts among services.  In this
-situation it would simply prevent the conflicting services from
-running concurrently.
+fashion.  For instance, it will dynamically determine and start any
+other services that our desired service depends upon.
 
 The Shepherd is the @dfn{init system} of the GNU operating system---it is the
 first user process that gets started, typically with PID 1, and runs
@@ -262,13 +259,7 @@ herd reload-modules apache
 
 Service-specific actions can only be used when the service is
 started, i.e. the only thing you can do to a stopped service is
-starting it.  An exception exists, see below.  (If you may at some
-point find this too restrictive because you want to use variants of
-the same service which are started in different ways, consider using
-different services for those variants instead, which all provide the
-same virtual service and thus conflict with each other, if this is
-desired.  That's one of the reasons why virtual services exist, after
-all.)
+starting it.  An exception exists, see below.
 
 There are two actions which are special, because even if services
 can implement them on their own, a default implementation is provided
@@ -281,9 +272,7 @@ These actions are @code{restart} and @code{status}.  The default
 implementation of @code{restart} calls @code{stop} and @code{start} on the
 affected service, taking care to also restart any dependent services. The
 default implementation of @code{status} displays some general information
-about the service, like what it provides, what it depends on and with which
-other services it conflicts (because they provide a virtual service that is
-also provided by that particular service).
+about the service, like what it provides, and what it depends on.
 
 A special service is @code{root}, which is used for controlling the
 Shepherd itself.  You can also reference to this service as
@@ -636,10 +625,8 @@ services} instead.
 @vindex provides (slot of <service>)
 @cindex canonical names of services
 @code{provides} is a list of symbols that are provided by the service.
-A symbol can only be provided by one service running at a time,
-i.e. if two services provide the same symbol, only one of them can
-run, starting the other one will fail.  Therefore, these symbols are
-mainly used to denote conflicting services.  The first symbol in the
+A symbol can only be provided by one service running at a time.
+The first symbol in the
 list is the canonical name for the service, thus it must be unique.
 This slot has no default value and must therefore be initialized.
 
