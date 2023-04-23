@@ -381,14 +381,15 @@ denoting what the service provides."
                   (value #f)
                   (condition #f)
                   (enabled? #t)
-                  (changes '())                ;list of status/timestamp pairs
-                  (failures '())               ;list of timestamps
+                  (changes                     ;list of status/timestamp pairs
+                   (ring-buffer %max-recorded-status-changes))
+                  (failures                    ;list of timestamps
+                   (ring-buffer %max-recorded-startup-failures))
                   (respawns '())               ;list of timestamps
                   (replacement #f))
     (define (update-status-changes status)
-      ;; Add STATUS to CHANGES, the alist of status changes.
-      (at-most %max-recorded-status-changes
-               (alist-cons status (current-time) changes)))
+      ;; Add STATUS to CHANGES, the ring buffer of status changes.
+      (ring-buffer-insert (cons status (current-time)) changes))
 
     (match (get-message channel)
       (('running reply)
@@ -476,8 +477,8 @@ denoting what the service provides."
                 (condition #f)
                 (failures (if new-value
                               failures
-                              (at-most %max-recorded-startup-failures
-                                       (cons (current-time) failures))))))))
+                              (ring-buffer-insert (current-time)
+                                                  failures)))))))
 
       (((? change-value-message?) new-value)
        (local-output (l10n "Running value of service ~a changed to ~s.")
@@ -533,7 +534,8 @@ denoting what the service provides."
        (loop (status 'stopped)
              (changes (update-status-changes 'stopped))
              (value #f) (condition #f)
-             (respawns '()) (failures '())))
+             (respawns '())
+             (failures (ring-buffer %max-recorded-startup-failures))))
 
       ('notify-termination                        ;no reply
        (loop (status 'stopped)
@@ -670,12 +672,14 @@ channel and wait for its reply."
 
 (define service-startup-failures
   ;; Return the list of recent startup failure times for @var{service}.
-  (service-control-message 'startup-failures))
+  (compose ring-buffer->list
+           (service-control-message 'startup-failures)))
 
 (define service-status-changes
   ;; Return the list of symbol/timestamp pairs representing recent state
   ;; changes for @var{service}.
-  (service-control-message 'status-changes))
+  (compose ring-buffer->list
+           (service-control-message 'status-changes)))
 
 (define service-enabled?
   ;; Return true if @var{service} is enabled, false otherwise.

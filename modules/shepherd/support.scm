@@ -25,10 +25,17 @@
   #:autoload   (shepherd colors) (color-output? color colorize-string)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
+  #:autoload   (srfi srfi-1) (take)
+  #:use-module (srfi srfi-9)
   #:export (caught-error
             assert
             let-loop
-            at-most
+
+            ring-buffer
+            ring-buffer?
+            ring-buffer-limit
+            ring-buffer-insert
+            ring-buffer->list
 
             buffering
             catch-system-error
@@ -125,6 +132,43 @@ That reduces the amount of boilerplate for loops with many variables."
                               (extract-value variable (args (... ...)))
                               ...)))))
       body ...)))
+
+;; The poor developer's persistent "ring buffer": it holds between N and 2N
+;; elements, but has O(1) insertion.
+(define-record-type <ring-buffer>
+  (%ring-buffer limit front-length front rear)
+  ring-buffer?
+  (limit         ring-buffer-limit)
+  (front-length  ring-buffer-front-length)
+  (front         ring-buffer-front)
+  (rear          ring-buffer-rear))
+
+(define (ring-buffer size)
+  "Return an ring buffer that can hold @var{size} elements."
+  (%ring-buffer size 0 '() '()))
+
+(define-inlinable (ring-buffer-insert element buffer)
+  "Insert @var{element} to the front of @var{buffer}.  If @var{buffer} is
+already full, its oldest element is removed."
+  (match buffer
+    (($ <ring-buffer> limit front-length front rear)
+     (if (< front-length limit)
+         (let ((front-length (+ 1 front-length)))
+           (%ring-buffer limit front-length
+                         (cons element front)
+                         (if (= limit front-length)
+                             '()
+                             rear)))
+         (%ring-buffer limit 1
+                       (list element) front)))))
+
+(define (ring-buffer->list buffer)
+  "Convert @var{buffer} into a list."
+  (match buffer
+    (($ <ring-buffer> limit front-length front rear)
+     (if (= limit front-length)
+         front
+         (append front (at-most (- limit front-length) rear))))))
 
 (define (at-most max-length lst)
   "If @var{lst} is shorter than @var{max-length}, return it and the empty list;
