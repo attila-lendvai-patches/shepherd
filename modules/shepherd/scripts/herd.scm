@@ -79,10 +79,7 @@ into a @code{live-service} record."
                              status-changes last-respawns startup-failures
                              one-shot? transient?)
        (live-service provides requires one-shot?
-                     (if (sloppy-assq 'transient? properties)
-                         transient?
-                         (and running *unspecified*))
-                     respawn?
+                     transient? respawn?
 
                      enabled?
                      (or status (if running 'running 'stopped))
