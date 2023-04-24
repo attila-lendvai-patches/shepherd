@@ -271,6 +271,11 @@ into a @code{live-service} record."
             '()
             events))
 
+  (when (null? sorted)
+    ;; The Shepherd 0.9.x and earlier did not log service status changes.
+    (report-error (l10n "event log is missing (shepherd is too old?)"))
+    (exit 1))
+
   (for-each (match-lambda
               ((time service status)
                (let ((name (live-service-canonical-name service)))
