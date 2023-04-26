@@ -6,7 +6,7 @@
 
 @include version.texi
 @set OLD-YEARS 2002, 2003
-@set NEW-YEARS 2013, 2016, 2018, 2019, 2020, 2022
+@set NEW-YEARS 2013, 2016, 2018, 2019, 2020, 2022, 2023
 
 @copying
 Copyright @copyright{} @value{OLD-YEARS} Wolfgang J@"ahrling@*
@@ -109,16 +109,13 @@ Managing Daemons} (or @dfn{Daemons-Managing Daemon}?).
 
 @cindex Guile
 @cindex Scheme
-@cindex GOOPS
-This program is written in Guile, an implementation of the
-Scheme programming language, using the GOOPS extension for
-object-orientation.  Guile is also the Shepherd's configuration language.
-@xref{Introduction,,, guile, GNU Guile Reference Manual}, for an
-introduction to Guile.  We have tried to
-make the Shepherd's basic features as accessible as possible---you should be
+This program is written in Guile Scheme.  Guile is also the Shepherd's
+configuration language.  @xref{Introduction,,, guile, GNU Guile
+Reference Manual}, for an introduction to Guile.  We have tried to make
+the Shepherd's basic features as accessible as possible---you should be
 able to use these even if you do not know how to program in Scheme.  A
-basic grasp of Guile and GOOPS is required only if you wish to make
-use of the Shepherd's more advanced features.
+basic grasp of Guile is required only if you wish to make use of the
+Shepherd's more advanced features.
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -585,148 +582,257 @@ not specified, @file{@var{localstatedir}/run/shepherd/socket} is taken.
 
 @cindex service
 @tindex <service>
-The @dfn{service} is obviously a very important concept of the Shepherd.  On the
-Guile level, a service is represented as an instance of
-@code{<service>}, a GOOPS class (@pxref{GOOPS,,, guile, GNU Guile
-Reference Manual}).  When creating an instance of it, you can specify
-the initial values of its slots, and you actually must do this for some
-of the slots.
+The @dfn{service} is obviously a very important concept of the Shepherd.
+On the Guile level, a service is represented as a record of type
+@code{<service>}.  Each service has a number of properties that you
+specify when you create it: how to start it, how to stop it, whether to
+respawn it when it stops prematurely, and so on.  At run time, each
+service has associated @dfn{state}: whether it is running or stopped,
+what PID or other value is associated with it, and so on.
 
-The @code{<service>} class and its associated procedures and methods are
-defined in the @code{(shepherd service)} module.
+This section explains how to define services and how to query their
+configuration and state using the Shepherd's programming interfaces.
 
 @menu
-* Slots of services::            What a <service> object consists of.
-* Methods of services::          What you can do with a <service> object.
-* Service Convenience::          How to conveniently work with services.
-* Service De- and Constructors:: Commonly used ways of starting and
+* Defining Services::           Defining services.
+* Service Registry::            Mapping service names to records.
+* Interacting with Services::   Accessing service state.
+* Service De- and Constructors::  Commonly used ways of starting and
                                    stopping services.
-* Service Examples::             Examples that show how services are used.
-* Managing User Services::       Running the Shepherd as a user.
-* The root Service::             The service that comes first.
+* The root Service::            The service that comes first.
+* Service Examples::            Examples that show how services are used.
+* Managing User Services::      Running the Shepherd as a user.
 @end menu
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-@node Slots of services
-@section Slots of services
+@node Defining Services
+@section Defining Services
 
-@cindex <service>, slots of
-@cindex slots of <service>
-A service has the following slots, all of which can be initialized
-with a keyword (i.e. @code{#:provides}, used when creating the object)
-of the same name, except where stated otherwise.  You should not
-access them directly with @code{slot-ref} or @code{slot-set!}
-usually, use the methods of the service class @ref{Methods of
-services} instead.
+A service is created by calling the @code{service} procedure, from the
+@code{(shepherd service)} module (automatically visible from your
+configuration file), as in this example:
 
-@itemize @bullet
-@item
-@vindex provides (slot of <service>)
-@cindex canonical names of services
-@code{provides} is a list of symbols that are provided by the service.
-A symbol can only be provided by one service running at a time.
-The first symbol in the
-list is the canonical name for the service, thus it must be unique.
-This slot has no default value and must therefore be initialized.
+@lisp
+(service
+  '(sshd ssh-daemon)  ;for convenience, give it two names
+  #:start (make-forkexec-constructor
+           '("/usr/sbin/sshd" "-D")
+           #:pid-file "/etc/ssh/sshd.pid")
+  #:stop (make-kill-destructor)
+  #:respawn? #t)
+@end lisp
 
-@item
-@vindex requires (slot of <service>)
-@code{requires} is, like @code{provides}, a list of symbols that
-specify services.  In this case, they name what this service depends
-on, i.e. before the service can be started, services that provide
-those symbols must be started.  If a required symbol is provided by
-several services, one will be started.  By default, this slot
-contains the empty list.
+The example above creates a service with two names, @code{sshd} and
+@code{ssh-daemon}.  It is started by invoking @command{/usr/sbin/sshd},
+and it is considered up and running as soon as its PID file
+@file{/etc/ssh/sshd.pid} is available.  It is stopped by terminating the
+@command{sshd} process.  Finally, should @command{sshd} terminate
+prematurely, it is automatically respawned.  We will look at
+@code{#:start} and @code{#:stop} later (@pxref{Service De- and
+Constructors}), but first, here is the reference of the @code{service}
+procedure and its optional keyword arguments.
 
-@item
-@vindex respawn? (slot of <service>)
-@cindex Respawning services
-@code{respawn?} specifies whether the service should be respawned by
-the Shepherd.  If this slot has the value @code{#t}, then assume the
-@code{running} slot specifies a child process PID and restart the
-service if that process terminates.  Otherwise this slot is @code{#f},
-which is the default.
+@defun service @var{provision} @
+  [#:requirement '()] [#:one-shot? #f] [#:transient? #f] @
+  [#:respawn? #f] [#:start (const #t)] [#:stop (const #f)] @
+  [#:actions (make-actions)] @
+  [#:termination-handler default-service-termination-handler] @
+  [#:documentation #f]
+@cindex canonical name of services
+Return a new service with the given @var{provision}, a list of symbols
+denoting what the service provides.  The first symbol in the list is the
+@dfn{canonical name} of the service, thus it must be unique.
 
-@item
-@vindex one-shot? (slot of <service>)
+The meaning of keyword arguments is as follows:
+
+@table @code
+@item #:requirement
+@code{#:requirement} is, like @var{provision}, a list of symbols that
+specify services.  In this case, they name what this service depends on:
+before the service can be started, services that provide those symbols
+must be started.
+
+Note that every name listed in @code{#:requirement} must be registered
+so it can be resolved (@pxref{Service Registry}).
+
+@item #:respawn?
+@cindex respawning services
+Specify whether the service should be respawned by @command{shepherd}.
+If this slot has the value @code{#t}, then, assuming the service has an
+associated process (its ``running value'' is a PID), restart the service
+if that process terminates.
+
+@item #:one-shot?
 @cindex one-shot services
-The @code{one-shot?} slot determines whether the service is a @dfn{one-shot
-service}.  A one-shot service is a service that, as soon as it has been
-successfully started, is marked as ``stopped.''  Other services can
-nonetheless require one-shot services.  One-shot services are useful to
-trigger an action before other services are started, such as a cleanup or an
-initialization action.
+Whether the service is a @dfn{one-shot service}.  A one-shot service is
+a service that, as soon as it has been successfully started, is marked
+as ``stopped.''  Other services can nonetheless require one-shot
+services.  One-shot services are useful to trigger an action before
+other services are started, such as a cleanup or an initialization
+action.
 
 As for other services, the @code{start} method of a one-shot service must
 return a truth value to indicate success, and false to indicate failure.
 
-@item
-@vindex transient? (slot of <service>)
+@item #:transient?
 @cindex transient services
-The @code{transient?} slot determines whether the service is a
-@dfn{transient service}.  A transient service is automatically
-unregistered when it terminates, be it because its @code{stop} method is
-called or because its associated process terminates.
+Whether the service is a @dfn{transient service}.  A transient service
+is automatically unregistered when it terminates, be it because its
+@code{stop} method is called or because its associated process
+terminates.
 
 This is useful in the uncommon case of synthesized services that may not
 be restarted once they have completed.
 
-@item
-@vindex start (slot of <service>)
-@cindex Starting a service
-@cindex Service constructor
-@code{start} contains the ``constructor'' for the service, which will
-be called to start the service.  (Therefore, it is not a constructor
-in the sense that it initializes the slots of a @code{<service>}
-object.)  This must be a procedure that accepts any amount of
-arguments, which will be the additional arguments supplied by the
-user.  If the starting attempt failed, it must return @code{#f}.  The
-value will be stored in the @code{running} slot.  The default value is
-a procedure that returns @code{#t} and performs no further actions,
-therefore it is desirable to specify a different one usually.
+@item #:start
+@cindex constructor of a service
+@cindex starting a service
+Specify the @dfn{constructor} of the service, which will be called to
+start the service.  This must be a procedure that accepts any number of
+arguments; those arguments will be those supplied by the user, for
+instance by passing them to @command{herd start}.  If the starting
+attempt failed, it must return @code{#f} or throw an exception;
+otherwise, the return value is stored as the @dfn{running value} of the
+service.
 
-@item
-@vindex stop (slot of <service>)
-@cindex Stopping a service
-@cindex Service destructor
-@code{stop} is, similar to @code{start}, a slot containing a
-procedure.  But in this case, it gets the current value of the
-@code{running} slot as first argument and the user-supplied arguments
-as further arguments; it gets called to stop the service.  Its return
-value will again be stored in the @code{running} slot, so that it
-should return @code{#f} if it is now possible again to start the
-service at a later point.  The default value is a procedure that
-returns @code{#f} and performs no further actions.
+@xref{Service De- and Constructors}, for info on common service constructors.
 
-@item
-@vindex handle-termination (slot of <service>)
-@cindex Termination of a service's process.
-The @code{handle-termination} slot contains the procedure to call when
-the process associated with a service terminates.  It is passed the
-service, the PID of the terminating process, and its
-exit status, an integer as returned by @code{waitpid} (@pxref{Processes,
-@code{waitpid},, guile, GNU Guile Reference Manual}).
+@item #:stop
+@cindex stopping a service
+@cindex destructor of a service
+This is the service @dfn{destructor}: a procedure of one or more
+arguments that should stop the service.  It is called whenever the user
+explicitly stops the service; its first argument is the running value of
+the service, subsequent arguments are user-supplied.  Its return value
+will again be stored as the running value, so it should
+return @code{#f} if it is now possible again to start the service at a
+later point.
+
+@xref{Service De- and Constructors}, for info on common service
+destructors.
+
+@item #:termination-handler
+@cindex termination of a service's process
+The procedure to call when the process associated with the service
+terminates.  It is passed the service, the PID of the terminating
+process, and its exit status, an integer as returned by @code{waitpid}
+(@pxref{Processes, @code{waitpid},, guile, GNU Guile Reference Manual}).
 
 The default handler is the @code{default-service-termination-handler}
 procedure, which respawns the service if applicable.
 
-@item
-@vindex actions (slot of <service>)
-@cindex Actions of services
-@cindex Service actions
-@code{actions} specifies the additional actions that can be performed
-on a service when it is running.  A typical example for this is the
-@code{restart} action.  The macro @code{make-actions} @ref{Service
-Convenience} is provided to abstract the actual data representation
-format for this slot.  (It actually is a hash currently.)
+@item #:actions
+@cindex actions of services
+@cindex service actions
+The additional actions that can be performed on the service when it is
+running.  A typical example for this is the @code{restart} action.  The
+@code{make-actions} macro can be used to defined actions (see below).
+@end table
+@end defun
 
-@end itemize
+A special service that every other service implicitly depends on is the
+@code{root} (also known as @code{shepherd}) service.  @xref{The root
+Service}, for more information.
+
+Service actions are defined using the @code{make-actions} macro, as
+shown below.
+
+@defmac make-actions (name proc) @dots{}
+Create a value for the @code{#:actions} parameter of @code{service}.
+Each @var{name} is a symbol and each @var{proc} the corresponding
+procedure that will be called to perform the action.  A @var{proc} has
+one argument, which will be the running value of the service.
+@end defmac
+
+Naturally, the @code{(shepherd service)} provides procedures to access
+this information for a given service object:
+
+@defun service-provision @var{service}
+Return the symbols provided by @var{service}.
+@end defun
+
+@defun service-canonical-name @var{service}
+Return the @dfn{canonical name} of @var{service}, which is the first
+element of the list returned by @code{service-provision}.
+@end defun
+
+@defun service-requirement @var{service}
+Return the list of services required by @var{service} as a list of
+symbols.
+@end defun
+
+@defun one-shot-service? @var{service}
+@defunx transient-service? @var{service}
+Return true if @var{service} is a one-shot/transient service.
+@end defun
+
+@defun respawn-service? @var{service}
+Return true if @var{service} is meant to be respawned if its associated
+process terminates prematurely.
+@end defun
+
+@defun service-documentation @var{service}
+Return the documentation (a string) of @var{service}.
+@end defun
+
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-@node Methods of services
-@section Methods of services
+@node Service Registry
+@section Service Registry
+
+@cindex service registry
+At run time, @command{shepherd} maintains a @dfn{service registry} that
+maps service names to service records.  Service dependencies are
+expressed as a list of names passed as @code{#:requirement} to the
+@code{service} procedure (@pxref{Defining Services}); these names are
+looked up in the registry.  Likewise, when running @code{herd start
+sshd} or similar commands (@pxref{Jump Start}), the service name is
+looked up in the registry.
+
+Consequently, every service must be appear in the registry before it can
+be used.  A typical configuration file thus includes a call to the
+@code{register-services} procedure (@pxref{Service Examples}).  The
+following procedures let you interact with the registry.
+
+@defun register-services @var{service} @dots{}
+Register all @var{service}, so that they can be taken into account
+when trying to resolve dependencies.
+@end defun
+
+@defun lookup-service @var{name}
+Return the service that provides @var{name}, @code{#f} if there is none.
+@end defun
+
+@defun for-each-service @var{proc}
+Call @var{proc}, a procedure taking one argument, once for each
+registered service.
+@end defun
+
+@defun lookup-running @var{name}
+Return the running service that provides @var{name}, or false if none.
+@end defun
+
+
+@c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+@node Interacting with Services
+@section Interacting with Services
+
+What we have seen so far is the interface to @emph{define} a service and
+to access it (@pxref{Defining Services}).  The procedures below, also
+exported by the @code{(shepherd service)} module, let you modify and
+access the state of a service.  You may use them in your configuration
+file, for instance to start some or all of the services you defined
+(@pxref{Service Examples}).
+
+Under the hood, each service record has an associated @dfn{fiber}
+(really: an actor) that encapsulates its state and serves user
+requests---a fiber is a lightweight execution thread
+(@pxref{Introduction,,, fibers, Fibers}).
+
+The procedures below let you change the state of a service.
 
 @defun start-service @var{service} . @var{args}
 Start @var{service} and its dependencies, passing @var{args} to its
@@ -747,27 +853,18 @@ on @var{service}, passing it @var{args}.  The meaning of @var{args} depends on
 the action.
 @end defun
 
-@defun service-canonical-name @var{service}
-Return the @dfn{canonical name} of @var{service}, which is the first
-element of the list returned by @code{service-provision}.
-@end defun
+The @code{start-in-the-background} procedure, described below, is
+provided for your convenience: it makes it easy to start a set of
+services right from your configuration file, while letting
+@command{shepherd} run in the background.
 
-@defun service-provision @var{service}
-Return the symbols provided by @var{service}.
-@end defun
+@defun start-in-the-background @var{services}
+Start the services named by @var{services}, a list of symbols, in the
+background.  In other words, this procedure returns immediately without
+waiting until all of @var{services} have been started.
 
-@defun service-requirement @var{service}
-Return the list of services required by @var{service} as a list of
-symbols.
-@end defun
-
-@defun one-shot-service? @var{service}
-Return true if @var{service} is a one-shot service.
-@end defun
-
-@defun respawn-service? @var{service}
-Return true if @var{service} is meant to be respawned if its associated
-process terminates prematurely.
+This procedure can be useful in a configuration file because it lets you
+interact right away with shepherd using the @command{herd} command.
 @end defun
 
 The following procedures let you query the current state of a service.
@@ -779,59 +876,26 @@ Return true if @var{service} is currently running/stopped/enabled, false
 otherwise.
 @end defun
 
-@deffn {method} default-display-status (obj <service>)
-Display status information about @var{obj}.  This method is called
-when the user performs the action @code{status} on @var{obj}, but
-there is no specific implementation given for it.  It is also called
-when @code{detailed-status} is applied on the @code{root} service.
-@end deffn
+@defun service-status @var{service}
+Return the status of @var{service} as a symbol, one of: @code{'stopped},
+@code{'starting}, @code{'running}, or @code{'stopping}.
+@end defun
 
-@c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@defun service-running-value @var{service}
+Return the current ``running value'' of @var{service}---a Scheme value
+associated with it.  It is @code{#f} when the service is stopped;
+otherwise, it is a truth value, such as an integer denoting a PID
+(@pxref{Service De- and Constructors}).
+@end defun
 
-@node Service Convenience
-@section Service Convenience
+@cindex replacement, or a service
+@defun service-replacement @var{service}
+Return the @dfn{replacement} of @var{service}, or @code{#f} if there is
+none.
 
-In addition to the facilities listed below, there are also some
-procedures that provide commonly needed constructors and destructors
-for services @ref{Service De- and Constructors}.
-
-@deffn {procedure} register-services . services
-Register all @var{services}, so that they can be taken into account
-when trying to resolve dependencies.
-@end deffn
-
-@deffn {procedure} lookup-service name
-Return the service that provides @var{name}, @code{#f} if there is none.
-@end deffn
-
-@deffn {macro} make-actions (name proc) ...
-This macro is used to create a value for the @code{actions} slot of a
-service object @ref{Slots of services}.  Each @var{name} is a symbol
-and each @var{proc} the corresponding procedure that will be called to
-perform the action.  A @var{proc} has one argument, which will be the
-running value of the service.
-@end deffn
-
-@deffn {procedure} start-in-the-background @var{services}
-Start the services named by @var{services}, a list of symbols, in the
-background.  In other words, this procedure returns immediately without
-waiting until all of @var{services} have been started.
-
-This procedure can be useful in a configuration file because it lets you
-interact right away with shepherd using the @command{herd} command.
-@end deffn
-
-@deffn {procedure} for-each-service proc
-Call @var{proc}, a procedure taking one argument, once for each
-registered service.
-@end deffn
-
-@deffn {procedure} find-running services
-Check if any of @var{services} is running.  If this is the case,
-return its canonical name.  If not, return @code{#f}.  Only the first
-one will be returned; this is because this is mainly intended to be
-applied on the return value of @code{lookup-services}.
-@end deffn
+The replacement is the service that will replace @var{service} when it
+is eventually stopped.
+@end defun
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -1136,6 +1200,128 @@ execution of the @var{command} was successful, @code{#t} if not.
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+@node The root Service
+@section The @code{root} Service
+
+@cindex root service
+@cindex special services
+The service @code{root} is special, because it is used to control the
+Shepherd itself.  It has an alias @code{shepherd}.  It provides the
+following actions (in addition to @code{enable}, @code{disable} and
+@code{restart} which do not make sense here).
+
+@table @code
+@item status
+Displays which services are started and which ones are not.
+
+@item detailed-status
+Displays detailed information about every registered service.
+
+@item load @var{file}
+Evaluate the Scheme code in @var{file} in a fresh module that uses the
+@code{(oop goops)} and @code{(shepherd services)} modules---as with the
+@code{--config} option of @command{shepherd} (@pxref{Invoking shepherd}).
+
+@item eval @var{exp}
+Likewise, evaluate Scheme expression @var{exp} in a fresh module with
+all the necessary bindings.
+
+@item unload @var{service-name}
+Attempt to remove the service identified by @var{service-name}.
+@command{shepherd} will first stop the service, if necessary, and then
+remove it from the list of registered services.  Any services
+depending upon @var{service-name} will be stopped as part of this
+process.
+
+If @var{service-name} simply does not exist, output a warning and do
+nothing.  If it exists, but is provided by several services, output a
+warning and do nothing.  This latter case might occur for instance with
+the fictional service @code{web-server}, which might be provided by both
+@code{apache} and @code{nginx}.  If @var{service-name} is the special
+string and @code{all}, attempt to remove all services except for the Shepherd
+itself.
+
+@item reload @var{file-name}
+Unload all known optional services using unload's @code{all} option,
+then load @var{file-name} using @code{load} functionality.  If
+file-name does not exist or @code{load} encounters an error, you may
+end up with no defined services.  As these can be reloaded at a later
+stage this is not considered a problem.  If the @code{unload} stage
+fails, @code{reload} will not attempt to load @var{file-name}.
+
+@item daemonize
+Fork and go into the background.  This should be called before
+respawnable services are started, as otherwise we would not get the
+@code{SIGCHLD} signals when they terminate.
+
+@end table
+
+@c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+@node Legacy GOOPS Interface
+@section Legacy GOOPS Interface
+
+@cindex GOOPS, legacy interface
+From its inception in 2002 with negative version numbers (really!)@: up
+to version 0.9.x included, the Shepherd's service interface used GOOPS,
+Guile's object-oriented programming system (@pxref{GOOPS,,, guile, GNU
+Guile Reference Manual}).
+
+There was a @code{<service>} class whose instances you could access
+directly with @code{slot-ref}; generic functions such as @code{start}
+and @code{stop} had one method accepting a service object and another
+method accepting the name of a service as a symbol, which it would
+transparently resolve.
+
+This interface is deprecated.  It is still supported in version
+@value{VERSION} but will be removed in the next stable series.
+
+Fortunately, common idioms are easily converted to the current
+interface.  For example, you would previously create a service like so:
+
+@tindex <service>
+@lisp
+(make <service>       ;deprecated GOOPS interface
+  #:provides '(something)
+  #:requires '(another thing)
+  #:start @dots{}
+  #:stop @dots{}
+  #:respawn? #t)
+@end lisp
+
+With the new interface (@pxref{Defining Services}), you would write
+something very similar:
+
+@lisp
+(service '(something)
+  #:requirement '(another thing)
+  #:start @dots{}
+  #:stop @dots{}
+  #:respawn? #t)
+@end lisp
+
+@findex start
+@findex stop
+Likewise, instead of writing:
+
+@lisp
+(start 'whatever)
+@end lisp
+
+@noindent
+... you would write:
+
+@lisp
+(start-service (lookup-service 'whatever))
+@end lisp
+
+When using one of the deprecated methods, a deprecation warning is
+emitted, depending on the value of the @env{GUILE_WARN_DEPRECATED}
+environment variable (@pxref{Environment Variables,
+@env{GUILE_WARN_DEPRECATED},, guile, GNU Guile Reference Manual}).
+
+@c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 @node Service Examples
 @section Service Examples
 
@@ -1327,65 +1513,6 @@ Then, individual user services can be put in
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-@node The root Service
-@section The @code{root} Service
-
-@cindex root service
-@cindex special services
-The service @code{root} is special, because it is used to control the
-Shepherd itself.  It has an alias @code{shepherd}.  It provides the
-following actions (in addition to @code{enable}, @code{disable} and
-@code{restart} which do not make sense here).
-
-@table @code
-@item status
-Displays which services are started and which ones are not.
-
-@item detailed-status
-Displays detailed information about every registered service.
-
-@item load @var{file}
-Evaluate the Scheme code in @var{file} in a fresh module that uses the
-@code{(oop goops)} and @code{(shepherd services)} modules---as with the
-@code{--config} option of @command{shepherd} (@pxref{Invoking shepherd}).
-
-@item eval @var{exp}
-Likewise, evaluate Scheme expression @var{exp} in a fresh module with
-all the necessary bindings.
-
-@item unload @var{service-name}
-Attempt to remove the service identified by @var{service-name}.
-@command{shepherd} will first stop the service, if necessary, and then
-remove it from the list of registered services.  Any services
-depending upon @var{service-name} will be stopped as part of this
-process.
-
-If @var{service-name} simply does not exist, output a warning and do
-nothing.  If it exists, but is provided by several services, output a
-warning and do nothing.  This latter case might occur for instance with
-the fictional service @code{web-server}, which might be provided by both
-@code{apache} and @code{nginx}.  If @var{service-name} is the special
-string and @code{all}, attempt to remove all services except for the Shepherd
-itself.
-
-@item reload @var{file-name}
-Unload all known optional services using unload's @code{all} option,
-then load @var{file-name} using @code{load} functionality.  If
-file-name does not exist or @code{load} encounters an error, you may
-end up with no defined services.  As these can be reloaded at a later
-stage this is not considered a problem.  If the @code{unload} stage
-fails, @code{reload} will not attempt to load @var{file-name}.
-
-@item daemonize
-Fork and go into the background.  This should be called before
-respawnable services are started, as otherwise we would not get the
-@code{SIGCHLD} signals when they terminate.
-
-@end table
-
-
-@c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 @node Service Collection
 @chapter Service Collection
 
@@ -1553,7 +1680,7 @@ but also doing nothing about it.
 
 The @code{(shepherd comm)} module provides primitives that allow clients such
 as @command{herd} to connect to @command{shepherd} and send it commands to
-control or change its behavior (@pxref{Slots of services, actions of
+control or change its behavior (@pxref{Defining Services, actions of
 services}).
 
 @tindex <shepherd-command>
