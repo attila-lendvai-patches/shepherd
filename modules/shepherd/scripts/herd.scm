@@ -292,8 +292,18 @@ into a @code{live-service} record."
                     (format #t (highlight (l10n "service ~a is running~%"))
                             name))
                    ('stopped
-                    (format #t (highlight/warn (l10n "service ~a is stopped~%"))
-                            name))
+                    (cond ((live-service-one-shot? service)
+                           (format #t (l10n "service ~a is done (one-shot)~%")
+                                   name))
+                          ((live-service-transient? service)
+                           (format #t
+                                   (highlight/warn
+                                    (l10n "service ~a is done (transient)~%"))
+                                   name))
+                          (else
+                           (format #t (highlight/warn
+                                       (l10n "service ~a is stopped~%"))
+                                   name))))
                    ('starting
                     (format #t (l10n "service ~a is being started~%")
                             name))
