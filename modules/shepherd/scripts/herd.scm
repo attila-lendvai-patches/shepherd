@@ -254,10 +254,25 @@ into a @code{live-service} record."
   "Display status changes of @var{services} as a chronologically-sorted log."
   (define events
     (map (lambda (service)
-           (map (match-lambda
-                  ((status . time)
-                   (list time service status)))
-                (live-service-status-changes service)))
+           (fold-right
+            (lambda (pair result)
+              (match pair
+                (('stopped . time)
+                 (cons (if (live-service-one-shot? service)
+                           (list time service 'stopped)
+                           (match result
+                             (((_ _ 'starting) . _)
+                              ;; Transition from "starting" to "stopped"
+                              ;; indicates a startup failure.
+                              (list time service 'startup-failure))
+                             (_
+                              (list time service 'stopped))))
+                       result))
+                ((status . time)
+                 (cons (list time service status)
+                       result))))
+            '()
+            (live-service-status-changes service)))
          services))
 
   (define event>?
@@ -304,6 +319,10 @@ into a @code{live-service} record."
                            (format #t (highlight/warn
                                        (l10n "service ~a is stopped~%"))
                                    name))))
+                   ('startup-failure
+                    (format #t (highlight/error
+                                (l10n "service ~a failed to start~%"))
+                            name))
                    ('starting
                     (format #t (l10n "service ~a is being started~%")
                             name))

@@ -50,6 +50,9 @@ $herd status may-fail | grep stopped
 $herd status may-fail | grep "Failed to start"
 $herd status | grep "Failed to start:"
 
+$herd log
+$herd log | grep "service may-fail failed to start"
+
 touch "$stamp"
 $herd start may-fail
 $herd status may-fail | grep running
