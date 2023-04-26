@@ -55,6 +55,11 @@
   "Return the 'canonical name' of @var{service}."
   (first (live-service-provision service)))
 
+(define (live-service-failing? service)
+  "Return true if @var{service} failed to start."
+  (and (eq? 'stopped (live-service-status service))
+       (pair? (live-service-startup-failures service))))
+
 (define (live-service-status-predicate status)
   "Return a predicate that returns true when passed a service with the given
 @var{status}."
@@ -107,9 +112,7 @@ into a @code{live-service} record."
          (starting (filter (live-service-status-predicate 'starting) services))
          (stopping (filter (live-service-status-predicate 'stopping) services))
          (one-shot stopped (partition live-service-one-shot? stopped))
-         (failing stopped
-                  (partition (compose pair? live-service-startup-failures)
-                             stopped)))
+         (failing stopped  (partition live-service-failing? stopped)))
     (display-services (highlight (l10n "Started:\n")) "+"
                       started)
     (display-services (highlight (l10n "Starting:\n")) "^"
