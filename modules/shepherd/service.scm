@@ -357,7 +357,7 @@ denoting what the service provides."
 
 (define %max-recorded-status-changes
   ;; Maximum number of service status changes that are recorded.
-  10)
+  30)
 
 (define %max-recorded-startup-failures
   ;; Maximum number of service startup failures that are recorded.
