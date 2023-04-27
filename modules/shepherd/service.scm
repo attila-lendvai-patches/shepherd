@@ -2669,14 +2669,14 @@ where prctl/PR_SET_CHILD_SUBREAPER is unsupported."
       (lambda _
         ;; A rudimentary attempt to have 'herd help' return something
         ;; sensible.
-        "\
+        (l10n "\
 This is the help message for the 'root' service of the Shepherd.  The 'root'
 service is used to control the Shepherd itself and it supports several
 actions.  For instance, running 'herd status root' or simply 'herd status'
 returns a summary of each service.
 
 Try 'herd doc root list-actions' to see the list of available actions.
-Run 'info shepherd' to access the user manual."))
+Run 'info shepherd' to access the user manual.")))
 
      (status
       "Return an s-expression showing information about all the services.
