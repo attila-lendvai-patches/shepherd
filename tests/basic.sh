@@ -55,11 +55,11 @@ cat > "$conf"<<EOF
              #t)
    #:stop  (lambda _
              (delete-file "$stamp-2"))
-   #:actions (make-actions (hi "Say hi."
-                               (lambda _
-                                 (display "start\n\nend\n")
-                                 #t))
-			   (fail "Fail." (const #f)))
+   #:actions (actions (hi "Say hi."
+                          (lambda _
+                            (display "start\n\nend\n")
+                            #t))
+                      (fail "Fail." (const #f)))
    #:respawn? #f)
  (service
    '(spawn-with-system)

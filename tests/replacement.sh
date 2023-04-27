@@ -38,7 +38,7 @@ cat > "$conf"<<EOF
  (service
    '(test)
    #:start (const #t)
-   #:actions (make-actions
+   #:actions (actions
               (say-hello (lambda _
                           (call-with-output-file "$stamp"
                            (lambda (port)
@@ -63,7 +63,7 @@ cat > "$rconf"<<EOF
  (service
    '(test)
    #:start (const #t)
-   #:actions (make-actions
+   #:actions (actions
               (say-goodbye (lambda _
                              (call-with-output-file "$stamp"
                               (lambda (port)

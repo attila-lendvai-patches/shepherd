@@ -82,7 +82,7 @@ every @var{period} seconds."
              (put-message channel 'stop)
              #f)
     #:actions
-    (make-actions
+    (actions
      (period
       "Set the logging period (in minutes) of the monitoring system."
       (lambda (channel period)

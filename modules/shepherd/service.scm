@@ -124,13 +124,14 @@
 
             check-for-dead-services
             root-service
-            make-actions
 
             &service-error
             service-error?
             &missing-service-error
             missing-service-error?
             missing-service-name
+
+            actions
 
             &unknown-action-error
             unknown-action-error?
@@ -164,6 +165,7 @@
             stop
             action
             action-list
+            make-actions
             lookup-action
             defines-action?
             lookup-services))
@@ -184,16 +186,23 @@
 
 ;; Conveniently create a list of <action> objects containing the actions for a
 ;; <service> object.
-(define-syntax make-actions
+(define-syntax actions
   (syntax-rules ()
     ((_ (name docstring proc) rest ...)
      (cons (make-action 'name proc docstring)
-           (make-actions rest ...)))
+           (actions rest ...)))
     ((_ (name proc) rest ...)
      (cons (make-action 'name proc "[No documentation.]")
-           (make-actions rest ...)))
+           (actions rest ...)))
     ((_)
      '())))
+
+(define-syntax-rule (make-actions rest ...)
+  "Deprecated alias for @code{actions}."
+  (begin
+    (issue-deprecation-warning "The 'make-actions' macro is deprecated; \
+use 'actions' instead.")
+    (actions rest ...)))
 
 ;; Respawning CAR times in CDR seconds will disable the service.
 ;;
@@ -290,7 +299,7 @@ Log abnormal termination reported by @var{status}."
   ;; on this.
   (actions #:init-keyword #:actions
            #:getter service-actions
-	   #:init-form (make-actions))
+	   #:init-form (actions))
   ;; Procedure called to notify that the process associated with this service
   ;; has terminated.
   (handle-termination #:init-keyword #:handle-termination
@@ -314,7 +323,7 @@ Log abnormal termination reported by @var{status}."
                   (respawn? #f)
                   (start (lambda () #t))
                   (stop (lambda (running) #f))
-                  (actions (make-actions))
+                  (actions (actions))
                   (termination-handler default-service-termination-handler)
                   (documentation (l10n "[No description].")))
   "Return a new service with the given @var{provision}, a list of symbols
@@ -2644,7 +2653,7 @@ where prctl/PR_SET_CHILD_SUBREAPER is unsupported."
     ;; user-defined code without catching `quit', since they are
     ;; allowed to quit, while user-supplied code shouldn't be.
     #:actions
-    (make-actions
+    (actions
      (help
       "Show the help message for the 'root' service."
       (lambda _

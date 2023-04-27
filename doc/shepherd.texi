@@ -636,7 +636,7 @@ procedure and its optional keyword arguments.
 @defun service @var{provision} @
   [#:requirement '()] [#:one-shot? #f] [#:transient? #f] @
   [#:respawn? #f] [#:start (const #t)] [#:stop (const #f)] @
-  [#:actions (make-actions)] @
+  [#:actions (actions)] @
   [#:termination-handler default-service-termination-handler] @
   [#:documentation #f]
 @cindex canonical name of services
@@ -727,7 +727,7 @@ procedure, which respawns the service if applicable.
 @cindex service actions
 The additional actions that can be performed on the service when it is
 running.  A typical example for this is the @code{restart} action.  The
-@code{make-actions} macro can be used to defined actions (see below).
+@code{actions} macro can be used to defined actions (see below).
 @end table
 @end defun
 
@@ -735,10 +735,10 @@ A special service that every other service implicitly depends on is the
 @code{root} (also known as @code{shepherd}) service.  @xref{The root
 Service}, for more information.
 
-Service actions are defined using the @code{make-actions} macro, as
+Service actions are defined using the @code{actions} macro, as
 shown below.
 
-@defmac make-actions (name proc) @dots{}
+@defmac actions (name proc) @dots{}
 Create a value for the @code{#:actions} parameter of @code{service}.
 Each @var{name} is a symbol and each @var{proc} the corresponding
 procedure that will be called to perform the action.  A @var{proc} has
