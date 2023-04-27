@@ -1500,21 +1500,17 @@ Then, individual user services can be put in
 @code{$XDG_CONFIG_HOME/shepherd/init.d/}, e.g., for @command{ssh-agent}.
 
 @lisp
-;;; Commentary:
-;;;
-;;; Add to your ~/.bash_profile:
-;;;
-;;; SSH_AUTH_SOCK=$@{XDG_RUNTIME_DIR-$HOME/.cache@}/ssh-agent/socket
-;;; export SSH_AUTH_SOCK
-;;;
-;;; Code:
+;; Add to your ~/.bash_profile:
+;;
+;; SSH_AUTH_SOCK=$@{XDG_RUNTIME_DIR-$HOME/.cache@}/ssh-agent/socket
+;; export SSH_AUTH_SOCK
 
 (use-modules (shepherd support))
 
 (define ssh-agent
   (service
     '(ssh-agent)
-    #:docstring "Run `ssh-agent'"
+    #:documentation "Run `ssh-agent'"
     #:start (lambda ()
               (let ((socket-dir (string-append %user-runtime-dir "/ssh-agent")))
                 (unless (file-exists? socket-dir)
