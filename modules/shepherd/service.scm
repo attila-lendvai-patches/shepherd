@@ -546,11 +546,6 @@ denoting what the service provides."
              (respawns '())
              (failures (ring-buffer %max-recorded-startup-failures))))
 
-      ('notify-termination                        ;no reply
-       (loop (status 'stopped)
-             (changes (update-status-changes 'stopped))
-             (value #f)))
-
       (('handle-termination pid exit-status)      ;no reply
        ;; Handle premature termination of this service's process, possibly by
        ;; respawning it, unless STATUS is 'stopping' or 'stopped' or PID
@@ -2629,7 +2624,8 @@ Used by `start'."
   ;; suspending via (@ (fibers) sleep), 'spawn-command', or similar.
   (for-each
    (lambda (service)
-     (when (service-running? service)
+     (when (and (service-running? service)
+                (not (eq? service root-service)))
        (stop-service service)))
    (service-list)))
 
@@ -2661,11 +2657,6 @@ where prctl/PR_SET_CHILD_SUBREAPER is unsupported."
 	      #t)
     #:stop (lambda (unused . args)
 	     (local-output (l10n "Exiting shepherd..."))
-
-	     ;; Prevent that we try to stop ourself again.
-	     (put-message (service-control root-service)
-                          'notify-termination)
-
              (shutdown-services)
 	     (quit))
     ;; All actions here need to take care that they do not invoke any
