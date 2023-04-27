@@ -25,10 +25,12 @@
   #:use-module (shepherd colors)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
+  #:autoload   (ice-9 vlist) (vlist-null vhash-consq vhash-assq)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-71)
   #:use-module (srfi srfi-19)
+  #:use-module (srfi srfi-26)
   #:export (main))
 
 
@@ -334,6 +336,71 @@ into a @code{live-service} record."
                             name status))))))
             (reverse sorted)))
 
+(define (display-service-graph services)
+  "Write to the current output port a Graphviz representation of
+@var{services}."
+  (define registry
+    (fold (lambda (service registry)
+            (fold (cut vhash-consq <> service <>)
+                  registry
+                  (live-service-provision service)))
+          vlist-null
+          services))
+
+  (define (lookup-service name)
+    (match (vhash-assq name registry)
+      (#f
+       (report-error (l10n "inconsistent graph: service '~a' not found~%")
+                     name)
+       (exit 1))
+      ((_ . service) service)))
+
+  (define (emit-graphviz services)
+    (define (shape service)
+      (if (live-service-one-shot? service)
+          "circle"
+          "box"))
+    (define (style service)
+      (if (live-service-transient? service)
+          "dashed"
+          "solid"))
+    (define (text-color service)
+      (cond ((live-service-failing? service)
+             "red")
+            ((eq? (live-service-status service) 'stopped)
+             "purple")
+            ((eq? (live-service-status service) 'running)
+             "black")
+            (else
+             "gray")))
+    (define (color service)
+      (cond ((live-service-failing? service)
+             "red")
+            ((eq? (live-service-status service) 'stopped)
+             "purple")
+            ((eq? (live-service-status service) 'running)
+             "green")
+            (else
+             "gray")))
+
+    (format #t "digraph ~s {~%" (l10n "Service Graph"))
+    (for-each (lambda (service)
+                (format #t "  \"~a\" [shape = ~a, color = ~a, \
+fontcolor = ~a, style = ~a];~%"
+                        (live-service-canonical-name service)
+                        (shape service) (color service)
+                        (text-color service) (style service))
+                (for-each (lambda (dependency)
+                            (format #t "  \"~a\" -> \"~a\";~%"
+                                    (live-service-canonical-name service)
+                                    (live-service-canonical-name
+                                     (lookup-service dependency))))
+                          (live-service-requirement service)))
+              services)
+    (format #t "}~%"))
+
+  (emit-graphviz services))
+
 (define root-service?
   ;; XXX: This procedure is written in a surprising way to work around a
   ;; compilation bug in Guile 3.0.5 to 3.0.7: <https://bugs.gnu.org/47172>.
@@ -346,7 +413,7 @@ into a @code{live-service} record."
 the daemon via SOCKET-FILE."
   (with-system-error-handling
    (let ((sock    (open-connection socket-file))
-         (action* (if (and (memq action '(detailed-status log))
+         (action* (if (and (memq action '(detailed-status log graph))
                            (root-service? service))
                       'status
                       action)))
@@ -374,6 +441,9 @@ the daemon via SOCKET-FILE."
             (map sexp->live-service (first result))))
           (('log (or 'root 'shepherd))
            (display-event-log
+            (map sexp->live-service (first result))))
+          (('graph (or 'root 'shepherd))
+           (display-service-graph
             (map sexp->live-service (first result))))
           (('help (or 'root 'shepherd))
            (match result
@@ -443,7 +513,7 @@ SERVICE with the ARGs.")
 
       (match (reverse command-args)
         (((and action
-               (or "status" "detailed-status" "help" "log"))) ;one argument
+               (or "status" "detailed-status" "help" "log" "graph"))) ;one argument
          (run-command socket-file (string->symbol action) 'root '()))
         ((action service args ...)
          (run-command socket-file

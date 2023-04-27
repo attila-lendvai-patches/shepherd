@@ -87,6 +87,8 @@ test -S "$socket"
 pristine_status=`$herd status root` # Prep for 'reload' test.
 echo $pristine_status | grep -E '(Start.*root|Stop.*test)'
 
+$herd graph | grep '"test-2" -> "test"'
+
 $herd start test
 test -f "$stamp"
 $herd status test | grep running

@@ -202,6 +202,14 @@ each service was started or stopped, by running:
 herd log
 @end example
 
+Services and their dependencies form a @dfn{graph}, which you can view,
+for instance with the help of
+@uref{https://github.com/jrfonseca/xdot.py, xdot}, by running:
+
+@example
+herd graph | xdot -
+@end example
+
 @cindex Stopping a service
 You can stop
 a service and all the services that depend on it will be stopped.
@@ -748,6 +756,16 @@ running.  A typical example for this is the @code{restart} action.  The
 A special service that every other service implicitly depends on is the
 @code{root} (also known as @code{shepherd}) service.  @xref{The root
 Service}, for more information.
+
+@cindex graph of services
+Services and their dependencies form a @dfn{graph}.  At the
+command-line, you can view that export a representation of that graph
+that can be consumed by any application that understands the Graphviz
+format, such as @uref{https://github.com/jrfonseca/xdot.py, xdot}:
+
+@example
+herd graph | xdot -
+@end example
 
 Service actions are defined using the @code{actions} macro, as
 shown below.
