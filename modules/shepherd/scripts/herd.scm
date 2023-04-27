@@ -173,13 +173,15 @@ into a @code{live-service} record."
     (let* ((time    (make-time time-utc 0 time))
            (date    (time-utc->date time))
            (year    (date-year date))
-           (now     (time-utc->date now*))
-           (format  (if (= year (date-year now))
-                        (if (= (date-day date) (date-day now))
-                            "~H:~M:~S"
-                            "~e ~b ~H:~M:~S")
-                        "~e ~b ~Y ~H:~M:~S")))
-      (date->string date format)))
+           (now*    (time-utc->date now*))
+           ;; Note: Use 'strftime' rather than 'date->string' to better
+           ;; account for locale preferences.
+           (format  (if (= year (date-year now*))
+                        (if (= (date-day date) (date-day now*))
+                            "%X"
+                            "%c")
+                        "%c")))
+      (strftime format (localtime now))))
 
   ;; TRANSLATORS: The first placeholder is for a date string such as "April 22
   ;; 19:07:46" and the parenthesized placeholder is for the corresponding
