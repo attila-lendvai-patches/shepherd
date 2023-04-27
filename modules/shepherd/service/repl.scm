@@ -47,7 +47,7 @@ socket.  Use @var{id} to create the service name."
                               (close-port client)
                               #f))))
     (register-services (list child))
-    (start child)))
+    (start-service child)))
 
 (define* (run-repl-service socket)
   (let loop ((client-id 1))

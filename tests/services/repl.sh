@@ -102,7 +102,7 @@ guile -c '
     (quote (begin
              (use-modules (shepherd service) (shepherd service monitoring))
              (register-services (list (monitoring-service #:period 2)))
-             (start (quote monitoring)))))
+             (start-service (lookup-service (quote monitoring))))))
    sock)
   (display ",q\n" sock)
   (let loop ()
