@@ -385,17 +385,31 @@ shepherd [@var{option}@dots{}]
 
 It accepts the following options:
 
+@cindex configuration file
 @table @samp
 @item -c @var{file}
 @itemx --config=@var{file}
 Read and evaluate @var{file} as the configuration script on startup.
 
-@var{file} is evaluated in the context of a fresh module where bindings
-from the @code{(shepherd service)} module and Guile's @code{(oop goops)} are
-available, in addition to the default set of Guile bindings.  In
-particular, this means that code in @var{file} may use
-@code{register-services}, the @code{<service>} class, and related tools
-(@pxref{Services}).
+Scheme code in @var{file} is evaluated in the context of a fresh module
+where bindings from the @code{(shepherd service)} module are available,
+in addition to the default set of Guile bindings.  It may typically
+perform three actions:
+
+@enumerate
+@item
+defining services using the @code{service} procedure (@pxref{Defining
+Services});
+@item
+registering those services with @code{register-services} (@pxref{Service
+Registry});
+@item
+starting some or all of those services with
+@code{start-in-the-background} (@pxref{Interacting with Services}).
+@end enumerate
+
+@xref{Service Examples}, for examples of what @var{file} might look
+like.
 
 @item -I
 @itemx --insecure
@@ -1223,7 +1237,7 @@ Displays detailed information about every registered service.
 
 @item load @var{file}
 Evaluate the Scheme code in @var{file} in a fresh module that uses the
-@code{(oop goops)} and @code{(shepherd services)} modules---as with the
+@code{(shepherd services)} module---as with the
 @code{--config} option of @command{shepherd} (@pxref{Invoking shepherd}).
 
 @item eval @var{exp}
@@ -1329,6 +1343,7 @@ environment variable (@pxref{Environment Variables,
 @node Service Examples
 @section Service Examples
 
+@cindex configuration file, examples
 The configuration file of the @command{shepherd} command
 (@pxref{Invoking shepherd}) defines, registers, and possibly starts
 @dfn{services}.  Each service specifies other services it depends on and
