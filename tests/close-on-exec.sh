@@ -1,5 +1,5 @@
 # GNU Shepherd --- Ensure file descriptors are not leaked to children.
-# Copyright © 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2022, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -82,33 +82,33 @@ EOF
 
 cat > "$conf" <<EOF
 (register-services
- (service
-   '(system-ctor)
-   #:start (make-system-constructor "$exe")
-   #:stop  (const #f)
-   #:one-shot? #t)
- (service
-   '(forkexec-ctor)
-   #:start (make-forkexec-constructor '("$(type -P sleep)" "100"))
-   #:stop (make-kill-destructor))
- (service
-   '(inetd-ctor)
-   #:start (make-inetd-constructor '("$exe")
-                                   (list
-                                    (endpoint (make-socket-address
-                                               AF_INET
-                                               INADDR_LOOPBACK
-                                               5555))))
-   #:stop  (make-inetd-destructor))
- (service
-   '(systemd-ctor)
-   #:start (make-systemd-constructor '("$exe")
-				     (list
-				      (endpoint (make-socket-address
-						 AF_INET
-						 INADDR_LOOPBACK
-						 5556))))
-   #:stop  (make-systemd-destructor)))
+ (list (service
+	 '(system-ctor)
+	 #:start (make-system-constructor "$exe")
+	 #:stop  (const #f)
+	 #:one-shot? #t)
+       (service
+	 '(forkexec-ctor)
+	 #:start (make-forkexec-constructor '("$(type -P sleep)" "100"))
+	 #:stop (make-kill-destructor))
+       (service
+	 '(inetd-ctor)
+	 #:start (make-inetd-constructor '("$exe")
+					 (list
+					  (endpoint (make-socket-address
+						     AF_INET
+						     INADDR_LOOPBACK
+						     5555))))
+	 #:stop  (make-inetd-destructor))
+       (service
+	 '(systemd-ctor)
+	 #:start (make-systemd-constructor '("$exe")
+					   (list
+					    (endpoint (make-socket-address
+						       AF_INET
+						       INADDR_LOOPBACK
+						       5556))))
+	 #:stop  (make-systemd-destructor))))
 EOF
 
 rm -f "$pid" "$fd_count"

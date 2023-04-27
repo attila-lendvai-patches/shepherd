@@ -48,15 +48,15 @@ cat > "$conf"<<EOF
   '("$SHELL" "-c" "touch $PWD/$service_new_file; echo foo"))
 
 (register-services
- (service
-   '(test)
-   #:start (make-forkexec-constructor %command
-                                      #:log-file "$PWD/$service_log"
-                                      ;; Set the umask such that file
-                                      ;; permissions are #o600.
-                                      #:file-creation-mask #o177)
-   #:stop (make-kill-destructor)
-   #:respawn? #f))
+ (list (service
+	 '(test)
+	 #:start (make-forkexec-constructor %command
+					    #:log-file "$PWD/$service_log"
+					    ;; Set the umask such that file
+					    ;; permissions are #o600.
+					    #:file-creation-mask #o177)
+	 #:stop (make-kill-destructor)
+	 #:respawn? #f)))
 EOF
 
 rm -f "$pid"

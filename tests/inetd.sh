@@ -39,45 +39,46 @@ cat > "$conf" <<EOF
   '("$SHELL" "-c" "echo hello; read line; echo \$line; echo done"))
 
 (register-services
- (service
-   '(test-inetd)
-   #:start (make-inetd-constructor %command
-                                   (list
-                                    (endpoint (make-socket-address
-                                               AF_INET
-                                               INADDR_LOOPBACK
-                                               $PORT))))
-   #:stop  (make-inetd-destructor))
- (service
-   '(test-inetd6)
-   #:start (make-inetd-constructor %command
-                                   (list
-                                    (endpoint (make-socket-address
-                                               AF_INET
-                                               INADDR_LOOPBACK
-                                               $PORT))
-                                    (endpoint (make-socket-address
-                                               AF_INET6
-                                               IN6ADDR_LOOPBACK
-                                               $PORT))))
-   #:stop  (make-inetd-destructor))
- (service
-   '(test-inetd-v6-only)
-   #:start (make-inetd-constructor %command
-                                   (list
-                                    (endpoint (make-socket-address
-                                               AF_INET6
-                                               IN6ADDR_LOOPBACK
-                                               $PORT))))
-   #:stop  (make-inetd-destructor))
- (service
-   '(test-inetd-unix)
-   #:start (make-inetd-constructor %command
-                                   (list
-                                    (endpoint (make-socket-address
-                                               AF_UNIX "$service_socket")))
-                                   #:max-connections 5)
-   #:stop  (make-inetd-destructor)))
+ (list
+  (service
+    '(test-inetd)
+    #:start (make-inetd-constructor %command
+				    (list
+				     (endpoint (make-socket-address
+						AF_INET
+						INADDR_LOOPBACK
+						$PORT))))
+    #:stop  (make-inetd-destructor))
+  (service
+    '(test-inetd6)
+    #:start (make-inetd-constructor %command
+				    (list
+				     (endpoint (make-socket-address
+						AF_INET
+						INADDR_LOOPBACK
+						$PORT))
+				     (endpoint (make-socket-address
+						AF_INET6
+						IN6ADDR_LOOPBACK
+						$PORT))))
+    #:stop  (make-inetd-destructor))
+  (service
+    '(test-inetd-v6-only)
+    #:start (make-inetd-constructor %command
+				    (list
+				     (endpoint (make-socket-address
+						AF_INET6
+						IN6ADDR_LOOPBACK
+						$PORT))))
+    #:stop  (make-inetd-destructor))
+  (service
+    '(test-inetd-unix)
+    #:start (make-inetd-constructor %command
+				    (list
+				     (endpoint (make-socket-address
+						AF_UNIX "$service_socket")))
+				    #:max-connections 5)
+    #:stop  (make-inetd-destructor))))
 
 (start-service (lookup-service 'test-inetd))
 EOF

@@ -48,22 +48,22 @@ cat > "$conf"<<EOF
   '("$SHELL" "$service_script"))
 
 (register-services
- (service
-   ;; Service with built-in logging.
-   '(test-builtin-logging)
-   #:start (make-forkexec-constructor %command
-                                      #:pid-file "$PWD/$service_pid")
-   #:stop  (make-kill-destructor)
-   #:respawn? #f)
+ (list (service
+	 ;; Service with built-in logging.
+	 '(test-builtin-logging)
+	 #:start (make-forkexec-constructor %command
+					    #:pid-file "$PWD/$service_pid")
+	 #:stop  (make-kill-destructor)
+	 #:respawn? #f)
 
- (service
-   ;; Service with built-in logging.
-   '(test-file-logging)
-   #:start (make-forkexec-constructor %command
-                                      #:log-file "$PWD/$service_log"
-                                      #:pid-file "$PWD/$service_pid")
-   #:stop  (make-kill-destructor)
-   #:respawn? #f))
+       (service
+	 ;; Service with built-in logging.
+	 '(test-file-logging)
+	 #:start (make-forkexec-constructor %command
+					    #:log-file "$PWD/$service_log"
+					    #:pid-file "$PWD/$service_pid")
+	 #:stop  (make-kill-destructor)
+	 #:respawn? #f)))
 
 ;; Start it upfront to make sure the logging fiber works.
 (start-service (lookup-service 'test-file-logging))

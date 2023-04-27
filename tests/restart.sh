@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test restarting services.
-# Copyright © 2013, 2014, 2016 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2013, 2014, 2016, 2023 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 #
 # This file is part of the GNU Shepherd.
@@ -33,20 +33,20 @@ trap "cat $log || true ;
 
 cat > "$conf"<<EOF
 (register-services
- (service
-   '(test1)
-   #:start (const #t)
-   #:stop  (const #t))
- (service
-   '(test2)
-   #:requirement '(test1)
-   #:start (const #t)
-   #:stop  (const #t))
- (service
-   '(test3)
-   #:requirement '(test2)
-   #:start (const #t)
-   #:stop  (const #t)))
+ (list (service
+	 '(test1)
+	 #:start (const #t)
+	 #:stop  (const #t))
+       (service
+	 '(test2)
+	 #:requirement '(test1)
+	 #:start (const #t)
+	 #:stop  (const #t))
+       (service
+	 '(test3)
+	 #:requirement '(test2)
+	 #:start (const #t)
+	 #:stop  (const #t))))
 EOF
 
 rm -f "$pid"

@@ -33,7 +33,7 @@ trap "cat $log || true;
 cat > "$conf" <<EOF
 (use-modules (shepherd service monitoring))
 
-(register-services (monitoring-service))
+(register-services (list (monitoring-service)))
 EOF
 
 rm -f "$pid" "$log"

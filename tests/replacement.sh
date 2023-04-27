@@ -35,15 +35,15 @@ trap "rm -f $socket $conf $rconf $stamp $log;
 cat > "$conf"<<EOF
 (use-modules (srfi srfi-26))
 (register-services
- (service
-   '(test)
-   #:start (const #t)
-   #:actions (actions
-              (say-hello (lambda _
-                          (call-with-output-file "$stamp"
-                           (lambda (port)
-                            (display "Hello" port))))))
-   #:respawn? #f))
+ (list (service
+	 '(test)
+	 #:start (const #t)
+	 #:actions (actions
+		    (say-hello (lambda _
+				(call-with-output-file "$stamp"
+				 (lambda (port)
+				  (display "Hello" port))))))
+	 #:respawn? #f)))
 EOF
 
 rm -f "$pid" "$stamp" "$socket"
@@ -60,15 +60,15 @@ fi
 
 cat > "$rconf"<<EOF
 (register-services
- (service
-   '(test)
-   #:start (const #t)
-   #:actions (actions
-              (say-goodbye (lambda _
-                             (call-with-output-file "$stamp"
-                              (lambda (port)
-                                (display "Goodbye" port))))))
-   #:respawn? #f))
+ (list (service
+	 '(test)
+	 #:start (const #t)
+	 #:actions (actions
+		    (say-goodbye (lambda _
+				   (call-with-output-file "$stamp"
+				    (lambda (port)
+				      (display "Goodbye" port))))))
+	 #:respawn? #f)))
 EOF
 
 $herd load root "$rconf"

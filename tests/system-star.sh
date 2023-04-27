@@ -34,33 +34,33 @@ script="while [ ! -f $PWD/$stamp ] ; do sleep 0.1 ; done ; exit \$(cat $PWD/$sta
 
 cat > "$conf" <<EOF
 (register-services
- (service
-   '(test)
-   #:start (lambda _
-             (list 'exit-code
-                   (status:exit-val
-                    (system* "$SHELL" "-c" "$script"))))
-   #:stop  (lambda _
-             (system* "$SHELL" "-c" "echo STOPPING")
-             (delete-file "$stamp"))
-   #:respawn? #f)
- (service
-   '(test-command-not-found)
-   #:start (lambda _
-             (zero? (system* "this command does not exist")))
-   #:stop  (const #f)
-   #:respawn? #f)
- (service
-   '(test-with-respawn)
-   #:start (make-forkexec-constructor
-             (list "$SHELL" "-cex"
-                   "[ ! -f $PWD/$stamp ] ; touch $PWD/$stamp ; sleep 60"))
-   #:stop  (lambda (pid)
-             (and (zero? (system* "$(type -P kill)" (number->string pid)))
-                  (begin
-                    (delete-file "$stamp")
-                    #f)))
-   #:respawn? #t))
+ (list (service
+	 '(test)
+	 #:start (lambda _
+		   (list 'exit-code
+			 (status:exit-val
+			  (system* "$SHELL" "-c" "$script"))))
+	 #:stop  (lambda _
+		   (system* "$SHELL" "-c" "echo STOPPING")
+		   (delete-file "$stamp"))
+	 #:respawn? #f)
+       (service
+	 '(test-command-not-found)
+	 #:start (lambda _
+		   (zero? (system* "this command does not exist")))
+	 #:stop  (const #f)
+	 #:respawn? #f)
+       (service
+	 '(test-with-respawn)
+	 #:start (make-forkexec-constructor
+		   (list "$SHELL" "-cex"
+			 "[ ! -f $PWD/$stamp ] ; touch $PWD/$stamp ; sleep 60"))
+	 #:stop  (lambda (pid)
+		   (and (zero? (system* "$(type -P kill)" (number->string pid)))
+			(begin
+			  (delete-file "$stamp")
+			  #f)))
+	 #:respawn? #t)))
 EOF
 
 rm -f "$pid"

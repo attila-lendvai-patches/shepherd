@@ -63,24 +63,25 @@ function assert_killed_service_is_respawned
 
 cat > "$conf"<<EOF
 (register-services
- (service
-   '(test1)
-   #:start (make-forkexec-constructor
-	    '("$SHELL" "-c"
-	      "echo \$\$ > $PWD/$service1_pid ; while true ; do sleep 1 ; done"))
-   #:stop  (make-kill-destructor)
-   #:respawn? #t)
- (service
-   '(test2)
-   #:start (make-forkexec-constructor
-            ;; The 'sleep' below is just to make it more likely
-            ;; that synchronization issues in handling #:pid-file
-            ;; would be caught.
-	    '("$SHELL" "-c"
-	      "sleep 0.7 ; echo \$\$ > $PWD/$service2_pid ; while true ; do sleep 1 ; done")
-            #:pid-file "$PWD/$service2_pid")
-   #:stop  (make-kill-destructor)
-   #:respawn? #t))
+ (list
+  (service
+    '(test1)
+    #:start (make-forkexec-constructor
+	     '("$SHELL" "-c"
+	       "echo \$\$ > $PWD/$service1_pid ; while true ; do sleep 1 ; done"))
+    #:stop  (make-kill-destructor)
+    #:respawn? #t)
+  (service
+    '(test2)
+    #:start (make-forkexec-constructor
+	     ;; The 'sleep' below is just to make it more likely
+	     ;; that synchronization issues in handling #:pid-file
+	     ;; would be caught.
+	     '("$SHELL" "-c"
+	       "sleep 0.7 ; echo \$\$ > $PWD/$service2_pid ; while true ; do sleep 1 ; done")
+	     #:pid-file "$PWD/$service2_pid")
+    #:stop  (make-kill-destructor)
+    #:respawn? #t)))
 (start-service (lookup-service 'test1))
 EOF
 

@@ -59,39 +59,40 @@ cat > "$conf"<<EOF
                         (sleep 100))))))
 
 (register-services
- (service
-   ;; A service that never produces its PID file, yet leaves a process
-   ;; behind it.
-   '(test)
-   #:start (make-forkexec-constructor %command
-                                      #:pid-file "/does-not-exist"
+ (list
+  (service
+    ;; A service that never produces its PID file, yet leaves a process
+    ;; behind it.
+    '(test)
+    #:start (make-forkexec-constructor %command
+				       #:pid-file "/does-not-exist"
 
-                                      ;; Low-end ARMv7 machines are
-                                      ;; slow enough that creating
-                                      ;; $service_pid could take
-                                      ;; up to 4 seconds or so.
-                                      #:pid-file-timeout 6)
-   #:stop  (make-kill-destructor)
-   #:respawn? #f)
+				       ;; Low-end ARMv7 machines are
+				       ;; slow enough that creating
+				       ;; $service_pid could take
+				       ;; up to 4 seconds or so.
+				       #:pid-file-timeout 6)
+    #:stop  (make-kill-destructor)
+    #:respawn? #f)
 
- (service
-   ;; Same one, but actually produces the PID file.
-   '(test-works)
-   #:start (make-forkexec-constructor %daemon-command-successful
-                                      #:pid-file "$PWD/$service_pid"
-                                      #:pid-file-timeout 6)
-   #:stop  (make-kill-destructor)
-   #:respawn? #f)
+  (service
+    ;; Same one, but actually produces the PID file.
+    '(test-works)
+    #:start (make-forkexec-constructor %daemon-command-successful
+				       #:pid-file "$PWD/$service_pid"
+				       #:pid-file-timeout 6)
+    #:stop  (make-kill-destructor)
+    #:respawn? #f)
 
- (service
-   ;; This one "daemonizes", fails to create a PID file, but leaves
-   ;; a child process behind it.
-   '(test-daemonizes)
-   #:start (make-forkexec-constructor %daemon-command
-                                      #:pid-file "/does-not-exist"
-                                      #:pid-file-timeout 6)
-   #:stop  (make-kill-destructor)
-   #:respawn? #f))
+  (service
+    ;; This one "daemonizes", fails to create a PID file, but leaves
+    ;; a child process behind it.
+    '(test-daemonizes)
+    #:start (make-forkexec-constructor %daemon-command
+				       #:pid-file "/does-not-exist"
+				       #:pid-file-timeout 6)
+    #:stop  (make-kill-destructor)
+    #:respawn? #f)))
 
 ;; Start it upfront.  This ensures the whole machinery works even
 ;; when called in a non-suspendable context (continuation barrier).

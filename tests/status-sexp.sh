@@ -31,19 +31,19 @@ trap "rm -f $socket $conf $stamp $log;
 
 cat > "$conf"<<EOF
 (register-services
- (service
-   '(foo)
-   #:start (const 'abc)
-   #:stop  (const #f)
-   #:documentation "Foo!"
-   #:respawn? #t)
- (service
-   '(bar)
-   #:requirement '(foo)
-   #:start (const 'up-and-running)
-   #:stop  (const #f)
-   #:documentation "Bar!"
-   #:respawn? #f))
+ (list (service
+	 '(foo)
+	 #:start (const 'abc)
+	 #:stop  (const #f)
+	 #:documentation "Foo!"
+	 #:respawn? #t)
+       (service
+	 '(bar)
+	 #:requirement '(foo)
+	 #:start (const 'up-and-running)
+	 #:stop  (const #f)
+	 #:documentation "Bar!"
+	 #:respawn? #f)))
 
 (start-service (lookup-service 'foo))
 EOF

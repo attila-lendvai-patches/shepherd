@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test transient services.
-# Copyright © 2022 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2022, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -31,14 +31,14 @@ trap "cat $log || true; rm -f $socket $conf $log;
 
 cat > "$conf"<<EOF
 (register-services
- (service
-   '(transient-test1)
-   #:start (make-forkexec-constructor '("sleep" "600"))
-   #:transient? #t)
- (service
-   '(transient-test2)
-   #:start (make-forkexec-constructor '("sleep" "600"))
-   #:transient? #t))
+ (list (service
+	 '(transient-test1)
+	 #:start (make-forkexec-constructor '("sleep" "600"))
+	 #:transient? #t)
+       (service
+	 '(transient-test2)
+	 #:start (make-forkexec-constructor '("sleep" "600"))
+	 #:transient? #t)))
 EOF
 
 rm -f "$pid"

@@ -37,41 +37,41 @@ trap "cat $log || true; rm -f $socket $conf $stamp $log;
 cat > "$conf"<<EOF
 (use-modules (srfi srfi-26))
 (register-services
- (service
-   '(test)
-   #:start (lambda _
-             (call-with-output-file "$stamp"
-               (cut display "foo" <>))
-             #t)
-   #:stop  (lambda _
-             (delete-file "$stamp"))
-   #:respawn? #f)
- (service
-   '(test-2)
-   #:requirement '(test)
-   #:start (lambda _
-             (call-with-output-file "$stamp-2"
-               (cut display "bar" <>))
-             #t)
-   #:stop  (lambda _
-             (delete-file "$stamp-2"))
-   #:actions (actions (hi "Say hi."
-                          (lambda _
-                            (display "start\n\nend\n")
-                            #t))
-                      (fail "Fail." (const #f)))
-   #:respawn? #f)
- (service
-   '(spawn-with-system)
-   #:start (make-system-constructor "echo starting from $PWD")
-   #:stop (make-system-destructor "echo stopping from $PWD"))
- (service
-   '(broken)
-   #:requirement '()
-   #:start (lambda _
-             (mkdir "/this/throws/a/system/error"))
-   #:stop  (const #f)
-   #:respawn? #f))
+ (list (service
+	 '(test)
+	 #:start (lambda _
+		   (call-with-output-file "$stamp"
+		     (cut display "foo" <>))
+		   #t)
+	 #:stop  (lambda _
+		   (delete-file "$stamp"))
+	 #:respawn? #f)
+       (service
+	 '(test-2)
+	 #:requirement '(test)
+	 #:start (lambda _
+		   (call-with-output-file "$stamp-2"
+		     (cut display "bar" <>))
+		   #t)
+	 #:stop  (lambda _
+		   (delete-file "$stamp-2"))
+	 #:actions (actions (hi "Say hi."
+				(lambda _
+				  (display "start\n\nend\n")
+				  #t))
+			    (fail "Fail." (const #f)))
+	 #:respawn? #f)
+       (service
+	 '(spawn-with-system)
+	 #:start (make-system-constructor "echo starting from $PWD")
+	 #:stop (make-system-destructor "echo stopping from $PWD"))
+       (service
+	 '(broken)
+	 #:requirement '()
+	 #:start (lambda _
+		   (mkdir "/this/throws/a/system/error"))
+	 #:stop  (const #f)
+	 #:respawn? #f)))
 EOF
 
 rm -f "$pid"

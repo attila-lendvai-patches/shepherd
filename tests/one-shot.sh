@@ -34,45 +34,45 @@ trap "cat $log || true; rm -f $socket $conf $stamp $log;
 cat > "$conf"<<EOF
 (use-modules (srfi srfi-26))
 (register-services
- (service
-   '(always-fail)
-   #:start (const #f)
-   #:one-shot? #t)
- (service
-   '(test)
-   #:start (lambda _
-             (call-with-output-file "$stamp"
-               (cut display "foo" <>))
-             #t)
-   #:one-shot? #t)
- (service
-   '(test-2)
-   #:requirement '(test)
-   #:start (lambda _
-             (call-with-output-file "$stamp-2"
-               (cut display "bar" <>))
-             #t)
-   #:stop  (lambda _
-             (delete-file "$stamp-2")
-             #f))
+ (list (service
+	 '(always-fail)
+	 #:start (const #f)
+	 #:one-shot? #t)
+       (service
+	 '(test)
+	 #:start (lambda _
+		   (call-with-output-file "$stamp"
+		     (cut display "foo" <>))
+		   #t)
+	 #:one-shot? #t)
+       (service
+	 '(test-2)
+	 #:requirement '(test)
+	 #:start (lambda _
+		   (call-with-output-file "$stamp-2"
+		     (cut display "bar" <>))
+		   #t)
+	 #:stop  (lambda _
+		   (delete-file "$stamp-2")
+		   #f))
 
- ;; Several services depending on the same one-shot service.
- (service
-   '(one-shotty)
-   #:start (const #t)
-   #:one-shot? #t)
- (service
-   '(a)
-   #:requirement '(one-shotty)
-   #:start (const #t))
- (service
-   '(b)
-   #:requirement '(a one-shotty)
-   #:start (const #t))
- (service
-   '(c)
-   #:requirement '(a b one-shotty)
-   #:start (const #t)))
+       ;; Several services depending on the same one-shot service.
+       (service
+	 '(one-shotty)
+	 #:start (const #t)
+	 #:one-shot? #t)
+       (service
+	 '(a)
+	 #:requirement '(one-shotty)
+	 #:start (const #t))
+       (service
+	 '(b)
+	 #:requirement '(a one-shotty)
+	 #:start (const #t))
+       (service
+	 '(c)
+	 #:requirement '(a b one-shotty)
+	 #:start (const #t))))
 
 (start-in-the-background '(a b c))
 EOF

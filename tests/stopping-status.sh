@@ -34,20 +34,20 @@ trap "cat $log || true; rm -f $socket $conf $stamp $log;
 
 cat > "$conf" <<EOF
 (register-services
- (service
-   '(test)
-   #:start (const #t)
-   #:stop  (lambda _
-             (let loop ((n 30))
-               (if (or (file-exists? "$stamp") (zero? n))
-                   (begin
-                     (delete-file "$stamp")
-                     (zero? n))   ;failure if N is zero
-                   (begin
-                     ((@ (fibers) sleep) 1)
-                     (loop (- n 1))))))
+ (list (service
+	 '(test)
+	 #:start (const #t)
+	 #:stop  (lambda _
+		   (let loop ((n 30))
+		     (if (or (file-exists? "$stamp") (zero? n))
+			 (begin
+			   (delete-file "$stamp")
+			   (zero? n))   ;failure if N is zero
+			 (begin
+			   ((@ (fibers) sleep) 1)
+			   (loop (- n 1))))))
 
-   #:respawn? #f))
+	 #:respawn? #f)))
 EOF
 
 rm -f "$pid" "$stamp"

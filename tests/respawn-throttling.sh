@@ -1,5 +1,5 @@
 # GNU Shepherd --- Test respawn throttling.
-# Copyright © 2016 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2016, 2023 Ludovic Courtès <ludo@gnu.org>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -32,11 +32,11 @@ trap "cat $log || true ;
 
 cat > "$conf"<<EOF
 (register-services
- (service
-   '(keeps-respawning)
-   #:start (make-forkexec-constructor '("false"))
-   #:stop  (make-kill-destructor)
-   #:respawn? #t))
+ (list (service
+	 '(keeps-respawning)
+	 #:start (make-forkexec-constructor '("false"))
+	 #:stop  (make-kill-destructor)
+	 #:respawn? #t)))
 EOF
 
 rm -f "$pid"

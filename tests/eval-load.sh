@@ -31,14 +31,14 @@ trap "rm -f $socket $conf $log;
 
 cat > "$conf" <<EOF
 (register-services
- (service
-   '(a)
-   #:start (const #t)
-   #:respawn? #f)
- (service
-   '(b)
-   #:start (const #t)
-   #:respawn? #f))
+ (list (service
+	 '(a)
+	 #:start (const #t)
+	 #:respawn? #f)
+       (service
+	 '(b)
+	 #:start (const #t)
+	 #:respawn? #f)))
 EOF
 
 rm -f "$pid" "$socket"

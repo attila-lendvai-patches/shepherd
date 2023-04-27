@@ -34,15 +34,15 @@ trap "rm -f $socket $conf $stamp $log;
 cat > "$conf"<<EOF
 (use-modules (srfi srfi-26))
 (register-services
- (service
-   '(test)
-   #:start (const #t)
-   #:stop  (lambda _
-             (call-with-output-file "$stamp"
-               (lambda (port)
-                 (display "stopped" port))))
-   #:respawn? #f))
- (start-service (lookup-service 'test))
+ (list (service
+	 '(test)
+	 #:start (const #t)
+	 #:stop  (lambda _
+		   (call-with-output-file "$stamp"
+		     (lambda (port)
+		       (display "stopped" port))))
+	 #:respawn? #f)))
+(start-service (lookup-service 'test))
 EOF
 
 for signal in INT TERM HUP; do

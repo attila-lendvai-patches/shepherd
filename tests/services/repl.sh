@@ -34,7 +34,7 @@ trap "cat $log || true;
 cat > "$conf" <<EOF
 (use-modules (shepherd service repl))
 
-(register-services (repl-service "$repl_socket"))
+(register-services (list (repl-service "$repl_socket")))
 EOF
 
 rm -f "$pid" "$log" "$repl_socket"
@@ -101,7 +101,7 @@ guile -c '
    (object->string
     (quote (begin
              (use-modules (shepherd service) (shepherd service monitoring))
-             (register-services (monitoring-service #:period 2))
+             (register-services (list (monitoring-service #:period 2)))
              (start (quote monitoring)))))
    sock)
   (display ",q\n" sock)

@@ -32,11 +32,11 @@ trap "rm -f $socket $conf $log $stamp;
 
 cat > "$conf" <<EOF
 (register-services
- (service
-   '(may-fail)
-   #:start (lambda _
-             (file-exists? "$PWD/$stamp"))
-   #:respawn? #f))
+ (list (service
+	 '(may-fail)
+	 #:start (lambda _
+		   (file-exists? "$PWD/$stamp"))
+	 #:respawn? #f)))
 EOF
 
 rm -f "$pid" "$stamp" "$socket"
