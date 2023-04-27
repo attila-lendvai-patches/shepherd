@@ -845,7 +845,7 @@ NEW-SERVICE."
   (when new-service
     (put-message (current-registry-channel)
                  `(unregister ,(list old-service)))
-    (register-services new-service)))
+    (register-services (list new-service))))
 
 (define (required-by? service dependent)
   "Returns #t if DEPENDENT directly requires SERVICE in order to run.  Returns
@@ -1989,7 +1989,7 @@ The remaining arguments are as for @code{make-forkexec-constructor}."
                                #:resource-limits resource-limits)
                       #:termination-handler handle-child-termination
                       #:stop (make-kill-destructor))))
-      (register-services service)
+      (register-services (list service))
       (start-service service)))
 
   (define (accept-clients server-address sock)
@@ -2454,19 +2454,38 @@ then disable it."
                         (service-canonical-name serv))))))
 
 ;; Add NEW-SERVICES to the list of known services.
-(define (register-services . new-services)
-  "Add NEW-SERVICES to the list of known services.  If a service has already
-been registered, arrange to have it replaced when it is next stopped.  If it
-is currently stopped, replace it immediately."
-  (define (register-single-service new)
-    ;; Sanity-checks first.
-    (assert (list-of-symbols? (service-provision new)))
-    (assert (list-of-symbols? (service-requirement new)))
-    (assert (boolean? (respawn-service? new)))
+(define register-services
+  (let ((warn-deprecated-form
+         ;; Up to 0.9.x, this procedure took a rest list.
+         (lambda ()
+           (issue-deprecation-warning
+            "Passing 'register-services' services a rest list is \
+now deprecated."))))
+   (case-lambda
+     ((services)
+      "Register @var{services} so that they can be looked up by name, for instance
+when resolving dependencies.
 
-    (put-message (current-registry-channel) `(register ,new)))
+Each name uniquely identifies one service.  If a service with a given name has
+already been registered, arrange to have it replaced when it is next stopped.
+If it is currently stopped, replace it immediately."
+      (define (register-single-service new)
+        ;; Sanity-checks first.
+        (assert (list-of-symbols? (service-provision new)))
+        (assert (list-of-symbols? (service-requirement new)))
+        (assert (boolean? (respawn-service? new)))
 
-  (for-each register-single-service new-services))
+        (put-message (current-registry-channel) `(register ,new)))
+
+      (let ((services (if (service? services)
+                          (begin
+                            (warn-deprecated-form)
+                            (list services))
+                          services)))
+        (for-each register-single-service services)))
+     (services
+      (warn-deprecated-form)
+      (register-services services)))))
 
 (define (deregister-service service-name)
   "For each string in SERVICE-NAME, stop the associated service if

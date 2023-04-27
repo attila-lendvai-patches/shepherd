@@ -796,9 +796,13 @@ be used.  A typical configuration file thus includes a call to the
 @code{register-services} procedure (@pxref{Service Examples}).  The
 following procedures let you interact with the registry.
 
-@defun register-services @var{service} @dots{}
-Register all @var{service}, so that they can be taken into account
-when trying to resolve dependencies.
+@defun register-services @var{services}
+Register @var{services} so that they can be looked up by name, for instance
+when resolving dependencies.
+
+Each name uniquely identifies one service.  If a service with a given name has
+already been registered, arrange to have it replaced when it is next stopped.
+If it is currently stopped, replace it immediately.
 @end defun
 
 @defun lookup-service @var{name}
@@ -1349,7 +1353,7 @@ for this one service:
     #:stop (make-kill-destructor)
     #:respawn? #t))
 
-(register-services mcron)
+(register-services (list mcron))
 @end lisp
 
 You can write the snippet above in the default configuration
@@ -1388,7 +1392,7 @@ has started and is ready to accept connections:
     #:stop (make-kill-destructor)
     #:respawn? #t))
 
-(register-services sshd)
+(register-services (list sshd))
 (start-in-the-background '(sshd))
 @end lisp
 
@@ -1412,7 +1416,7 @@ enabled by passing the @option{-i} command-line option:
     #:stop (make-inetd-destructor)
     #:respawn? #t))
 
-(register-services sshd)
+(register-services (list sshd))
 (start-in-the-background '(sshd))
 @end lisp
 
@@ -1507,7 +1511,7 @@ Then, individual user services can be put in
     #:stop (make-kill-destructor)
     #:respawn? #t))
 
-(register-services ssh-agent)
+(register-services (list ssh-agent))
 (start-service ssh-agent)
 @end lisp
 
@@ -1541,7 +1545,7 @@ nothing else would look like this:
 
 (register-services
   ;; Create a monitoring service that logs every 15 minutes.
-  (monitoring-service #:period (* 15 60)))
+  (list (monitoring-service #:period (* 15 60))))
 
 ;; Start it!
 (start-service (lookup-service 'monitoring))
@@ -1609,7 +1613,7 @@ A configuration file that enables the REPL service looks like this:
 @lisp
 (use-modules (shepherd service repl))
 
-(register-services (repl-service))
+(register-services (list (repl-service)))
 @end lisp
 
 With that in place, you can later start the REPL:

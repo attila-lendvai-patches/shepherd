@@ -409,7 +409,7 @@ fork in the child process."
            (with-service-registry
 
              ;; Register and start the 'root' service.
-             (register-services root-service)
+             (register-services (list root-service))
              (start-service root-service)
 
              (catch 'quit
