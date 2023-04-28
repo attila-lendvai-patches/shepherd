@@ -622,6 +622,7 @@ configuration and state using the Shepherd's programming interfaces.
 * Service De- and Constructors::  Commonly used ways of starting and
                                    stopping services.
 * The root Service::            The service that comes first.
+* Legacy GOOPS Interface::      Deprecated interface and how to migrate.
 * Service Examples::            Examples that show how services are used.
 * Managing User Services::      Running the Shepherd as a user.
 @end menu
