@@ -206,6 +206,25 @@ converse_with_echo_server \
 $herd stop test-inetd-unix
 $herd status
 
+# Simulate EADDRINUSE.
+$herd eval root "
+  (let ((real-bind bind)
+        (failures 0))
+    (set! bind (lambda (sock address)
+                 (when (< failures 2)
+                   (set! failures (+ failures 1))
+                   (throw 'system-error \"bind\" \"Oh!\" '()
+                          (list EADDRINUSE)))
+                 (set! bind real-bind)
+                 (real-bind sock address))))"
+
+$herd start test-inetd-unix
+$herd status test-inetd-unix | grep running
+$herd stop test-inetd-unix
+
+grep "is in use" "$log"
+$herd status
+
 # At this point, shepherd should have INITIAL_FD_COUNT - 1 file descriptors
 # opened.
 test $(file_descriptor_count) -lt $initial_fd_count

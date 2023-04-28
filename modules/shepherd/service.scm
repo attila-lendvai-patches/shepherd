@@ -1750,6 +1750,26 @@ permissions for its parent directory."
                  socket-owner socket-group
                  socket-directory-permissions))
 
+(define* (bind/retry-if-in-use sock address
+                               #:key (max-attempts 5))
+  "Bind @var{sock} to @var{address}.  Retry up to @var{max-attempts} times upon
+EADDRINUSE."
+  (let loop ((attempts 1))
+    (catch 'system-error
+      (lambda ()
+        (bind sock address))
+      (lambda args
+        (if (and (= EADDRINUSE (system-error-errno args))
+                 (< attempts max-attempts))
+            (begin
+              (local-output
+               (l10n "Address ~a is in use; \
+retrying to bind it in one second.")
+               (socket-address->string address))
+              (sleep 1)
+              (loop (+ attempts 1)))
+            (apply throw args))))))
+
 (define (endpoint->listening-socket endpoint)
   "Return a listening socket for ENDPOINT."
   (match endpoint
@@ -1767,7 +1787,6 @@ permissions for its parent directory."
             (group   (if (integer? group)
                          group
                          (group:gid (getgrnam group)))))
-       (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
        (when (= AF_INET6 (sockaddr:fam address))
          ;; Interpret AF_INET6 endpoints as IPv6-only.  This is contrary to
          ;; the Linux defaults where listening on an IPv6 address also listens
@@ -1778,7 +1797,8 @@ permissions for its parent directory."
          (chown (dirname (sockaddr:path address)) owner group)
          (catch-system-error (delete-file (sockaddr:path address))))
 
-       (bind sock address)
+       (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
+       (bind/retry-if-in-use sock address)
        (listen sock backlog)
 
        (when (= AF_UNIX (sockaddr:fam address))
