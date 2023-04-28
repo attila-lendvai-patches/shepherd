@@ -442,6 +442,16 @@ denoting what the service provides."
                  (wait condition)
                  (put-message reply #f)))
               (loop))
+             ((eq? 'stopping status)
+              ;; SERVICE is being stopped: wait until it is stopped, then try
+              ;; starting it again.
+              (spawn-fiber
+               (lambda ()
+                 (local-output (l10n "Waiting for ~a to stop...")
+                               (service-canonical-name service))
+                 (wait condition)
+                 (put-message channel `(start ,reply))))
+              (loop))
              (else
               ;; Become the one that starts SERVICE.
               (let ((notification (make-channel)))

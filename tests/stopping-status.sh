@@ -105,10 +105,48 @@ done
 $herd stop test
 ! test -f "$stamp"
 
+test $(grep "Stopping service test" "$log" | wc -l) = 1
+
+# Now, once 'test' is running, stop it.  While it is being stopped, attempt to
+# start it: this should do nothing until it has stopped.  Cause it to stop,
+# and check that the 'herd stop' and 'herd start' processes have completed,
+# and that it has restarted.
+
+echo "Now trying to start a service in 'stopping' state."
+$herd start test
+$herd status test | grep running
+$herd stop test &
+herd_stop_pid=$!
+
+$herd status test | grep "being stopped"
+$herd start test &
+herd_start_pid1=$!
+$herd start test &
+herd_start_pid2=$!
+for i in $(seq 1 3)
+do
+    $herd status test | grep "being stopped"
+    sleep 0.3
+done
+
+grep "Waiting for test to stop" "$log"
+
+touch "$stamp"			# trigger stopping->stopped transition
+while kill -0 $herd_stop_pid; do sleep 0.5; done
+while kill -0 $herd_start_pid1; do sleep 0.5; done
+while kill -0 $herd_start_pid2; do sleep 0.5; done
+$herd status test | grep running
+
+$herd stop test &
+herd_stop_pid=$!
+touch "$stamp"
+while kill -0 $herd_stop_pid; do sleep 0.5; done
+
+$herd status test | grep stopped
+
+
 $herd stop root
 ! kill -0 $shepherd_pid
-
-test $(grep "Stopping service test" "$log" | wc -l) = 1
 
 rm -rf "$confdir"
 rm -rf "$datadir"
