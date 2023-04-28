@@ -32,6 +32,9 @@ herd="herd -s $socket"
 trap "cat $log || true; rm -f $socket $conf $log $fd_count $c_file $exe;
       test -f $pid && kill \`cat $pid\` || true; rm -f $pid" EXIT
 
+# GNU/Hurd lacks /proc/self/fd so far.
+[ -d /proc/self/fd ] || exit 77
+
 cat > "$c_file" <<EOF
 /* This program counts its own open file descriptors and writes
    that number to $fd_count.  It's more reliable than using the
