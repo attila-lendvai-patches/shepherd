@@ -519,9 +519,19 @@ denoting what the service provides."
                  (wait condition)
                  (put-message reply #f)))
               (loop))
-             ((not (eq? status 'running))
-              ;; SERVICE is not running: send #f on REPLY.
+             ((eq? status 'stopped)
+              ;; SERVICE is stopped: send #f on REPLY.
               (put-message reply #f)
+              (loop))
+             ((eq? 'starting status)
+              ;; SERVICE is being started: wait until it is started, then try
+              ;; stopping it again.
+              (spawn-fiber
+               (lambda ()
+                 (local-output (l10n "Waiting for ~a to start...")
+                               (service-canonical-name service))
+                 (wait condition)
+                 (put-message channel `(stop ,reply))))
               (loop))
              (else
               ;; Become the one that stops SERVICE.
