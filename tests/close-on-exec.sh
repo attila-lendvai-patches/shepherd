@@ -43,6 +43,8 @@ cat > "$c_file" <<EOF
 #include <sys/types.h>
 #include <dirent.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <assert.h>
 
 int
 main (int argc, char *argv[])
@@ -51,6 +53,14 @@ main (int argc, char *argv[])
   struct dirent *ent;
   size_t count;
   FILE *log;
+
+  if (getenv ("LISTEN_FDS") != NULL)  /* systemd */
+    {
+      struct sockaddr_storage address;
+      socklen_t len;
+      int fd = accept (3, (struct sockaddr *) &address, &len);
+      assert (fd >= 0);
+    }
 
   dir = opendir ("/proc/self/fd");
   chdir ("/proc/self/fd");
@@ -170,13 +180,13 @@ do
     connect_to_server 5555
     test $(cat "$fd_count") -eq 4
 
-    # Spawn the systemd service by starting it (it actually immediately stops
-    # instead of calling 'accept', but it doesn't matter).  This one must have
-    # 4 open file descriptors, the 4th one being the socket.
+    # Spawn the systemd service by starting it.  This one must have
+    # 5 open file descriptors: one for the listening socket, and one for the
+    # accepted client connection (plus one for /proc/self/fd).
     $herd enable systemd-ctor
     $herd start systemd-ctor
     connect_to_server 5556
-    test $(cat "$fd_count") -eq 5
+    test $(cat "$fd_count") -eq 6
     $herd stop systemd-ctor
 
     $herd restart forkexec-ctor
