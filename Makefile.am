@@ -73,6 +73,7 @@ CLEANFILES =						\
   $(nodist_guilemodule_DATA) $(nodist_shepherdsub_DATA)	\
   $(nodist_guileobject_DATA)				\
   $(nodist_shepherdgosub_DATA)				\
+  $(nodist_servicegosub_DATA)				\
   $(nodist_scriptsgo_DATA)				\
   $(bin_SCRIPTS) $(sbin_SCRIPTS)
 
