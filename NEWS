@@ -3,13 +3,171 @@
 #+STARTUP: content hidestars
 
 Copyright © 2002, 2003 Wolfgang Jährling
-Copyright © 2013-2014, 2016, 2018-2020, 2022 Ludovic Courtès <ludo@gnu.org>
+Copyright © 2013-2014, 2016, 2018-2020, 2022-2023 Ludovic Courtès <ludo@gnu.org>
 
   Copying and distribution of this file, with or without modification,
   are permitted in any medium without royalty provided the copyright
   notice and this notice are preserved.
 
 Please send Shepherd bug reports to bug-guix@gnu.org.
+
+* Changes in 0.10.0
+
+** Distinguish ‘starting’ and ‘stopping’ intermediate service statuses
+
+In previous version, a service would be either “running” or “stopped”.  The
+intermediate states “starting” and “stopping” are now properly captured and
+you can see them when running ‘herd status’.
+
+** ‘start’ and ‘stop’ block when service is already being started/stopped
+  <https://issues.guix.gnu.org/54786#4>
+
+With previous version, a client running ‘herd start SERVICE’ while SERVICE is
+already being started would cause shepherd to attempt to start a second
+instance of that service, ultimately resulting in confusion, disappointment,
+and frustration.
+
+This is no longer the case: when a service is already being started/stopped,
+additional invocation of ‘herd start’ or ‘herd stop’ now block until the
+service is running/stopped.
+
+** ‘shepherd’ starts services in parallel
+
+Services started with ‘start-in-the-background’ and more generally service
+dependencies get started in parallel.  This can reduce startup times in case
+of a “wide” service dependency graph with some services that take a while to
+start.
+
+** ‘shepherd’ keeps track of failures and status change times
+
+For each service, shepherd maintains an event log including the time of recent
+status changes as well as the time of startup failures, if any.  The ‘herd
+status SERVICE’ command now shows the time when the service entered its
+current status and whether it failed to start; ‘herd status’ also prominently
+lists services that failed to start.
+
+** New ‘herd log’ command
+
+Related to the previous item, the new ‘herd log’ command displays an aggregate
+of the service event logs, showing the time at which each service changed
+statuses.
+
+** New ‘herd graph’ command
+
+The new ‘herd graph’ command emits a Graphviz/Dot representation of the
+service dependency graph, which can be viewed for example with ‘xdot’:
+
+  herd graph | xdot -
+
+Guix System users get similar information with ‘guix system shepherd-graph’
+(and likewise for Guix Home).  The difference here is that this reflects the
+current system status, showing transient services, services that failed to
+start, and so on.
+
+** ‘herd’ output is colorized
+
+At long last!  We hope you’ll enjoy a little bit of coloring to highlight
+important bits in the output of various commands.
+
+** New services shipped: ‘monitoring’ and ‘repl’
+
+The Shepherd now ships with optional services—see “Service Collection” in the
+manual.  The ‘monitoring’ service logs resource usage of the ‘shepherd’
+process itself.  The ‘repl’ service runs a read-eval-print loop (REPL) in the
+‘shepherd’ so you can hack it live—enjoy it, but handle it with care!
+
+** Socket-actived, systemd-style services can now be started eagerly
+
+The ‘make-systemd-constructor’ procedure has a new #:lazy-start? parameter.
+It defaults to #true, meaning that the process is started lazily, on the first
+connection to one of its sockets, as was the case in 0.9.x.  Passing
+#:lazy-start? #false instructs shepherd to instead start the process eagerly,
+as soon as the listening sockets are ready.
+
+This is useful for services that require socket activation as a startup
+synchronization mechanism, yet are expected to run as soon as possible.  An
+example is ‘guix publish --advertise’: it should be started eagerly so it can
+start advertising itself via Avahi.
+
+** Each registered name maps to exactly one service
+
+There used to be a fuzzy notion of “conflicting services”, when a given
+service name could potentially refer to more than one service.  This has
+proved to be confusing more than anything else; now, each registered service
+name refers to exactly one service.  The interface related to that feature,
+such as the ‘conflicts-with’ method, is done.
+
+** For systemd and inetd services, retry ‘bind’ upon EADDRINUSE
+   <https://issues.guix.gnu.org/58485#13>
+
+Services started with ‘make-systemd-constructor’ and ‘make-inetd-constructor’
+will now retry several times when ‘bind’ returns EADDRINUSE (“Address already
+in use”) for their listening socket(s).
+
+** ‘system’ and ‘make-system-constructor’ are now non-blocking
+   <https://issues.guix.gnu.org/61803>
+
+In versions up to 0.9.3, calling Guile’s ‘system’ procedure (which is what
+‘make-system-constructor’ does) would block the ‘shepherd’ process until the
+shell spawned by ‘system’ has terminated.  This is no longer the case.
+
+** GOOPS interface is deprecated
+
+When it was created in 2002, the Shepherd (née dmd) embraced GOOPS, Guile’s
+object-oriented programming system, then a brand new and promising approach
+for 21st century programs.  In hindsight, while there were a couple of classes
+and a bunch of methods, the code base was not really making much use of GOOPS.
+The current maintainer deemed it unnecessary and encouraging a programming
+style at odds with the shiny horizon of purely functional, actor-style
+programming.
+
+The GOOPS interface is still available in 0.10.0; for example, you can still
+write ~(make <service> #:provides …)~ in your configuration file.  However,
+GOOPS support will be removed in the next major series, most likely labeled
+1.0.
+
+A new interface has been defined.  Check out the “Legacy GOOPS Interface”
+section of the manual for more information, and email guix-devel@gnu.org if
+you have any questions or concerns.
+
+** Interfaces removed and changed
+
+Several obscure or undocumented interfaces were removed:
+
+  - support for the ‘unknown’ service;
+  - support for “persistency” (sic);
+  - the ‘cd’ action of the ‘root’ service;
+  - the ‘launch-service’ procedure of (shepherd service).
+
+New deprecations:
+
+  - ‘make-actions’ is deprecated in favor of ‘actions’;
+  - calling ‘register-services’ with an arbitrary number of arguments is now
+    deprecated; you should now call it with a single argument, the list of
+    services to register.
+
+** Major internal overhaul
+
+As you can guess from the list of user-visible changes above, the Shepherd has
+undergone a major internal overhaul.  The 0.9.x series introduced the use of
+Fibers, Guile’s lightweight concurrent facility; shepherd took advantage of it
+notably with the introduction of systemd-style and inetd-style services.  This
+new stable series takes it further.
+
+In particular, each <service> record has an associated fiber called the
+“service controller”.  Following the actor model, each of these fibers reacts
+to messages it receives, be they event notification—e.g., process
+termination—or user requests—e.g., querying the service status, requesting
+that the service be stopped.  Other noteworthy actors include the “process
+monitor” and the “service registry”.
+
+This has allowed us to address a number of race conditions while also leading
+to clearer code with linear flows that one can more easily reason about.
+Overall, it makes the code base much more pleasant to work with and certainly
+easier to hack than other implementations mired in the “callback hell”.
+
+Documentation has been overhauled as well to reflect all these changes.  Check
+out the new subsections under “Services” for more information.
 
 * Changes in version 0.9.3
 
