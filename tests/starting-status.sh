@@ -112,6 +112,8 @@ echo "Now trying to stop a service in 'starting' state."
 $herd start test &
 herd_start_pid=$!
 
+while ! $herd status test | grep starting; do sleep 0.5; done
+
 $herd stop test &
 herd_stop_pid1=$!
 $herd stop test &

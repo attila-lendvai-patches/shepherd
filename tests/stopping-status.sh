@@ -118,7 +118,8 @@ $herd status test | grep running
 $herd stop test &
 herd_stop_pid=$!
 
-$herd status test | grep "being stopped"
+while ! $herd status test | grep "being stopped"; do sleep 0.5; done
+
 $herd start test &
 herd_start_pid1=$!
 $herd start test &
