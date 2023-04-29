@@ -95,7 +95,8 @@ every @var{period} seconds."
           (#f
            (local-output
             (l10n "~a: invalid number; expected a positive integer~%")
-            period)))))
+            period)
+           #f))))                                 ;failure
      (log
       "Log monitoring info right away."
       (lambda (channel)
