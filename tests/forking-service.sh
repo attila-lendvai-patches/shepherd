@@ -159,7 +159,7 @@ $herd status test3 | grep running
 child_pid="$($herd status test4 | grep Running | sed '-es/.*Running value is \([0-9]\+\)\./\1/g')"
 kill -0 "$child_pid"
 $herd stop test3		# this will also stop 'test4'
-! kill -0 "$child_pid"
+kill -0 "$child_pid" && false
 grep ignoring "$log"
 grep SIGKILL "$log"
 $herd status test3 | grep stopped

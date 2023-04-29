@@ -98,11 +98,11 @@ $herd status test | grep running
 $herd status test | grep "exit-code 123"
 
 $herd stop test
-! test -f "$stamp"
+test -f "$stamp" && false
 grep "STOPPING" "$log"
 
 # This service uses 'system*' but the command is not found.
-! $herd start test-command-not-found
+$herd start test-command-not-found && false
 $herd status test-command-not-found
 $herd status test-command-not-found | grep "stopped"
 
@@ -123,11 +123,11 @@ $herd stop test-with-respawn
 # What happens when we cause the process monitor to throw an exception while
 # trying to fork?  The process monitor fiber should remain alive.
 $herd eval root "(setrlimit 'nproc 1 1)"
-! $herd start test
+$herd start test && false
 $herd status test
 $herd status test | grep "stopped"
 
 $herd stop root
 
 # Make sure 'shutdown-services' did its job.
-! test -f "$stamp"
+if test -f "$stamp"; then false; else true; fi

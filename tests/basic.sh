@@ -94,7 +94,7 @@ test -f "$stamp"
 $herd status test | grep running
 
 $herd stop test
-! test -f "$stamp"
+test -f "$stamp" && false
 
 $herd log
 $herd log | grep "service test is running"
@@ -152,7 +152,7 @@ if $herd an-action-that-does-not-exist root
 then false; else true; fi
 
 # Check the behavior for a service whose 'start' method throws.
-! $herd start broken
+$herd start broken && false
 $herd status broken | grep "stopped"
 
 # Check 'make-system-constructor' and 'make-system-destructor'.
@@ -279,7 +279,7 @@ $herd start root | grep "already running"
 grep "already running" "$log"
 
 $herd stop root
-! kill -0 $shepherd_pid
+kill -0 $shepherd_pid && false
 
 test -f "$log"
 
@@ -307,12 +307,12 @@ test -f "$stamp"
 $herd status test | grep running
 
 $herd stop test
-! test -f "$stamp"
+test -f "$stamp" && false
 
 shepherd_pid="`cat $pid`"
 
 $herd stop root
-! kill -0 $shepherd_pid
+kill -0 $shepherd_pid && false
 
 rm -rf $confdir
 rm -rf $datadir

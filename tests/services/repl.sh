@@ -63,7 +63,7 @@ test $($herd status | grep '^ ' | wc -l) = 3
 # Make sure 'repl-client-1' gets stopped as soon as the client disappears.
 kill $child_pid
 while test $($herd status | grep '^ ' | wc -l) -ne 2; do $herd status && sleep 1 ;done
-! $herd status repl-client-1
+$herd status repl-client-1 && false
 
 guile -c '
 (use-modules (ice-9 rdelim))
@@ -124,5 +124,6 @@ $herd stop repl
 $herd status repl | grep "stopped"
 
 # Now we can't connect anymore.
-! guile -c '(let ((sock (socket AF_UNIX SOCK_STREAM 0)))
-              (connect sock PF_UNIX "'$repl_socket'"))'
+if guile -c '(let ((sock (socket AF_UNIX SOCK_STREAM 0)))
+                (connect sock PF_UNIX "'$repl_socket'"))'
+then false; else true; fi

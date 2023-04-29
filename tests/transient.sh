@@ -55,11 +55,11 @@ $herd start transient-test2
 # Stop the service and make sure it gets unregistered.
 $herd status transient-test1 | grep "transient, running"
 $herd stop transient-test1
-! $herd status transient-test1
+$herd status transient-test1 && false
 
 # Terminate the service and make sure it gets unregistered.
 $herd status transient-test2 | grep "transient, running"
 kill $($herd status transient-test2 | grep Running | sed -e's/^.* \([0-9]\+\).*$/\1/g')
-! $herd status transient-test2
+$herd status transient-test2 && false
 
 test $($herd status | grep transient-test | wc -l) -eq 0

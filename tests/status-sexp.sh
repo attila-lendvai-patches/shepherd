@@ -160,6 +160,6 @@ $define_reset_timestamps
             (error #f) (messages ()))))"
 
 $herd stop root
-! kill -0 $shepherd_pid
+kill -0 $shepherd_pid && false
 
 test -f "$log"

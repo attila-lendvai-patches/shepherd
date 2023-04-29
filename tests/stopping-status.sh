@@ -103,7 +103,7 @@ while : ; do
 done
 
 $herd stop test
-! test -f "$stamp"
+test -f "$stamp" && false
 
 test $(grep "Stopping service test" "$log" | wc -l) = 1
 
@@ -147,7 +147,7 @@ $herd status test | grep stopped
 
 
 $herd stop root
-! kill -0 $shepherd_pid
+kill -0 $shepherd_pid && false
 
 rm -rf "$confdir"
 rm -rf "$datadir"

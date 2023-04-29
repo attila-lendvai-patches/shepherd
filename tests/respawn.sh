@@ -125,8 +125,8 @@ pid="`cat "$service1_pid"`"
 rm "$service1_pid"
 $herd stop test1
 $herd status test1 | grep stopped
-! test -f "$service1_pid"
-! kill -0 "$pid"
+test -f "$service1_pid" && false
+kill -0 "$pid" && false
 
 cat $service2_pid
 $herd stop root

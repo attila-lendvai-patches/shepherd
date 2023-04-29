@@ -57,7 +57,7 @@ $herd log monitoring
 $herd log monitoring | grep "heap:"
 $herd log monitoring | grep "service names: 3"
 $herd period monitoring 1
-! $herd period monitoring not-a-number
+$herd period monitoring not-a-number && false
 
 $herd stop monitoring
 $herd status monitoring | grep "stopped"

@@ -128,12 +128,14 @@ do
 done
 
 # Unavailable on IPv6.
-! converse_with_echo_server \
-    "(make-socket-address AF_INET6 IN6ADDR_LOOPBACK $PORT)"
+converse_with_echo_server \
+    "(make-socket-address AF_INET6 IN6ADDR_LOOPBACK $PORT)" \
+     && false
 
 $herd stop test-inetd
-! converse_with_echo_server \
-  "(make-socket-address AF_INET INADDR_LOOPBACK $PORT)"
+converse_with_echo_server \
+  "(make-socket-address AF_INET INADDR_LOOPBACK $PORT)" \
+   && false
 
 if guile -c '(socket AF_INET6 SOCK_STREAM 0)'; then
     # Test IPv6 support.
@@ -180,8 +182,9 @@ do
 done
 
 $herd stop test-inetd-unix
-! converse_with_echo_server \
-  "(make-socket-address AF_UNIX \"$service_socket\")"
+converse_with_echo_server \
+  "(make-socket-address AF_UNIX \"$service_socket\")" \
+   && false
 
 # Check the maximum connection limit.
 $herd start test-inetd-unix
