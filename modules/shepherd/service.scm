@@ -430,47 +430,48 @@ denoting what the service provides."
        ;; Send #f on REPLY if SERVICE was already running or being started;
        ;; otherwise send a channel on which to send SERVICE's value one it
        ;; has been started.
-       (cond ((eq? 'running status)
-              ;; SERVICE is already running: send #f on REPLY.
-              (put-message reply #f)
-              (loop))
-             ((eq? 'starting status)
-              ;; SERVICE is being started: wait until it has started and
-              ;; then send #f on REPLY.
-              (spawn-fiber
-               (lambda ()
-                 (wait condition)
-                 (put-message reply #f)))
-              (loop))
-             ((eq? 'stopping status)
-              ;; SERVICE is being stopped: wait until it is stopped, then try
-              ;; starting it again.
-              (spawn-fiber
-               (lambda ()
-                 (local-output (l10n "Waiting for ~a to stop...")
-                               (service-canonical-name service))
-                 (wait condition)
-                 (put-message channel `(start ,reply))))
-              (loop))
-             (else
-              ;; Become the one that starts SERVICE.
-              (let ((notification (make-channel)))
-                (spawn-fiber
-                 (lambda ()
-                   (let ((running (get-message notification)))
-                     (if running
-                         (local-output (l10n "Service ~a started.")
-                                       (service-canonical-name service))
-                         (local-output (l10n "Service ~a failed to start.")
-                                       (service-canonical-name service)))
-                     (put-message channel
-                                  (list *service-started* running)))))
-                (local-output (l10n "Starting service ~a...")
-                              (service-canonical-name service))
-                (put-message reply notification)
-                (loop (status 'starting)
-                      (changes (update-status-changes 'starting))
-                      (condition (make-condition)))))))
+       (match status
+         ('running
+          ;; SERVICE is already running: send #f on REPLY.
+          (put-message reply #f)
+          (loop))
+         ('starting
+          ;; SERVICE is being started: wait until it has started and
+          ;; then send #f on REPLY.
+          (spawn-fiber
+           (lambda ()
+             (wait condition)
+             (put-message reply #f)))
+          (loop))
+         ('stopping
+          ;; SERVICE is being stopped: wait until it is stopped, then try
+          ;; starting it again.
+          (spawn-fiber
+           (lambda ()
+             (local-output (l10n "Waiting for ~a to stop...")
+                           (service-canonical-name service))
+             (wait condition)
+             (put-message channel `(start ,reply))))
+          (loop))
+         ('stopped
+          ;; Become the one that starts SERVICE.
+          (let ((notification (make-channel)))
+            (spawn-fiber
+             (lambda ()
+               (let ((running (get-message notification)))
+                 (if running
+                     (local-output (l10n "Service ~a started.")
+                                   (service-canonical-name service))
+                     (local-output (l10n "Service ~a failed to start.")
+                                   (service-canonical-name service)))
+                 (put-message channel
+                              (list *service-started* running)))))
+            (local-output (l10n "Starting service ~a...")
+                          (service-canonical-name service))
+            (put-message reply notification)
+            (loop (status 'starting)
+                  (changes (update-status-changes 'starting))
+                  (condition (make-condition)))))))
       (((? started-message?) new-value)           ;no reply
        ;; When NEW-VALUE is a procedure, call it to get the actual value and
        ;; pass it a call back so it can eventually change it.
@@ -511,51 +512,52 @@ denoting what the service provides."
        ;; Send #f on REPLY if SERVICE was already running or being stopped;
        ;; otherwise send a channel on which to send a notification once it
        ;; has been stopped.
-       (cond ((eq? status 'stopping)
-              ;; SERVICE is being stopped: wait until it is stopped and
-              ;; then send #f on REPLY.
-              (spawn-fiber
-               (lambda ()
-                 (wait condition)
-                 (put-message reply #f)))
-              (loop))
-             ((eq? status 'stopped)
-              ;; SERVICE is stopped: send #f on REPLY.
-              (put-message reply #f)
-              (loop))
-             ((eq? 'starting status)
-              ;; SERVICE is being started: wait until it is started, then try
-              ;; stopping it again.
-              (spawn-fiber
-               (lambda ()
-                 (local-output (l10n "Waiting for ~a to start...")
-                               (service-canonical-name service))
-                 (wait condition)
-                 (put-message channel `(stop ,reply))))
-              (loop))
-             (else
-              ;; Become the one that stops SERVICE.
-              (let ((notification (make-channel)))
-                (spawn-fiber
-                 (lambda ()
-                   (let ((stopped? (get-message notification)))
-                     ;; The STOPPED? boolean is supposed to indicate success
-                     ;; or failure, but sometimes 'stop' method might return a
-                     ;; truth value even though the service was successfully
-                     ;; stopped, hence "might have failed" below.
-                     (if stopped?
-                         (local-output (l10n "Service ~a stopped.")
-                                       (service-canonical-name service))
-                         (local-output
-                          (l10n "Service ~a might have failed to stop.")
-                          (service-canonical-name service)))
-                     (put-message channel *service-stopped*))))
-                (local-output (l10n "Stopping service ~a...")
-                              (service-canonical-name service))
-                (put-message reply notification)
-                (loop (status 'stopping)
-                      (changes (update-status-changes 'stopping))
-                      (condition (make-condition)))))))
+       (match status
+         ('stopping
+          ;; SERVICE is being stopped: wait until it is stopped and
+          ;; then send #f on REPLY.
+          (spawn-fiber
+           (lambda ()
+             (wait condition)
+             (put-message reply #f)))
+          (loop))
+         ('stopped
+          ;; SERVICE is stopped: send #f on REPLY.
+          (put-message reply #f)
+          (loop))
+         ('starting
+          ;; SERVICE is being started: wait until it is started, then try
+          ;; stopping it again.
+          (spawn-fiber
+           (lambda ()
+             (local-output (l10n "Waiting for ~a to start...")
+                           (service-canonical-name service))
+             (wait condition)
+             (put-message channel `(stop ,reply))))
+          (loop))
+         ('running
+          ;; Become the one that stops SERVICE.
+          (let ((notification (make-channel)))
+            (spawn-fiber
+             (lambda ()
+               (let ((stopped? (get-message notification)))
+                 ;; The STOPPED? boolean is supposed to indicate success
+                 ;; or failure, but sometimes 'stop' method might return a
+                 ;; truth value even though the service was successfully
+                 ;; stopped, hence "might have failed" below.
+                 (if stopped?
+                     (local-output (l10n "Service ~a stopped.")
+                                   (service-canonical-name service))
+                     (local-output
+                      (l10n "Service ~a might have failed to stop.")
+                      (service-canonical-name service)))
+                 (put-message channel *service-stopped*))))
+            (local-output (l10n "Stopping service ~a...")
+                          (service-canonical-name service))
+            (put-message reply notification)
+            (loop (status 'stopping)
+                  (changes (update-status-changes 'stopping))
+                  (condition (make-condition)))))))
       ((? stopped-message?)                       ;no reply
        (local-output (l10n "Service ~a is now stopped.")
                      (service-canonical-name service))
