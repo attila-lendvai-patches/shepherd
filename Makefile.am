@@ -278,7 +278,13 @@ AM_TESTS_ENVIRONMENT =				\
   GUILE_LOAD_PATH="$(abs_top_srcdir)/modules:$(abs_top_builddir)/modules:$$GUILE_LOAD_PATH" \
   GUILE_LOAD_COMPILED_PATH="$(abs_top_srcdir)/modules:$(abs_top_builddir)/modules:$$GUILE_LOAD_COMPILED_PATH"
 
+if HAVE_TIMEOUT
+# Tests should never take more than a few seconds on modern machines.
+SH_LOG_COMPILER = $(TIMEOUT) 3m $(SHELL)
+else
 SH_LOG_COMPILER = $(SHELL)
+endif
+
 AM_SH_LOG_FLAGS = -x -e
 
 # Make sure source files are installed first, so that the mtime of

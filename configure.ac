@@ -21,6 +21,11 @@ AC_CANONICAL_HOST
 AC_PROG_MKDIR_P
 AC_PROG_SED
 
+dnl The 'timeout' program, introduced in GNU Coreutils 7.0 (2008).
+AC_PATH_PROG([TIMEOUT], [timeout], [not-found])
+AM_CONDITIONAL([HAVE_TIMEOUT], [test "x$TIMEOUT" != "xnot-found"])
+AC_SUBST([TIMEOUT])
+
 dnl Check for Guile 2.2+.
 m4_pattern_forbid([^GUILE_PKG$])
 GUILE_PKG([3.0 2.2])
