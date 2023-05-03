@@ -60,7 +60,7 @@ main (int argc, char *argv[])
   if (getenv ("LISTEN_FDS") != NULL)  /* systemd */
     {
       struct sockaddr_storage address;
-      socklen_t len;
+      socklen_t len = sizeof address;
       int fd = accept (3, (struct sockaddr *) &address, &len);
       assert (fd >= 0);
     }
