@@ -1047,12 +1047,8 @@ clients."
             (status-changes ,(service-status-changes service))
             (startup-failures ,(service-startup-failures service))
             (status ,(service-status service))
-            ,@(if (one-shot-service? service)
-                  '((one-shot? #t))
-                  '())
-            ,@(if (transient-service? service)
-                  '((transient? #t))
-                  '())))
+            (one-shot? ,(one-shot-service? service))
+            (transient? ,(transient-service? service))))
 
 
 ;;;
