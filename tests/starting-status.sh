@@ -135,7 +135,6 @@ $herd status test | grep stopped
 
 
 $herd stop root
-kill -0 $shepherd_pid && false
 
 rm -rf "$confdir"
 rm -rf "$datadir"

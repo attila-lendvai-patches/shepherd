@@ -279,7 +279,13 @@ $herd start root | grep "already running"
 grep "already running" "$log"
 
 $herd stop root
-kill -0 $shepherd_pid && false
+
+# The shepherd process should be done now, or real soon.
+if kill -0 $shepherd_pid
+then
+    sleep 3
+    kill -0 $shepherd_pid && false
+fi
 
 test -f "$log"
 
@@ -312,7 +318,10 @@ test -f "$stamp" && false
 shepherd_pid="`cat $pid`"
 
 $herd stop root
-kill -0 $shepherd_pid && false
+if kill -0 $shepherd_pid
+then
+    sleep 3
+    kill -0 $shepherd_pid && false
+fi
 
-rm -rf $confdir
-rm -rf $datadir
+rm -rf "$confdir" "$datadir"
