@@ -529,12 +529,14 @@ while evaluating @var{command}."
              (define result
                (case the-action
                  ((start)
+                  ;; Return #f or SERVICE: clients expect the service sexp.
                   (if (eq? 'running (service-status service))
                       (begin
                         (local-output (l10n "Service ~a is already running.")
 		                      (service-canonical-name service))
                         service)
-                      (apply start-service service args)))
+                      (and (apply start-service service args)
+                           service)))
                  ((stop)
                   (if (service-stopped? service)
                       '()

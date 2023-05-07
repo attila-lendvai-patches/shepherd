@@ -128,6 +128,33 @@ $define_reset_timestamps
                (one-shot? #f) (transient? #f)))))))
 "
 
+# The 'start' command should return the service sexp on success.
+"$GUILE" -c "
+(use-modules (shepherd comm) (srfi srfi-1) (ice-9 match))
+
+$define_reset_timestamps
+
+(define (start name)
+  ;; Start service NAME.
+  (let ((sock (open-connection \"$socket\")))
+    (write-command (shepherd-command 'start name) sock)
+    (read sock)))
+
+(exit
+ (match (start 'bar)
+   (('reply _ ('result service) ('error #f) ('messages (_)))
+    (equal? (reset-timestamps service)
+            '(service (version 0)
+               (provides (bar)) (requires (foo))
+               (respawn? #f) (docstring \"Bar!\")
+               (enabled? #t) (running up-and-running) (conflicts ())
+               (last-respawns ())
+               (status-changes ((running . 0) (starting . 0)))
+               (startup-failures ())
+               (status running)
+               (one-shot? #f) (transient? #f))))))
+"
+
 # Make sure we get an 'error' sexp when querying a nonexistent service.
 "$GUILE" -c "
 (use-modules (shepherd comm) (ice-9 match))
