@@ -32,18 +32,18 @@ trap "rm -f $socket $conf $stamp $log;
 cat > "$conf"<<EOF
 (register-services
  (list (service
-	 '(foo)
-	 #:start (const 'abc)
-	 #:stop  (const #f)
-	 #:documentation "Foo!"
-	 #:respawn? #t)
+         '(foo)
+         #:start (const 'abc)
+         #:stop  (const #f)
+         #:documentation "Foo!"
+         #:respawn? #t)
        (service
-	 '(bar)
-	 #:requirement '(foo)
-	 #:start (const 'up-and-running)
-	 #:stop  (const #f)
-	 #:documentation "Bar!"
-	 #:respawn? #f)))
+         '(bar)
+         #:requirement '(foo)
+         #:start (const 'up-and-running)
+         #:stop  (const #f)
+         #:documentation "Bar!"
+         #:respawn? #f)))
 
 (start-service (lookup-service 'foo))
 EOF
@@ -86,15 +86,15 @@ define_reset_timestamps="
   (match service
     (('service version properties ...)
      (cons* 'service version
-	    (map (match-lambda
-		   (('status-changes alist)
+            (map (match-lambda
+                   (('status-changes alist)
                     (list 'status-changes
-			  (map (match-lambda
-				 ((status . _)
-				  (cons status 0)))
-			       alist)))
+                          (map (match-lambda
+                                 ((status . _)
+                                  (cons status 0)))
+                               alist)))
                    (prop prop))
-		 properties)))))
+                 properties)))))
 "
 
 "$GUILE" -c "
@@ -107,21 +107,21 @@ $define_reset_timestamps
    (('reply _ ('result (services)) ('error #f) ('messages ()))
     (lset= equal?
            (pk 'ACTUAL (map reset-timestamps services))
-	   '($root_service_sexp
-	     (service (version 0)
-	       (provides (foo)) (requires ())
-	       (respawn? #t) (docstring \"Foo!\")
-	       (enabled? #t) (running abc) (conflicts ())
-	       (last-respawns ())
+           '($root_service_sexp
+             (service (version 0)
+               (provides (foo)) (requires ())
+               (respawn? #t) (docstring \"Foo!\")
+               (enabled? #t) (running abc) (conflicts ())
+               (last-respawns ())
                (status-changes ((running . 0) (starting . 0)))
                (startup-failures ())
                (status running)
                (one-shot? #f) (transient? #f))
-	     (service (version 0)
-	       (provides (bar)) (requires (foo))
-	       (respawn? #f) (docstring \"Bar!\")
-	       (enabled? #t) (running #f) (conflicts ())
-	       (last-respawns ())
+             (service (version 0)
+               (provides (bar)) (requires (foo))
+               (respawn? #f) (docstring \"Bar!\")
+               (enabled? #t) (running #f) (conflicts ())
+               (last-respawns ())
                (status-changes ())
                (startup-failures ())
                (status stopped)
