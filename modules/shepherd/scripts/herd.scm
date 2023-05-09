@@ -170,8 +170,8 @@ into a @code{live-service} record."
                      days)))))
 
   (define absolute
-    (let* ((time    (make-time time-utc 0 time))
-           (date    (time-utc->date time))
+    (let* ((time*   (make-time time-utc 0 time))
+           (date    (time-utc->date time*))
            (year    (date-year date))
            (now*    (time-utc->date now*))
            ;; Note: Use 'strftime' rather than 'date->string' to better
@@ -181,7 +181,7 @@ into a @code{live-service} record."
                             "%X"
                             "%c")
                         "%c")))
-      (strftime format (localtime now))))
+      (strftime format (localtime time))))
 
   ;; TRANSLATORS: The first placeholder is for a date string such as "April 22
   ;; 19:07:46" and the parenthesized placeholder is for the corresponding
