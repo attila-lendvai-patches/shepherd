@@ -7,4 +7,11 @@
 (set! %load-compiled-path
       (append '("%modbuilddir%" "%FIBERS_OBJECT_DIRECTORY%") %load-compiled-path))
 
-(apply (@ (shepherd) main) (cdr (command-line)))
+;; On AArch64, work around <https://github.com/wingo/fibers/issues/83> by
+;; disabling JIT (needed with Guile 3.0.9).
+(if (and (string-prefix? "aarch64-" %host-type)
+         (not (getenv "GUILE_JIT_THRESHOLD")))
+    (begin
+      (setenv "GUILE_JIT_THRESHOLD" "-1")
+      (apply execlp (car (command-line)) (command-line)))
+    (apply (@ (shepherd) main) (cdr (command-line))))
