@@ -866,8 +866,8 @@ file, for instance to start some or all of the services you defined
 
 Under the hood, each service record has an associated @dfn{fiber}
 (really: an actor) that encapsulates its state and serves user
-requests---a fiber is a lightweight execution thread
-(@pxref{Introduction,,, fibers, Fibers}).
+requests---a fiber is a lightweight execution thread (@pxref{Service
+Internals}).
 
 The procedures below let you change the state of a service.
 
@@ -933,6 +933,10 @@ none.
 The replacement is the service that will replace @var{service} when it
 is eventually stopped.
 @end deffn
+
+@xref{Service Internals}, if you're curious about the nitty-gritty
+details!
+
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -1972,6 +1976,47 @@ understand it), you are welcome to do so, of course@dots{}
 
 @node Service Internals
 @section Service Internals
+
+Under the hood, each service record has an associated @dfn{fiber}, a
+lightweight execution thread (@pxref{Introduction,,, fibers, Fibers}).
+This fiber encapsulates all the @emph{state} of its corresponding
+service: its status (whether it's running, stopped, etc.), its ``running
+value'' (such as the PID of its associated process), the time at which
+its status changed, and so on.  Procedures that access the state of a
+service, such as @code{service-status}, or that modify it, such as
+@code{start-service} (@pxref{Interacting with Services}), merely send a
+message to the service's associated fiber.
+
+@cindex actor model, for services
+This pattern follows the @dfn{actor model}: each of these per-service
+fibers is an @dfn{actor}.  There are several benefits:
+
+@itemize
+@item
+each actor has a linear control flow that is easy to reason about;
+@item
+access and modification of the service state are race-free since they
+are all handled sequentially by its actor;
+@item
+the actor's code is purely functional, which again makes it easier to
+reason about it.
+@end itemize
+
+There are other actors in the code, such as the service registry
+(@pxref{Service Registry}).  Fibers are used pervasively throughout the
+code to achieve concurrency.
+
+Note that Fibers is set up such that the @code{shepherd} process has
+only one POSIX thread (this is mandated by POSIX for processes that call
+@code{fork}, with all its warts), and fibers are scheduled in a
+cooperative fashion.  This means that it is possible to block the
+@code{shepherd} process for instance by running a long computation or by
+waiting on a socket that is not marked as @code{SOCK_NONBLOCK}.  Be
+careful!
+
+We think this programming model makes the code base not only more
+robust, but also very fun to work with---we hope you'll enjoy it too!
+
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
