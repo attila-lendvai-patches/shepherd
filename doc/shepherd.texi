@@ -1054,7 +1054,7 @@ indicating a user name, or a number, indicating a user ID.  Likewise,
 a separate process whose PID it returns.
 @end deffn
 
-@defvr {Scheme Variable} default-environment-variables
+@defvar default-environment-variables
 This parameter (@pxref{Parameters,,, guile, GNU Guile Reference Manual})
 specifies the default list of environment variables to be defined when
 the procedures above create a new process.
@@ -1063,21 +1063,21 @@ It must be a list of strings where each string has the format
 @code{@var{name}=@var{value}}.  It defaults to what @code{environ}
 returns when the program starts (@pxref{Runtime Environment,
 @code{environ},, guile, GNU Guile Reference Manual}).
-@end defvr
+@end defvar
 
-@defvr {Scheme Variable} default-pid-file-timeout
+@defvar default-pid-file-timeout
 This parameter (@pxref{Parameters,,, guile, GNU Guile Reference Manual})
 specifies the default PID file timeout in seconds, when
 @code{#:pid-file} is used (see above).  It defaults to 5 seconds.
-@end defvr
+@end defvar
 
-@defvr {Scheme Variable} default-process-termination-grace-period
+@defvar default-process-termination-grace-period
 This parameter (@pxref{Parameters,,, guile, GNU Guile Reference Manual})
 specifies the ``grace period'' (in seconds) after which a process that
 has been sent @code{SIGTERM} or some other signal to gracefully exit is
 sent @code{SIGKILL} for immediate termination.  It defaults to 5
 seconds.
-@end defvr
+@end defvar
 
 
 @cindex on-demand, starting services
@@ -1609,9 +1609,9 @@ Return a service that will monitor shepherd resource usage by printing it
 every @var{period} seconds.
 @end deffn
 
-@defvr {Scheme Variable} default-monitoring-period
+@defvar default-monitoring-period
 This parameter specifies the default monitoring period, in seconds.
-@end defvr
+@end defvar
 
 @node REPL Service
 @section Read-Eval-Print Loop Service
@@ -1667,10 +1667,10 @@ bindings.
 Return a REPL service that listens to @var{socket-file}.
 @end deffn
 
-@defvr {Scheme Variable} default-repl-socket-file
+@defvar default-repl-socket-file
 This parameter specifies the socket file name @code{repl-service} uses
 by default.
-@end defvr
+@end defvar
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
