@@ -656,7 +656,7 @@ prematurely, it is automatically respawned.  We will look at
 Constructors}), but first, here is the reference of the @code{service}
 procedure and its optional keyword arguments.
 
-@defun service @var{provision} @
+@deffn {Procedure} service @var{provision} @
   [#:requirement '()] [#:one-shot? #f] [#:transient? #f] @
   [#:respawn? #f] [#:start (const #t)] [#:stop (const #f)] @
   [#:actions (actions)] @
@@ -752,7 +752,7 @@ The additional actions that can be performed on the service when it is
 running.  A typical example for this is the @code{restart} action.  The
 @code{actions} macro can be used to defined actions (see below).
 @end table
-@end defun
+@end deffn
 
 A special service that every other service implicitly depends on is the
 @code{root} (also known as @code{shepherd}) service.  @xref{The root
@@ -781,33 +781,33 @@ one argument, which will be the running value of the service.
 Naturally, the @code{(shepherd service)} provides procedures to access
 this information for a given service object:
 
-@defun service-provision @var{service}
+@deffn {Procedure} service-provision @var{service}
 Return the symbols provided by @var{service}.
-@end defun
+@end deffn
 
-@defun service-canonical-name @var{service}
+@deffn {Procedure} service-canonical-name @var{service}
 Return the @dfn{canonical name} of @var{service}, which is the first
 element of the list returned by @code{service-provision}.
-@end defun
+@end deffn
 
-@defun service-requirement @var{service}
+@deffn {Procedure} service-requirement @var{service}
 Return the list of services required by @var{service} as a list of
 symbols.
-@end defun
+@end deffn
 
-@defun one-shot-service? @var{service}
-@defunx transient-service? @var{service}
+@deffn {Procedure} one-shot-service? @var{service}
+@deffnx {Procedure} transient-service? @var{service}
 Return true if @var{service} is a one-shot/transient service.
-@end defun
+@end deffn
 
-@defun respawn-service? @var{service}
+@deffn {Procedure} respawn-service? @var{service}
 Return true if @var{service} is meant to be respawned if its associated
 process terminates prematurely.
-@end defun
+@end deffn
 
-@defun service-documentation @var{service}
+@deffn {Procedure} service-documentation @var{service}
 Return the documentation (a string) of @var{service}.
-@end defun
+@end deffn
 
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -829,27 +829,27 @@ be used.  A typical configuration file thus includes a call to the
 @code{register-services} procedure (@pxref{Service Examples}).  The
 following procedures let you interact with the registry.
 
-@defun register-services @var{services}
+@deffn {Procedure} register-services @var{services}
 Register @var{services} so that they can be looked up by name, for instance
 when resolving dependencies.
 
 Each name uniquely identifies one service.  If a service with a given name has
 already been registered, arrange to have it replaced when it is next stopped.
 If it is currently stopped, replace it immediately.
-@end defun
+@end deffn
 
-@defun lookup-service @var{name}
+@deffn {Procedure} lookup-service @var{name}
 Return the service that provides @var{name}, @code{#f} if there is none.
-@end defun
+@end deffn
 
-@defun for-each-service @var{proc}
+@deffn {Procedure} for-each-service @var{proc}
 Call @var{proc}, a procedure taking one argument, once for each
 registered service.
-@end defun
+@end deffn
 
-@defun lookup-running @var{name}
+@deffn {Procedure} lookup-running @var{name}
 Return the running service that provides @var{name}, or false if none.
-@end defun
+@end deffn
 
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -871,68 +871,68 @@ requests---a fiber is a lightweight execution thread
 
 The procedures below let you change the state of a service.
 
-@defun start-service @var{service} . @var{args}
+@deffn {Procedure} start-service @var{service} . @var{args}
 Start @var{service} and its dependencies, passing @var{args} to its
 @code{start} method.
-@end defun
+@end deffn
 
-@defun stop-service @var{service} . @var{args}
+@deffn {Procedure} stop-service @var{service} . @var{args}
 Stop @var{service} and any service that depends on it.  Return the list of
 services that have been stopped (including transitive dependent services).
 
 If @var{service} is not running, print a warning and return its canonical name
 in a list.
-@end defun
+@end deffn
 
-@defun perform-service-action @var{service} @var{the-action} . @var{args}
+@deffn {Procedure} perform-service-action @var{service} @var{the-action} . @var{args}
 Perform @var{the-action} (a symbol such as @code{'restart} or @code{'status})
 on @var{service}, passing it @var{args}.  The meaning of @var{args} depends on
 the action.
-@end defun
+@end deffn
 
 The @code{start-in-the-background} procedure, described below, is
 provided for your convenience: it makes it easy to start a set of
 services right from your configuration file, while letting
 @command{shepherd} run in the background.
 
-@defun start-in-the-background @var{services}
+@deffn {Procedure} start-in-the-background @var{services}
 Start the services named by @var{services}, a list of symbols, in the
 background.  In other words, this procedure returns immediately without
 waiting until all of @var{services} have been started.
 
 This procedure can be useful in a configuration file because it lets you
 interact right away with shepherd using the @command{herd} command.
-@end defun
+@end deffn
 
 The following procedures let you query the current state of a service.
 
-@defun service-running? @var{service}
-@defunx service-stopped? @var{service}
-@defunx service-enabled? @var{service}
+@deffn {Procedure} service-running? @var{service}
+@deffnx {Procedure} service-stopped? @var{service}
+@deffnx {Procedure} service-enabled? @var{service}
 Return true if @var{service} is currently running/stopped/enabled, false
 otherwise.
-@end defun
+@end deffn
 
-@defun service-status @var{service}
+@deffn {Procedure} service-status @var{service}
 Return the status of @var{service} as a symbol, one of: @code{'stopped},
 @code{'starting}, @code{'running}, or @code{'stopping}.
-@end defun
+@end deffn
 
-@defun service-running-value @var{service}
+@deffn {Procedure} service-running-value @var{service}
 Return the current ``running value'' of @var{service}---a Scheme value
 associated with it.  It is @code{#f} when the service is stopped;
 otherwise, it is a truth value, such as an integer denoting a PID
 (@pxref{Service De- and Constructors}).
-@end defun
+@end deffn
 
 @cindex replacement, or a service
-@defun service-replacement @var{service}
+@deffn {Procedure} service-replacement @var{service}
 Return the @dfn{replacement} of @var{service}, or @code{#f} if there is
 none.
 
 The replacement is the service that will replace @var{service} when it
 is eventually stopped.
-@end defun
+@end deffn
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -947,7 +947,7 @@ All of the procedures listed below return procedures generated from
 the supplied arguments.  These procedures take one argument in the
 case of destructors and no arguments in the case of constructors.
 
-@deffn {procedure} make-forkexec-constructor @var{command} @
+@deffn {Procedure} make-forkexec-constructor @var{command} @
   [#:user #f] @
   [#:group #f] @
   [#:supplementary-groups '()] @
@@ -994,7 +994,7 @@ Guile's @code{setrlimit} procedure is applied on the entries in
 @end lisp
 @end deffn
 
-@deffn {procedure} make-kill-destructor [@var{signal}] @
+@deffn {Procedure} make-kill-destructor [@var{signal}] @
   [#:grace-period (default-process-termination-grace-period)]
 Return a procedure that sends @var{signal} to the process group of the PID
 given as argument, where @var{signal} defaults to @code{SIGTERM}.  If the
@@ -1009,7 +1009,7 @@ arranges so that the service is not respawned.
 The @code{make-forkexec-constructor} procedure builds upon the following
 procedures.
 
-@deffn {procedure} exec-command @var{command} @
+@deffn {Procedure} exec-command @var{command} @
   [#:user #f] @
   [#:group #f] @
   [#:supplementary-groups '()] @
@@ -1018,7 +1018,7 @@ procedures.
   [#:file-creation-mask #f] [#:create-session? #t] @
   [#:resource-limits '()] @
   [#:environment-variables (default-environment-variables)]
-@deffnx {procedure} fork+exec-command @var{command} @
+@deffnx {Procedure} fork+exec-command @var{command} @
   [#:user #f] @
   [#:group #f] @
   [#:supplementary-groups '()] @
@@ -1100,7 +1100,7 @@ in charge of listening.
 Listening endpoints for such services are described as records built
 using the @code{endpoint} procedure:
 
-@deffn {procedure} endpoint @var{address} [#:name "unknown"] @
+@deffn {Procedure} endpoint @var{address} [#:name "unknown"] @
   [#:style SOCK_STREAM] [#:backlog 128] @
   [#:socket-owner (getuid)] [#:socket-group (getgid)] @
   [#:socket-directory-permissions #o755]
@@ -1131,7 +1131,7 @@ permissions for its parent directory.
 The inetd service constructor takes a command and a list of such
 endpoints:
 
-@deffn {procedure} make-inetd-constructor @var{command} @var{endpoints} @
+@deffn {Procedure} make-inetd-constructor @var{command} @var{endpoints} @
   [#:service-name-stem _] [#:requirements '()] @
   [#:max-connections (default-inetd-max-connections)] @
   [#:user #f] @
@@ -1153,7 +1153,7 @@ closed.
 The remaining arguments are as for @code{make-forkexec-constructor}.
 @end deffn
 
-@deffn {procedure} make-inetd-destructor
+@deffn {Procedure} make-inetd-destructor
 Return a procedure that terminates an inetd service.
 @end deffn
 
@@ -1177,7 +1177,7 @@ client library helper functions}.
 The constructor and destructor for systemd-style daemons are described
 below.
 
-@deffn {procedure} make-systemd-constructor @var{command} @var{endpoints} @
+@deffn {Procedure} make-systemd-constructor @var{command} @var{endpoints} @
   [#:lazy-start? #t] @
   [#:user #f] @
   [#:group #f] @
@@ -1212,7 +1212,7 @@ The colon-separated list of endpoint names.
 This must be paired with @code{make-systemd-destructor}.
 @end deffn
 
-@deffn {procedure} make-systemd-destructor
+@deffn {Procedure} make-systemd-destructor
 Return a procedure that terminates a systemd-style service as created by
 @code{make-systemd-constructor}.
 @end deffn
@@ -1222,14 +1222,14 @@ convenience, but we recommend using @code{make-forkexec-constructor} and
 @code{make-kill-destructor} instead (this is typically more robust than
 going through the shell):
 
-@deffn {procedure} make-system-constructor @var{command}@dots{}
+@deffn {Procedure} make-system-constructor @var{command}@dots{}
 The returned procedure will execute @var{command} in a shell and
 return @code{#t} if execution was successful, otherwise @code{#f}.
 For convenience, it takes multiple arguments which will be
 concatenated first.
 @end deffn
 
-@deffn {procedure} make-system-destructor @var{command}@dots{}
+@deffn {Procedure} make-system-destructor @var{command}@dots{}
 Similar to @code{make-system-constructor}, but returns @code{#f} if
 execution of the @var{command} was successful, @code{#t} if not.
 @end deffn
@@ -1599,7 +1599,7 @@ $ herd period monitoring 30
 The @code{(shepherd service monitoring)} module exports the following
 bindings:
 
-@deffn {procedure} monitoring-service @
+@deffn {Procedure} monitoring-service @
           [#:period (default-monitoring-period)]
 Return a service that will monitor shepherd resource usage by printing it
 every @var{period} seconds.
@@ -1659,7 +1659,7 @@ might fancy doing it with Geiser's @code{geiser-connect-local} function
 The @code{(shepherd service repl)} module exports the following
 bindings.
 
-@deffn {procedure} repl-service [@var{socket-file}]
+@deffn {Procedure} repl-service [@var{socket-file}]
 Return a REPL service that listens to @var{socket-file}.
 @end deffn
 
@@ -1694,7 +1694,7 @@ If @var{expr} yields @code{#f}, display an appropriate error
 message and throw an @code{assertion-failed} exception.
 @end deffn
 
-@deffn {procedure} caught-error key args
+@deffn {Procedure} caught-error key args
 Tell the Shepherd that a @var{key} error with @var{args} has occurred.  This is
 the simplest way to cause caught error result in uniformly formatted
 warning messages.  The current implementation is not very good,
@@ -1724,7 +1724,7 @@ applies to, an action name, a list of strings to be used as arguments,
 and a working directory.  Commands are instantiated with
 @code{shepherd-command}:
 
-@deffn {procedure} shepherd-command @var{action} @var{service} @
+@deffn {Procedure} shepherd-command @var{action} @var{service} @
          [#:@var{arguments} '()] [#:@var{directory} (getcwd)]
 Return a new command (a @code{<shepherd-command>}) object for
 @var{action} on @var{service}.
@@ -1734,11 +1734,11 @@ Return a new command (a @code{<shepherd-command>}) object for
 Commands may then be written to or read from a communication channel
 with the following procedures:
 
-@deffn {procedure} write-command @var{command} @var{port}
+@deffn {Procedure} write-command @var{command} @var{port}
 Write @var{command} to @var{port}.
 @end deffn
 
-@deffn {procedure} read-command @var{port}
+@deffn {Procedure} read-command @var{port}
 Receive a command from @var{port} and return it.
 @end deffn
 
@@ -1746,7 +1746,7 @@ In practice, communication with @command{shepherd} takes place over a
 Unix-domain socket, as discussed earlier (@pxref{Invoking shepherd}).
 Clients may open a connection with the procedure below.
 
-@deffn {procedure} open-connection [@var{file}]
+@deffn {Procedure} open-connection [@var{file}]
 Open a connection to the daemon, using the Unix-domain socket at
 @var{file}, and return the socket.
 
@@ -1757,7 +1757,7 @@ When @var{file} is omitted, the default socket is used.
 The daemon writes output to be logged or passed to the
 currently-connected client using @code{local-output}:
 
-@deffn {procedure} local-output format-string . args
+@deffn {Procedure} local-output format-string . args
 This procedure should be used for all output operations in the Shepherd.  It
 outputs the @var{args} according to the @var{format-string}, then
 inserts a newline.  It writes to whatever is the main output target of
@@ -1800,7 +1800,7 @@ user.
 @section Others
 
 @cindex hashes
-@deffn {procedure} copy-hashq-table table new-size
+@deffn {Procedure} copy-hashq-table table new-size
 Create a hash-table with size @var{new-size}, and insert all values
 from @var{table} into it, using @code{eq?} when inserting.  This
 procedure is mainly used internally, but is a generally useful
