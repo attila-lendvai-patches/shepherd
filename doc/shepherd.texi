@@ -1680,7 +1680,6 @@ related to one of the other topic covered in this manual.
 @menu
 * Errors::         Signalling, handling and ignoring errors.
 * Communication::  Input/Output in various ways.
-* Others::         Stuff that is useful, but is homeless.
 @end menu
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1793,19 +1792,6 @@ the status of services as its @code{result}.  The @code{messages} field
 is a possibly-empty list of strings meant to be displayed as is to the
 user.
 
-
-@c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-@node Others
-@section Others
-
-@cindex hashes
-@deffn {Procedure} copy-hashq-table table new-size
-Create a hash-table with size @var{new-size}, and insert all values
-from @var{table} into it, using @code{eq?} when inserting.  This
-procedure is mainly used internally, but is a generally useful
-utillity, so it can by used by everyone.
-@end deffn
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
