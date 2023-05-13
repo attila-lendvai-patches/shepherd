@@ -1813,15 +1813,15 @@ You're very much welcome to join us!  You can report bugs to
 @email{guix-devel@@gnu.org}.
 
 @menu
-* Coding standards::    How to properly hack the Shepherd.
-* Design decisions::    Why the Shepherd is what it is.
+* Coding Standards::    How to properly hack the Shepherd.
+* Design Decisions::    Why the Shepherd is what it is.
 * Service Internals::   How services actually work.
 @end menu
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-@node Coding standards
-@section Coding standards
+@node Coding Standards
+@section Coding Standards
 
 About formatting: Use common sense and GNU Emacs (which actually is
 the same, of course), and you almost can't get the formatting wrong.
@@ -1830,8 +1830,8 @@ Style,,, guix, GNU Guix Reference Manual}, for more info.
 
 @c @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-@node Design decisions
-@section Design decisions
+@node Design Decisions
+@section Design Decisions
 
 @quotation Note
 This section was written by Wolfgang Jährling back in 2003 and documents
