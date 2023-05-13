@@ -169,6 +169,14 @@ easier to hack than other implementations mired in the “callback hell”.
 Documentation has been overhauled as well to reflect all these changes.  Check
 out the new subsections under “Services” for more information.
 
+** Updated translations: de, ro, uk
+
+The Shepherd is fully translated in German, Romanian, and Ukrainian; partial
+translations are available for a dozen of languages.  To help make the
+Shepherd speak your language, check out the Translation Project:
+
+  https://translationproject.org/domain/shepherd.html
+
 * Changes in version 0.9.3
 
 ** Service ‘stop’ is now synchronous
