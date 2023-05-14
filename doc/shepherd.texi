@@ -12,7 +12,7 @@
 Copyright @copyright{} @value{OLD-YEARS} Wolfgang J@"ahrling@*
 Copyright @copyright{} @value{NEW-YEARS} Ludovic Courtès@*
 Copyright @copyright{} 2020 Brice Waegeneire@*
-Copyright @copyright{} 2020 Oleg Pykhalov
+Copyright @copyright{} 2020 Oleg Pykhalov@*
 Copyright @copyright{} 2020, 2023 Jan (janneke) Nieuwenhuizen@*
 
 Permission is granted to copy, distribute and/or modify this document
