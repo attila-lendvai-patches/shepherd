@@ -1107,7 +1107,8 @@ using the @code{endpoint} procedure:
 @deffn {Procedure} endpoint @var{address} [#:name "unknown"] @
   [#:style SOCK_STREAM] [#:backlog 128] @
   [#:socket-owner (getuid)] [#:socket-group (getgid)] @
-  [#:socket-directory-permissions #o755]
+  [#:socket-directory-permissions #o755] @
+  [#:bind-attempts (default-bind-attempts)]
 Return a new endpoint called @var{name} of @var{address}, an address as
 return by @code{make-socket-address}, with the given @var{style} and
 @var{backlog}.
@@ -1130,7 +1131,16 @@ When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
 @var{socket-group} are strings or integers that specify its ownership and that
 of its parent directory; @var{socket-directory-permissions} specifies the
 permissions for its parent directory.
+
+Upon @samp{EADDRINUSE} (``Address already in use''), up to @var{bind-attempts}
+attempts will be made to @code{bind} on @var{address}, one every second.
 @end deffn
+
+@defvar default-bind-attempts
+This parameter specifies the number of times, by default, that
+@command{shepherd} will try to bind an endpoint address if it happens to
+be already in use.
+@end defvar
 
 The inetd service constructor takes a command and a list of such
 endpoints:

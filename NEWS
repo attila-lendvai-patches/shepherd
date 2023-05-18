@@ -11,6 +11,13 @@ Copyright © 2013-2014, 2016, 2018-2020, 2022-2023 Ludovic Courtès <ludo@gnu.or
 
 Please send Shepherd bug reports to bug-guix@gnu.org.
 
+* Changes in 0.10.1
+
+** Configurable number of ‘bind’ attempts for endpoints
+
+The ‘endpoint’ procedure takes a new ‘#:bind-attempts’ parameter.  Its default
+value is (default-bind-attempts), itself a new SRFI-39 parameter.
+
 * Changes in 0.10.0
 
 ** Distinguish ‘starting’ and ‘stopping’ intermediate service statuses

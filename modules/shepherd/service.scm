@@ -119,6 +119,8 @@
             endpoint-socket-owner
             endpoint-socket-group
             endpoint-socket-directory-permissions
+            endpoint-bind-attempts
+            default-bind-attempts
             make-systemd-constructor
             make-systemd-destructor
 
@@ -1737,7 +1739,8 @@ waiting for the shell to terminate."
 
 ;; Endpoint of a systemd-style or inetd-style service.
 (define-record-type <endpoint>
-  (make-endpoint name address style backlog owner group permissions)
+  (make-endpoint name address style backlog owner group permissions
+                 bind-attempts)
   endpoint?
   (name        endpoint-name)                          ;string
   (address     endpoint-address)                       ;socket address
@@ -1745,13 +1748,19 @@ waiting for the shell to terminate."
   (backlog     endpoint-backlog)                       ;integer
   (owner       endpoint-socket-owner)                  ;integer
   (group       endpoint-socket-group)                  ;integer
-  (permissions endpoint-socket-directory-permissions)) ;integer
+  (permissions endpoint-socket-directory-permissions)  ;integer
+  (bind-attempts endpoint-bind-attempts))              ;integer
+
+(define default-bind-attempts
+  ;; Default number of 'bind' attempts upon EADDRINUSE.
+  (make-parameter 5))
 
 (define* (endpoint address
                    #:key (name "unknown") (style SOCK_STREAM)
                    (backlog 128)
                    (socket-owner (getuid)) (socket-group (getgid))
-                   (socket-directory-permissions #o755))
+                   (socket-directory-permissions #o755)
+                   (bind-attempts (default-bind-attempts)))
   "Return a new endpoint called @var{name} of @var{address}, an address as
 return by @code{make-socket-address}, with the given @var{style} and
 @var{backlog}.
@@ -1763,13 +1772,17 @@ IPv6, you need two endpoints.
 When @var{address} is of type @code{AF_UNIX}, @var{socket-owner} and
 @var{socket-group} are strings or integers that specify its ownership and that
 of its parent directory; @var{socket-directory-permissions} specifies the
-permissions for its parent directory."
+permissions for its parent directory.
+
+Upon @samp{EADDRINUSE} (``Address already in use''), up to @var{bind-attempts}
+attempts will be made to @code{bind} on @var{address}, one every second."
   (make-endpoint name address style backlog
                  socket-owner socket-group
-                 socket-directory-permissions))
+                 socket-directory-permissions
+                 bind-attempts))
 
 (define* (bind/retry-if-in-use sock address
-                               #:key (max-attempts 5))
+                               #:key (max-attempts (default-bind-attempts)))
   "Bind @var{sock} to @var{address}.  Retry up to @var{max-attempts} times upon
 EADDRINUSE."
   (let loop ((attempts 1))
@@ -1792,7 +1805,7 @@ retrying to bind it in one second.")
   "Return a listening socket for ENDPOINT."
   (match endpoint
     (($ <endpoint> name address style backlog
-                   owner group permissions)
+                   owner group permissions bind-attempts)
      ;; Make listening sockets SOCK_CLOEXEC: inetd-style services don't pass
      ;; them to the child process, and systemd-style do pass them but call
      ;; 'dup2' right before 'exec', thereby clearing this property.
@@ -1816,7 +1829,8 @@ retrying to bind it in one second.")
          (catch-system-error (delete-file (sockaddr:path address))))
 
        (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
-       (bind/retry-if-in-use sock address)
+       (bind/retry-if-in-use sock address
+                             #:max-attempts bind-attempts)
        (listen sock backlog)
 
        (when (= AF_UNIX (sockaddr:fam address))
