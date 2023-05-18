@@ -1287,14 +1287,25 @@ Displays which services are started and which ones are not.
 @item detailed-status
 Displays detailed information about every registered service.
 
+@cindex evaluating code in shepherd
 @item load @var{file}
-Evaluate the Scheme code in @var{file} in a fresh module that uses the
-@code{(shepherd services)} module---as with the
-@code{--config} option of @command{shepherd} (@pxref{Invoking shepherd}).
+Evaluate in the @command{shepherd} process the Scheme code in
+@var{file}, in a fresh module that uses the @code{(shepherd services)}
+module---as with the @code{--config} option of @command{shepherd}
+(@pxref{Invoking shepherd}).
 
 @item eval @var{exp}
 Likewise, evaluate Scheme expression @var{exp} in a fresh module with
-all the necessary bindings.
+all the necessary bindings.  Here is a couple of examples:
+
+@example
+# herd eval root "(+ 2 2)"
+4
+# herd eval root "(getpid)"
+1
+# herd eval root "(lookup-running 'xorg-server)"
+(service (version 0) (provides (xorg-server)) @dots{})
+@end example
 
 @item unload @var{service-name}
 Attempt to remove the service identified by @var{service-name}.
