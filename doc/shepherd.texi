@@ -615,6 +615,25 @@ what PID or other value is associated with it, and so on.
 This section explains how to define services and how to query their
 configuration and state using the Shepherd's programming interfaces.
 
+@quotation Note
+The programming interface defined in this section may only be used
+within a @command{shepherd} process.  Examples where you may use it
+include:
+
+@itemize
+@item
+the @command{shepherd} configuration file (@pxref{Service Examples});
+@item
+as an argument to @command{herd eval root @dots{}} (@pxref{The root
+Service});
+@item
+at the REPL (@pxref{REPL Service}).
+@end itemize
+
+These procedures may not be used in Guile processes other than
+@command{shepherd} itself.
+@end quotation
+
 @menu
 * Defining Services::           Defining services.
 * Service Registry::            Mapping service names to records.
