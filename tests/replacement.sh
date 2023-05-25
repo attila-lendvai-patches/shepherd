@@ -1,5 +1,5 @@
 # GNU Shepherd --- Ensure replacing services works properly
-# Copyright © 2014, 2016 Ludovic Courtès <ludo@gnu.org>
+# Copyright © 2014, 2016, 2023 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 #
 # This file is part of the GNU Shepherd.
@@ -29,7 +29,7 @@ pid="t-pid-$$"
 
 herd="herd -s $socket"
 
-trap "rm -f $socket $conf $rconf $stamp $log;
+trap "cat $log || true; rm -f $socket $conf $rconf $stamp $log;
       test -f $pid && kill \`cat $pid\` || true; rm -f $pid" EXIT
 
 cat > "$conf"<<EOF
@@ -37,7 +37,13 @@ cat > "$conf"<<EOF
 (register-services
  (list (service
 	 '(test)
-	 #:start (const #t)
+	 #:start (let ((started? #f))
+                   (lambda ()
+                     (let ((first-time? (not started?)))
+		       (unless first-time?
+			 (error "Already started once!\n"))
+                       (set! started? #t)
+		       first-time?)))
 	 #:actions (actions
 		    (say-hello (lambda _
 				(call-with-output-file "$stamp"
@@ -62,7 +68,9 @@ cat > "$rconf"<<EOF
 (register-services
  (list (service
 	 '(test)
-	 #:start (const #t)
+	 #:start (lambda _
+                   (display "The replacement is starting.\n")
+                   #t)
 	 #:actions (actions
 		    (say-goodbye (lambda _
 				   (call-with-output-file "$stamp"
@@ -84,9 +92,10 @@ if test "`cat $stamp`" != "Hello"; then
     exit 1
 fi
 
-$herd stop test
+$herd restart test
 
-$herd start test
+$herd status test | grep running
+grep "The replacement is starting" "$log"
 
 if $herd say-hello test; then
     echo "say-hello should have failed after stop/start"

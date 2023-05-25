@@ -925,9 +925,9 @@ in a list."
         ;; Replace the service with its replacement, if it has one.
         (let ((replacement (service-replacement service)))
           (when replacement
-            (replace-service service replacement)))
+            (replace-service service replacement))
 
-        (cons service stopped-dependents))))
+          (cons (or replacement service) stopped-dependents)))))
 
 (define (perform-service-action service the-action . args)
   "Perform @var{the-action} (a symbol such as @code{'restart} or @code{'status})
