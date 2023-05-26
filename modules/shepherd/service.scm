@@ -2454,7 +2454,7 @@ group; wait for @var{pid} to terminate and return its exit status.  If
 been sent, send it @code{SIGKILL}."
   (let ((reply (make-channel)))
     (put-message (current-process-monitor) `(await ,(abs pid) ,reply))
-    (kill pid signal)
+    (catch-system-error (kill pid signal))
 
     (match (get-message* reply grace-period #f)
       (#f
