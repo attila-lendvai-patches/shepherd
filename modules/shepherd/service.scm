@@ -150,6 +150,7 @@
             condition->sexp
 
             get-message*                      ;XXX: for lack of a better place
+            essential-task-thunk
 
             ;; Deprecated bindings.
             provided-by
@@ -1129,6 +1130,27 @@ requests arriving on @var{channel}."
        (put-message reply (vlist-length registered))
        (loop registered)))))
 
+(define (essential-task-thunk name proc . args)
+  "Return a thunk that calls PROC with ARGS and keeps calling it if it returns
+or throws."
+  (lambda ()
+    ;; PROC should never return.  If it does, log the problem and
+    ;; desperately attempt to restart it.
+    (let loop ()
+      (catch #t
+        (lambda ()
+          (apply proc args)
+          (local-output (l10n "Essential task ~a exited unexpectedly.")
+                        name))
+        (lambda args
+          (local-output
+           (l10n "Uncaught exception in essential task ~a: ~s")
+           name args)))
+
+      ;; Restarting is not enough to recover because all state has been
+      ;; lost, but it might be enough to halt the system.
+      (loop))))
+
 (define (essential-task-launcher name proc)
   "Return a thunk that runs @var{proc} in a fiber, endlessly (an essential
 task is one that should never fail)."
@@ -1136,24 +1158,7 @@ task is one that should never fail)."
     (define channel
       (make-channel))
 
-    (spawn-fiber
-     (lambda ()
-       ;; PROC should never return.  If it does, log the problem and
-       ;; desperately attempt to restart it.
-       (let loop ()
-         (catch #t
-           (lambda ()
-             (proc channel)
-             (local-output (l10n "Essential task ~a exited unexpectedly.")
-                           name))
-           (lambda args
-             (local-output
-              (l10n "Uncaught exception in essential task ~a: ~s")
-              name args)))
-
-         ;; Restarting is not enough to recover because all state has been
-         ;; lost, but it might be enough to halt the system.
-         (loop))))
+    (spawn-fiber (essential-task-thunk name proc channel))
 
     channel))
 

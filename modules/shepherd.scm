@@ -157,6 +157,23 @@ already ~a threads running, disabling 'signalfd' support")
 
 (define* (run-daemon #:key (config-file (default-config-file))
                      socket-file pid-file signal-port poll-services?)
+  (define signal-handler
+    ;; Thunk that waits for signals (particularly SIGCHLD) and handles them.
+    (if signal-port
+        (lambda ()
+          (let loop ()
+            (handle-signal-port signal-port)
+            (loop)))
+        (lambda ()
+          ;; When not using signalfd(2), there's always a time window before
+          ;; 'select' during which a handler async can be queued but not
+          ;; executed.  Work around it by exiting 'select' every few seconds.
+          (let loop ()
+            (sleep (if poll-services? 0.5 30))
+            (when poll-services?
+              (check-for-dead-services))
+            (loop)))))
+
   ;; We might have file descriptors inherited from our parent, as well as file
   ;; descriptors wrongfully opened by Guile or Fibers (see
   ;; <https://bugs.gnu.org/57567> and
@@ -197,21 +214,7 @@ already ~a threads running, disabling 'signalfd' support")
 
          ;; Spawn a signal handling fiber.
          (spawn-fiber
-          (if signal-port
-              (lambda ()
-                (let loop ()
-                  (handle-signal-port signal-port)
-                  (loop)))
-              (lambda ()
-                ;; When not using signalfd(2), there's always a time window
-                ;; before 'select' during which a handler async can be
-                ;; queued but not executed.  Work around it by exiting
-                ;; 'select' every few seconds.
-                (let loop ()
-                  (sleep (if poll-services? 0.5 30))
-                  (when poll-services?
-                    (check-for-dead-services))
-                  (loop)))))
+          (essential-task-thunk 'signal-handler signal-handler))
 
          ;; Enter some sort of a REPL for commands.
          (let next-command ()
