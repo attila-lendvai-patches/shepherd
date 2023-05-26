@@ -941,7 +941,8 @@ the action."
       ((restart)
        (lambda (running . args)
          (let ((stopped-services (stop-service service)))
-           (for-each start-service stopped-services)
+           (for-each start-service
+                     (remove transient-service? stopped-services))
            #t)))
       ((status)
        ;; Return the service itself.  It is automatically converted to an sexp

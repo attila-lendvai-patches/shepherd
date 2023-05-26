@@ -30,6 +30,12 @@ service (typically failing to start) while the original service would still be
 running “in the shadows” (responding to SIGCHLD or to incoming connections,
 and so on).
 
+** ‘herd restart SERVICE’ does not restart transient services
+
+In 0.10.0, ‘herd restart’ could end up attempt to restart transient services,
+which is bound to fail and could even lead to a deadlock since the service has
+been terminated.
+
 * Changes in 0.10.0
 
 ** Distinguish ‘starting’ and ‘stopping’ intermediate service statuses

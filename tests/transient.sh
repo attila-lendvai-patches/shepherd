@@ -63,3 +63,11 @@ kill $($herd status transient-test2 | grep Running | sed -e's/^.* \([0-9]\+\).*$
 $herd status transient-test2 && false
 
 test $($herd status | grep transient-test | wc -l) -eq 0
+
+# Ensure that restarting a transient service is impossible.
+$herd load root "$conf"
+$herd start transient-test1
+$herd restart transient-test1
+$herd status transient-test1 && false
+
+$herd unload root transient-test2
