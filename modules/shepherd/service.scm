@@ -1106,7 +1106,7 @@ requests arriving on @var{channel}."
           (loop (unregister services)))
          (lst                                     ;
           (local-output
-           (l10n "Cannot unregister service ~a, which is still running"
+           (l10n "Cannot unregister service~{ ~a,~} which is still running"
                  "Cannot unregister services~{ ~a,~} which are still running"
                  (length lst))
            (map service-canonical-name lst))
