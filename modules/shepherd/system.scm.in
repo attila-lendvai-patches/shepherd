@@ -169,9 +169,9 @@ only (by default, Linux binds AF_INET6 addresses on IPv4 as well)."
 ;; Guile 2.2.7 lacks a definition for O_CLOEXEC.
 (define-as-needed O_CLOEXEC @O_CLOEXEC@)
 
-(define-as-needed pipe2
-  ;; Use 'define-as-needed' in case Guile > 3.0.8 comes with a same-named
-  ;; binding.
+(define pipe2
+  ;; Note: Guile 3.0.9 added an optional argument to 'pipe'.  Remove this
+  ;; procedure when requiring 3.0.9+.
   (let ((proc (syscall->procedure int "pipe2" `(* ,int))))
     (lambda* (#:optional (flags 0))
       "Return a newly created pipe: a pair of ports linked together on the
