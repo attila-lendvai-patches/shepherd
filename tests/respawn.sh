@@ -62,6 +62,9 @@ function assert_killed_service_is_respawned
 }
 
 cat > "$conf"<<EOF
+;; Disable respawn throttling.
+(default-respawn-limit '(+inf.0 . 1))
+
 (register-services
  (list
   (service
@@ -113,12 +116,11 @@ kill -0 `cat "$service1_pid"`
 kill -0 `cat "$service2_pid"`
 
 # Now, kill the services, and make sure they both get respawned.
-assert_killed_service_is_respawned "$service1_pid"
-assert_killed_service_is_respawned "$service2_pid"
-assert_killed_service_is_respawned "$service1_pid"
-assert_killed_service_is_respawned "$service2_pid"
-assert_killed_service_is_respawned "$service1_pid"
-assert_killed_service_is_respawned "$service2_pid"
+for i in $(seq 1 10)
+do
+    assert_killed_service_is_respawned "$service1_pid"
+    assert_killed_service_is_respawned "$service2_pid"
+done
 
 # Make sure the respawnable service can be stopped.
 pid="`cat "$service1_pid"`"
