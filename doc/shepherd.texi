@@ -705,6 +705,11 @@ If this slot has the value @code{#t}, then, assuming the service has an
 associated process (its ``running value'' is a PID), restart the service
 if that process terminates.
 
+There is a limit to avoid endless respawning: when the service gets
+respawned ``too fast'', it is @dfn{disabled}.  The limit is defined by
+@code{default-respawn-limit} (@pxref{Service De- and Constructors,
+@code{default-respawn-limit}}).
+
 @item #:one-shot?
 @cindex one-shot services
 Whether the service is a @dfn{one-shot service}.  A one-shot service is
@@ -1098,6 +1103,31 @@ sent @code{SIGKILL} for immediate termination.  It defaults to 5
 seconds.
 @end defvar
 
+@cindex respawn limit
+@cindex disabled service
+@defvar default-respawn-limit
+This parameter specifies a limit that prevents @command{shepherd} from
+respawning too quickly a service marked with @code{#:respawn? #t}
+(@pxref{Defining Services}).
+
+The limit is expressed as a pair of integers: the first integer,
+@var{n}, specifies a number of consecutive respawns and the second
+integer, @var{t}, specifies a number of seconds.  If the service gets
+respawned more than @var{n} times over a period of @var{t} seconds, it
+is automatically @dfn{disabled} (@pxref{Interacting with Services,
+@code{service-enabled?}}).  Once it is disabled, the service must be
+explicitly re-enabled using @command{herd enable @var{service}} before
+it can be started again.
+
+As an example, suppose you add this line to your configuration file:
+
+@lisp
+(default-respawn-limit '(3 . 10))
+@end lisp
+
+The effect is that services will be respawned at most 3 times over a
+period of 10 seconds before being disabled.
+@end defvar
 
 @cindex on-demand, starting services
 @cindex inetd-style services

@@ -18,6 +18,11 @@ Please send Shepherd bug reports to bug-guix@gnu.org.
 The ‘endpoint’ procedure takes a new ‘#:bind-attempts’ parameter.  Its default
 value is (default-bind-attempts), itself a new SRFI-39 parameter.
 
+** New ‘default-respawn-limit’ parameter
+
+This SRFI-39 parameter lets users configure the respawn limit for respawnable
+services.  See “Service De- and Constructors” in the manual.
+
 ** ‘herd restart SERVICE’ starts the replacement, not the original service
    <https://issues.guix.gnu.org/63717>
 
