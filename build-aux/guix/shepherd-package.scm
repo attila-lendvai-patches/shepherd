@@ -51,7 +51,7 @@
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages texinfo))
 
-(define %shepherd-version "0.9.99")
+(define %shepherd-version "0.10.99")
 
 (define source-checkout
   (let ((vcs-file? (or (git-predicate
