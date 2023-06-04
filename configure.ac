@@ -172,6 +172,15 @@ esac
 AC_MSG_RESULT([$build_crash_handler])
 AM_CONDITIONAL([BUILD_CRASH_HANDLER], [test "x$build_crash_handler" = "xyes"])
 
+dnl Bash completion file.
+
+AC_ARG_WITH([bash-completion-dir],
+  AC_HELP_STRING([--with-bash-completion-dir=DIR],
+    [name of the Bash completion directory]),
+  [bashcompletiondir="$withval"],
+  [bashcompletiondir='${sysconfdir}/bash_completion.d'])
+AC_SUBST([bashcompletiondir])
+
 dnl Manual pages.
 AM_MISSING_PROG([HELP2MAN], [help2man])
 

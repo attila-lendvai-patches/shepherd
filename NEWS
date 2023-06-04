@@ -13,6 +13,11 @@ Please send Shepherd bug reports to bug-guix@gnu.org.
 
 * Changes in 0.10.2
 
+** New Bash completion
+
+A Bash completion file is now installed, providing tab completion for the
+‘herd’ command.
+
 ** ‘herd’ shows a hint when the service and action are likely swapped
 
 The hint is printed for instance when typing ‘herd foobar start’.

@@ -1,0 +1,100 @@
+# GNU Shepherd --- System service manager for GNU
+# Copyright © 2023 Oleg Pykhalov <go.wigust@gmail.com>
+#
+# This file is part of GNU Shepherd.
+#
+# GNU Shepherd is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or (at
+# your option) any later version.
+#
+# GNU Shepherd is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GNU Shepherd.  If not, see <http://www.gnu.org/licenses/>.
+
+# Bash completion for Shepherd commands.
+
+_herd_complete_subcommand()
+{
+    local command="${COMP_WORDS[1]}"
+    case "$command" in
+        discover)
+            mapfile -t COMPREPLY < <(compgen -W "guix-daemon" -- "${COMP_WORDS[$COMP_CWORD]}")
+            ;;
+        schedule)
+            mapfile -t COMPREPLY < <(compgen -W "mcron" -- "${COMP_WORDS[$COMP_CWORD]}")
+            ;;
+        set-http-proxy)
+            mapfile -t COMPREPLY < <(compgen -W "guix-daemon" -- "${COMP_WORDS[$COMP_CWORD]}")
+            ;;
+        *)
+            local services
+            services="$(herd status | grep '^ +\|^ -\| \*' | cut -d ' ' -f3)"
+            mapfile -t COMPREPLY < <(compgen -W "$services" -- "${COMP_WORDS[$COMP_CWORD]}")
+            ;;
+    esac
+}
+
+_herd_complete_3()
+{
+    local command="${COMP_WORDS[2]}"
+    case "$command" in
+        guix-daemon)
+            completions="on off"
+            mapfile -t COMPREPLY < <(compgen -W "$completions" -- "${COMP_WORDS[$COMP_CWORD]}")
+            ;;
+        *)
+            ;;
+    esac
+}
+
+_herd_is_command ()
+{
+    local word
+    local result="false"
+    for word in "${COMP_WORDS[@]}"
+    do
+	if [ "$word" = "$1" ]
+	then
+	    result=true
+	    break
+	fi
+    done
+    $result
+}
+
+_herd_complete()
+{
+    case $COMP_CWORD in
+        1)
+	    if [ -z "$_herd_subcommands" ]
+	    then
+		# Cache the list of subcommands to speed things up.
+                _herd_subcommands_list=(
+                    disable
+                    discover
+                    enable
+                    schedule
+                    set-http-proxy
+                    start
+                    status
+                    stop
+                )
+		_herd_subcommands="${_herd_subcommands_list[*]}"
+	    fi
+            mapfile -t COMPREPLY < <(compgen -W "$_herd_subcommands" -- "${COMP_WORDS[$COMP_CWORD]}")
+            ;;
+        *)
+            case $COMP_CWORD in
+		2) _herd_complete_subcommand;;
+		3) _herd_complete_3;;
+	    esac
+            ;;
+    esac
+}
+
+complete -F _herd_complete herd

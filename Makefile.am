@@ -2,6 +2,7 @@
 # Copyright © 2002, 2003 Wolfgang Jährling <wolfgang@pro-linux.de>
 # Copyright © 2013-2016, 2018-2020, 2022-2023 Ludovic Courtès <ludo@gnu.org>
 # Copyright © 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
+# Copyright © 2023 Oleg Pykhalov <go.wigust@gmail.com>
 #
 # This file is part of the GNU Shepherd.
 #
@@ -134,6 +135,9 @@ doc/%.8: modules/shepherd/scripts/%.scm configure.ac
 
 dist_man1_MANS = doc/shepherd.1 doc/herd.1
 dist_man8_MANS = doc/halt.8 doc/reboot.8
+
+# Bash completion file.
+dist_bashcompletion_DATA = etc/completion/bash/herd
 
 # Things not automatically included in the distribution.
 EXTRA_DIST +=					\
