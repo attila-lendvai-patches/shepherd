@@ -1,1 +1,1 @@
-build-aux/guix/shepherd-package.scm
+.guix/modules/shepherd-package.scm

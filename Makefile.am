@@ -83,8 +83,8 @@ CLEANFILES =						\
 EXTRA_DIST =					\
   etc/crash-handler.c				\
   guix.scm					\
-  build-aux/guix/shepherd-package.scm		\
-  build-aux/manifest.scm
+  .guix/modules/shepherd-package.scm		\
+  .guix/manifest.scm
 
 if BUILD_CRASH_HANDLER
 

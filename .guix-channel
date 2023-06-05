@@ -2,5 +2,5 @@
 
 (channel
   (version 0)
-  (directory "build-aux/guix")
+  (directory ".guix/modules")
   (url "https://git.savannah.gnu.org/git/shepherd.git")) ;the primary URL
