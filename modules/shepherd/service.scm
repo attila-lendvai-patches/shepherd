@@ -333,17 +333,22 @@ Log abnormal termination reported by @var{status}."
                   (documentation (l10n "[No description].")))
   "Return a new service with the given @var{provision}, a list of symbols
 denoting what the service provides."
-  (make <service>
-    #:provides provision
-    #:requires requirement
-    #:one-shot? one-shot?
-    #:transient? transient?
-    #:respawn? respawn?
-    #:start start
-    #:stop stop
-    #:actions actions
-    #:handle-termination termination-handler
-    #:docstring documentation))
+  (match provision
+    (((? symbol?) ..1)
+     (make <service>
+       #:provides provision
+       #:requires requirement
+       #:one-shot? one-shot?
+       #:transient? transient?
+       #:respawn? respawn?
+       #:start start
+       #:stop stop
+       #:actions actions
+       #:handle-termination termination-handler
+       #:docstring documentation))
+    (_
+     (raise (condition
+             (&message (message "invalid service provision list")))))))
 
 (define (service-control service)
   "Return the controlling channel of @var{service}."

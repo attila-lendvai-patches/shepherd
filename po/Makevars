@@ -7,7 +7,8 @@ top_builddir = ..
 
 XGETTEXT_OPTIONS =				\
   --from-code=UTF-8				\
-  --keyword=l10n --keyword=l10n:1,2
+  --keyword=l10n --keyword=l10n:1,2		\
+  --keyword=message
 
 # Set this to the empty string, which means translations are in the
 # public domain; in this case the translators are expected to disclaim
