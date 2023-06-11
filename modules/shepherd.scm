@@ -42,25 +42,6 @@
 
 (define sleep (@ (fibers) sleep))
 
-(define-syntax-rule (unwind-protect body ... conclude)
-  "Evaluate BODY... and return its result(s), but always evaluate CONCLUDE
-before leaving, even if an exception is raised.
-
-This is *not* implemented with 'dynamic-wind' in order to play well with
-delimited continuations and fibers."
-  (let ((conclusion (lambda () conclude)))
-    (catch #t
-      (lambda ()
-        (call-with-values
-            (lambda ()
-              body ...)
-          (lambda results
-            (conclusion)
-            (apply values results))))
-      (lambda args
-        (conclusion)
-        (apply throw args)))))
-
 (define (call-with-server-socket file-name proc)
   "Call PROC, passing it a listening socket at FILE-NAME and deleting the
 socket file at FILE-NAME upon exit of PROC.  Return the values of PROC."
@@ -76,10 +57,13 @@ socket file at FILE-NAME upon exit of PROC.  Return the values of PROC."
                      ;; Stop services that were started from the config file
                      ;; and quit.
                      (stop-service root-service)))))))
-    (unwind-protect (proc sock)
-                    (begin
-                      (close sock)
-                      (catch-system-error (delete-file file-name))))))
+    (and sock
+         (catch #t
+           (lambda ()
+             (proc sock))
+           (lambda args
+             (close sock)
+             (apply throw args))))))
 
 (define (maybe-signal-port signals)
   "Return a signal port for SIGNALS, using 'signalfd' on GNU/Linux, or #f if
