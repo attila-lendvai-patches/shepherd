@@ -108,6 +108,7 @@ return the socket."
                            (logior SOCK_STREAM SOCK_NONBLOCK SOCK_CLOEXEC)
                            0))
           (address (make-socket-address AF_UNIX file-name)))
+      (catch-system-error (delete-file file-name))
       (bind sock address)
       (listen sock 10)
       sock)))
