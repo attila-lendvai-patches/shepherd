@@ -181,6 +181,10 @@ already ~a threads running, disabling 'signalfd' support")
   ;; mark them all as FD_CLOEXEC so child processes do not inherit them.
   (mark-as-close-on-exec)
 
+  ;; Spawn a signal handling fiber.
+  (spawn-fiber
+   (essential-task-thunk 'signal-handler signal-handler))
+
   ;; This _must_ succeed.  (We could also put the `catch' around
   ;; `main', but it is often useful to get the backtrace, and
   ;; `caught-error' does not do this yet.)
@@ -211,10 +215,6 @@ already ~a threads running, disabling 'signalfd' support")
               (cute display (getpid) <>)))
            (#t (display (getpid)))
            (_  #t))
-
-         ;; Spawn a signal handling fiber.
-         (spawn-fiber
-          (essential-task-thunk 'signal-handler signal-handler))
 
          ;; Enter some sort of a REPL for commands.
          (let next-command ()
