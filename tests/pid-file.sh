@@ -23,11 +23,12 @@ socket="t-socket-$$"
 conf="t-conf-$$"
 log="t-log-$$"
 pid="t-pid-$$"
+stamp="t-stamp-$$"
 service_pid="t-service-pid-$$"
 
 herd="herd -s $socket"
 
-trap "cat $log || true; rm -f $socket $conf $service_pid $log;
+trap "cat $log || true; rm -f $socket $conf $service_pid $stamp $log;
       test -f $pid && kill \`cat $pid\` || true; rm -f $pid" EXIT
 
 cat > "$conf"<<EOF
@@ -97,6 +98,9 @@ cat > "$conf"<<EOF
 ;; Start it upfront.  This ensures the whole machinery works even
 ;; when called in a non-suspendable context (continuation barrier).
 (start-service (lookup-service 'test-works))
+
+;; Note that the config file has been evaluated.
+(call-with-output-file "$PWD/$stamp" (const #t))
 EOF
 
 rm -f "$pid"
@@ -106,6 +110,9 @@ shepherd -I -s "$socket" -c "$conf" -l "$log" --pid="$pid" &
 while ! test -f "$pid" ; do sleep 0.3 ; done
 
 shepherd_pid="`cat $pid`"
+
+# The config file is evaluated asynchronously, so wait until it's been loaded.
+until test -f "$stamp" ; do sleep 0.3 ; done
 
 # This service should already be running.
 $herd status test-works | grep running

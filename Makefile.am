@@ -246,6 +246,7 @@ SUFFIXES = .go
 
 TESTS =						\
   tests/basic.sh				\
+  tests/config-failure.sh			\
   tests/starting-status.sh			\
   tests/stopping-status.sh			\
   tests/startup-failure.sh			\

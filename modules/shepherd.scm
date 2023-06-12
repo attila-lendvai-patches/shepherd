@@ -139,6 +139,53 @@ already ~a threads running, disabling 'signalfd' support")
            (fcntl fd F_SETFD (logior FD_CLOEXEC flags)))))
       (loop (+ fd 1)))))
 
+(cond-expand
+ ((not guile-3)
+  (define exception-with-kind-and-args?
+    (const #f)))
+ (else
+  (define exception-with-kind-and-args?
+    (exception-predicate &exception-with-kind-and-args))))
+
+(define (configuration-file-loader file)
+  "Return a thunk that loads @var{file}, the user's configuration file."
+  (define (failure)
+    (report-error
+     (l10n "~s: exception thrown while loading configuration file~%")
+     file)
+    #f)
+
+  (define (handle-key-and-args-exception key args)
+    (match key
+      ('system-error
+       (local-output
+        (l10n "While loading configuration file '~a': ~a")
+        file (strerror (system-error-errno (cons key args)))))
+      (_
+       (local-output
+        (l10n "Uncaught exception while loading configuration file '~a': ~s")
+        file (cons key args)))))
+
+  (lambda ()
+    (guard (c ((action-runtime-error? c)
+               (local-output (l10n "action '~a' on service '~a' failed: ~s")
+                             (action-runtime-error-action c)
+                             (action-runtime-error-service c)
+                             (cons (action-runtime-error-key c)
+                                   (action-runtime-error-arguments c)))
+               (failure))
+              ((exception-with-kind-and-args? c)
+               (handle-key-and-args-exception
+                (exception-kind c) (exception-args c))
+               (failure)))
+      (catch #t
+        (lambda ()
+          (load-in-user-module file)
+          (local-output (l10n "Configuration successfully loaded from '~a'.")
+                        file))
+        (lambda (key . args)                      ;for Guile 2.2
+          (handle-key-and-args-exception key args))))))
+
 (define* (run-daemon #:key (config-file (default-config-file))
                      socket-file pid-file signal-port poll-services?)
   (define signal-handler
@@ -169,15 +216,10 @@ already ~a threads running, disabling 'signalfd' support")
   (spawn-fiber
    (essential-task-thunk 'signal-handler signal-handler))
 
-  ;; This _must_ succeed.  (We could also put the `catch' around
-  ;; `main', but it is often useful to get the backtrace, and
-  ;; `caught-error' does not do this yet.)
-  (catch #t
-    (lambda ()
-      (load-in-user-module (or config-file (default-config-file))))
-    (lambda (key . args)
-      (caught-error key args)
-      (quit 1)))
+  ;; Load CONFIG-FILE in another fiber.  If loading fails, report it but keep
+  ;; going: the user can use 'herd load root' with a new config file if
+  ;; needed.
+  (spawn-fiber (configuration-file-loader config-file))
 
   ;; Ignore SIGPIPE so that we don't die if a client closes the connection
   ;; prematurely.
@@ -399,29 +441,22 @@ fork in the child process."
              (register-services (list root-service))
              (start-service root-service)
 
-             (catch 'quit
-               (lambda ()
-                 (with-process-monitor
-                   ;; Replace the default 'system*' binding with one that
-                   ;; cooperates instead of blocking on 'waitpid'.  Replace
-                   ;; 'primitive-load' (in C as of 3.0.9) with one that does
-                   ;; not introduce a continuation barrier.
-                   (replace-core-bindings!
-                    (system* (lambda command
-                               (spawn-command command)))
-                    (system spawn-shell-command)
-                    (primitive-load primitive-load*))
+             (with-process-monitor
+               ;; Replace the default 'system*' binding with one that
+               ;; cooperates instead of blocking on 'waitpid'.  Replace
+               ;; 'primitive-load' (in C as of 3.0.9) with one that does
+               ;; not introduce a continuation barrier.
+               (replace-core-bindings!
+                (system* (lambda command
+                           (spawn-command command)))
+                (system spawn-shell-command)
+                (primitive-load primitive-load*))
 
-                   (run-daemon #:socket-file socket-file
-                               #:config-file config-file
-                               #:pid-file pid-file
-                               #:signal-port signal-port
-                               #:poll-services? poll-services?)))
-               (case-lambda
-                 ((key value . _)
-                  (primitive-exit value))
-                 ((key)
-                  (primitive-exit 0))))))
+               (run-daemon #:socket-file socket-file
+                           #:config-file (or config-file (default-config-file))
+                           #:pid-file pid-file
+                           #:signal-port signal-port
+                           #:poll-services? poll-services?))))
          #:parallelism 1                          ;don't create POSIX threads
          #:hz 0)))))       ;disable preemption, which would require POSIX threads
 

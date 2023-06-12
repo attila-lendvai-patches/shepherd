@@ -77,8 +77,10 @@ while ! test -f "$pid" ; do sleep 0.3 ; done
 
 shepherd_pid="`cat $pid`"
 
+while ! test -f "$service_pid" ; do sleep 0.3 ; done
+until $herd status test-file-logging | grep running; do sleep 1; done
+
 cat "$service_log"
-$herd status test-file-logging | grep running
 for message in "STARTING" "STARTED" "café" "latin1 garbage: .* alors"
 do
     grep -E '^2[0-9]{3}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} '"$message" "$service_log"

@@ -13,6 +13,22 @@ Please send Shepherd bug reports to bug-guix@gnu.org.
 
 * Changes in 0.10.2
 
+** ‘shepherd’ loads configuration file asynchronously
+
+Up to 0.10.1, ‘shepherd’ would load the user-provided configuration file
+synchronously: it would write its PID file and start listening for incoming
+connections only after the configuration file has been loaded.  The
+configuration file is now loaded in the background, letting users interact
+with shepherd (using the ‘herd’ command) early on.
+
+** ‘shepherd’ keeps going upon configuration file errors
+   (<https://issues.guix.gnu.org/63982>)
+
+Up to 0.10.1, ‘shepherd’ would abruptly exit when an error would occur while
+loading the configuration file—service startup failure, uncaught exception,
+etc.  It now reports the error but keeps going, again letting users fix any
+problems dynamically.
+
 ** New #:respawn-limit parameter to ‘service’
 
 The ‘service’ form supports a new #:respawn-limit parameter to specify

@@ -419,6 +419,18 @@ starting some or all of those services with
 @xref{Service Examples}, for examples of what @var{file} might look
 like.
 
+Note that @var{file} is evaluated @emph{asynchronously}:
+@command{shepherd} may start listening for client connections (with the
+@command{herd} command) before @var{file} has been fully loaded.  Errors
+in @var{file} such as service startup failures or uncaught exceptions do
+@emph{not} cause @command{shepherd} to stop.  Instead the error is
+reported, leaving users the opportunity to inspect service state and,
+for example, to load an updated config file with:
+
+@example
+herd load root @var{file}
+@end example
+
 @item -I
 @itemx --insecure
 @cindex security
