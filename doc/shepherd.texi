@@ -706,9 +706,38 @@ associated process (its ``running value'' is a PID), restart the service
 if that process terminates.
 
 There is a limit to avoid endless respawning: when the service gets
-respawned ``too fast'', it is @dfn{disabled}.  The limit is defined by
-@code{default-respawn-limit} (@pxref{Service De- and Constructors,
-@code{default-respawn-limit}}).
+respawned ``too fast'', it is @dfn{disabled}---see
+@code{#:respawn-limit} below.
+
+@cindex respawn limit
+@item #:respawn-limit
+Specify the limit that prevents @command{shepherd} from respawning too
+quickly the service marked with @code{#:respawn? #t}.  Its default value
+is @code{(default-respawn-limit)} (@pxref{Service De- and
+Constructors}).
+
+The limit is expressed as a pair of integers: the first integer,
+@var{n}, specifies a number of consecutive respawns and the second
+integer, @var{t}, specifies a number of seconds.  If the service gets
+respawned more than @var{n} times over a period of @var{t} seconds, it
+is automatically @dfn{disabled} (@pxref{Interacting with Services,
+@code{service-enabled?}}).  Once it is disabled, the service must be
+explicitly re-enabled using @command{herd enable @var{service}} before
+it can be started again.
+
+Consider the service below:
+
+@lisp
+(service '(xyz)
+         #:start (make-forkexec-constructor @dots{})
+         #:stop (make-kill-destructor)
+         #:respawn? #t
+         #:respawn-limit '(3 . 5))
+@end lisp
+
+The effect is that this service will be respawned at most 3 times over a
+period of 5 seconds; if its associated process terminates a fourth time
+during that period, the service will be marked as disabled.
 
 @item #:one-shot?
 @cindex one-shot services
@@ -827,6 +856,11 @@ Return true if @var{service} is a one-shot/transient service.
 @deffn {Procedure} respawn-service? @var{service}
 Return true if @var{service} is meant to be respawned if its associated
 process terminates prematurely.
+@end deffn
+
+@deffn {Procedure} service-respawn-limit @var{service}
+Return the respawn limit of @var{service}, expressed as a pair---see
+@code{#:respawn-limit} above.
 @end deffn
 
 @deffn {Procedure} service-documentation @var{service}
@@ -1106,18 +1140,8 @@ seconds.
 @cindex respawn limit
 @cindex disabled service
 @defvar default-respawn-limit
-This parameter specifies a limit that prevents @command{shepherd} from
-respawning too quickly a service marked with @code{#:respawn? #t}
-(@pxref{Defining Services}).
-
-The limit is expressed as a pair of integers: the first integer,
-@var{n}, specifies a number of consecutive respawns and the second
-integer, @var{t}, specifies a number of seconds.  If the service gets
-respawned more than @var{n} times over a period of @var{t} seconds, it
-is automatically @dfn{disabled} (@pxref{Interacting with Services,
-@code{service-enabled?}}).  Once it is disabled, the service must be
-explicitly re-enabled using @command{herd enable @var{service}} before
-it can be started again.
+This parameter specifies the default value of the @code{#:respawn-limit}
+parameter of @code{service} (@pxref{Defining Services}).
 
 As an example, suppose you add this line to your configuration file:
 

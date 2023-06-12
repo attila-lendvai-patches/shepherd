@@ -57,6 +57,7 @@
             one-shot-service?
             transient-service?
             respawn-service?
+            service-respawn-limit
             service-documentation
 
             service-canonical-name
@@ -282,6 +283,10 @@ Log abnormal termination reported by @var{status}."
   (respawn? #:init-keyword #:respawn?
 	    #:init-value #f
 	    #:getter respawn-service?)
+  ;; Pair denoting the respawn limit of this service.
+  (respawn-limit #:init-keyword #:respawn-limit
+                 #:init-thunk default-respawn-limit
+                 #:getter service-respawn-limit)
   ;; The action to perform to start the service.  This must be a
   ;; procedure and may take an arbitrary amount of arguments, but it
   ;; must be possible to call it without any argument.  If the
@@ -326,6 +331,7 @@ Log abnormal termination reported by @var{status}."
                   (one-shot? #f)
                   (transient? #f)
                   (respawn? #f)
+                  (respawn-limit (default-respawn-limit))
                   (start (lambda () #t))
                   (stop (lambda (running) #f))
                   (actions (actions))
@@ -341,6 +347,7 @@ denoting what the service provides."
        #:one-shot? one-shot?
        #:transient? transient?
        #:respawn? respawn?
+       #:respawn-limit respawn-limit
        #:start start
        #:stop stop
        #:actions actions
@@ -1059,7 +1066,8 @@ clients."
             (startup-failures ,(service-startup-failures service))
             (status ,(service-status service))
             (one-shot? ,(one-shot-service? service))
-            (transient? ,(transient-service? service))))
+            (transient? ,(transient-service? service))
+            (respawn-limit ,(service-respawn-limit service))))
 
 
 ;;;
@@ -2492,7 +2500,7 @@ terminated."
 attempted to respawn the service a number of times already and it keeps dying,
 then disable it."
   (define respawn-limit
-    (default-respawn-limit))
+    (service-respawn-limit serv))
 
   (if (and (respawn-service? serv)
            (not (respawn-limit-hit? (service-respawn-times serv)
