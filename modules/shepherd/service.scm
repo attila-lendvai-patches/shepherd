@@ -447,48 +447,54 @@ denoting what the service provides."
        ;; Send #f on REPLY if SERVICE was already running or being started;
        ;; otherwise send a channel on which to send SERVICE's value one it
        ;; has been started.
-       (match status
-         ('running
-          ;; SERVICE is already running: send #f on REPLY.
-          (put-message reply #f)
-          (loop))
-         ('starting
-          ;; SERVICE is being started: wait until it has started and
-          ;; then send #f on REPLY.
-          (spawn-fiber
-           (lambda ()
-             (wait condition)
-             (put-message reply #f)))
-          (loop))
-         ('stopping
-          ;; SERVICE is being stopped: wait until it is stopped, then try
-          ;; starting it again.
-          (spawn-fiber
-           (lambda ()
-             (local-output (l10n "Waiting for ~a to stop...")
+       (if enabled?
+           (match status
+             ('running
+              ;; SERVICE is already running: send #f on REPLY.
+              (put-message reply #f)
+              (loop))
+             ('starting
+              ;; SERVICE is being started: wait until it has started and
+              ;; then send #f on REPLY.
+              (spawn-fiber
+               (lambda ()
+                 (wait condition)
+                 (put-message reply #f)))
+              (loop))
+             ('stopping
+              ;; SERVICE is being stopped: wait until it is stopped, then try
+              ;; starting it again.
+              (spawn-fiber
+               (lambda ()
+                 (local-output (l10n "Waiting for ~a to stop...")
+                               (service-canonical-name service))
+                 (wait condition)
+                 (put-message channel `(start ,reply))))
+              (loop))
+             ('stopped
+              ;; Become the one that starts SERVICE.
+              (let ((notification (make-channel)))
+                (spawn-fiber
+                 (lambda ()
+                   (let ((running (get-message notification)))
+                     (if running
+                         (local-output (l10n "Service ~a started.")
+                                       (service-canonical-name service))
+                         (local-output (l10n "Service ~a failed to start.")
+                                       (service-canonical-name service)))
+                     (put-message channel
+                                  (list *service-started* running)))))
+                (local-output (l10n "Starting service ~a...")
+                              (service-canonical-name service))
+                (put-message reply notification)
+                (loop (status 'starting)
+                      (changes (update-status-changes 'starting))
+                      (condition (make-condition))))))
+           (begin
+             (local-output (l10n "Service ~a is currently disabled.")
                            (service-canonical-name service))
-             (wait condition)
-             (put-message channel `(start ,reply))))
-          (loop))
-         ('stopped
-          ;; Become the one that starts SERVICE.
-          (let ((notification (make-channel)))
-            (spawn-fiber
-             (lambda ()
-               (let ((running (get-message notification)))
-                 (if running
-                     (local-output (l10n "Service ~a started.")
-                                   (service-canonical-name service))
-                     (local-output (l10n "Service ~a failed to start.")
-                                   (service-canonical-name service)))
-                 (put-message channel
-                              (list *service-started* running)))))
-            (local-output (l10n "Starting service ~a...")
-                          (service-canonical-name service))
-            (put-message reply notification)
-            (loop (status 'starting)
-                  (changes (update-status-changes 'starting))
-                  (condition (make-condition)))))))
+             (put-message reply #f)
+             (loop))))
       (((? started-message?) new-value)           ;no reply
        ;; When NEW-VALUE is a procedure, call it to get the actual value and
        ;; pass it a call back so it can eventually change it.
@@ -824,53 +830,45 @@ while starting ~a: ~s")
 (define (start-service service . args)
   "Start @var{service} and its dependencies, passing @var{args} to its
 @code{start} method."
-  (if (service-enabled? service)
-      ;; It is not running; go ahead and launch it.
-      (let ((problems
-	     ;; Resolve all dependencies.
-	     (start-in-parallel (service-requirement service))))
-        (define running
-	  (if (pair? problems)
-              (for-each (lambda (problem)
-	                  (local-output (l10n "Service ~a depends on ~a.")
-			                (service-canonical-name service)
-			                problem))
-                        problems)
-              ;; Start the service itself.
-              (let ((reply (make-channel)))
-                (put-message (service-control service) `(start ,reply))
-                (match (get-message reply)
-                  (#f
-                   ;; We lost the race: SERVICE is already running.
-                   (service-running-value service))
-                  ((? channel? notification)
-                   ;; We won the race: we're responsible for starting SERVICE
-                   ;; and sending its running value on NOTIFICATION.
-                   (let ((running
-                          (catch #t
-                            (lambda ()
-                              ;; Make sure the 'start' method writes
-                              ;; messages to the right port.
-                              (parameterize ((current-output-port
-                                              (%current-service-output-port))
-                                             (current-error-port
-                                              (%current-service-output-port)))
-                                (apply (service-start service) args)))
-                            (lambda (key . args)
-                              (put-message notification #f)
-                              (report-exception 'start service key args)))))
-                     (put-message notification running)
-                     (local-output (if running
-			               (l10n "Service ~a has been started.")
-                                       (l10n "Service ~a could not be started."))
-			           (service-canonical-name service))
-                     running))))))
-
-        running)
-      (begin
-        (local-output (l10n "Service ~a is currently disabled.")
-		      (service-canonical-name service))
-        (service-running-value service))))
+  ;; It is not running; go ahead and launch it.
+  (let ((problems
+	 ;; Resolve all dependencies.
+	 (start-in-parallel (service-requirement service))))
+    (if (pair? problems)
+        (for-each (lambda (problem)
+	            (local-output (l10n "Service ~a depends on ~a.")
+			          (service-canonical-name service)
+			          problem))
+                  problems)
+        ;; Start the service itself.
+        (let ((reply (make-channel)))
+          (put-message (service-control service) `(start ,reply))
+          (match (get-message reply)
+            (#f
+             ;; We lost the race: SERVICE is already running.
+             (service-running-value service))
+            ((? channel? notification)
+             ;; We won the race: we're responsible for starting SERVICE
+             ;; and sending its running value on NOTIFICATION.
+             (let ((running
+                    (catch #t
+                      (lambda ()
+                        ;; Make sure the 'start' method writes
+                        ;; messages to the right port.
+                        (parameterize ((current-output-port
+                                        (%current-service-output-port))
+                                       (current-error-port
+                                        (%current-service-output-port)))
+                          (apply (service-start service) args)))
+                      (lambda (key . args)
+                        (put-message notification #f)
+                        (report-exception 'start service key args)))))
+               (put-message notification running)
+               (local-output (if running
+			         (l10n "Service ~a has been started.")
+                                 (l10n "Service ~a could not be started."))
+			     (service-canonical-name service))
+               running)))))))
 
 (define (replace-service old-service new-service)
   "Replace OLD-SERVICE with NEW-SERVICE in the services registry.  This

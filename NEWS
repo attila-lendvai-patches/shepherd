@@ -34,6 +34,12 @@ problems dynamically.
 The ‘service’ form supports a new #:respawn-limit parameter to specify
 per-service respawn limits.
 
+** Disabled services are truly disabled
+   (<https://issues.guix.gnu.org/64008>)
+
+Previously, manually running ‘herd disable SERVICE’ would not prevent SERVICE
+from being respawned or even from being started.  This is now fixed.
+
 ** New Bash completion
 
 A Bash completion file is now installed, providing tab completion for the

@@ -130,5 +130,14 @@ $herd status test1 | grep stopped
 test -f "$service1_pid" && false
 kill -0 "$pid" && false
 
+# Once disabled, the service must not be respawned.
+$herd enable test1
+$herd start test1
+$herd disable test1
+until test -f "$service1_pid"; do sleep 0.3 ; done
+kill "$(cat "$service1_pid")"
+$herd status test1 | grep disabled
+until $herd status test1 | grep stopped; do sleep 0.3; done
+
 cat $service2_pid
 $herd stop root
