@@ -58,11 +58,8 @@ shepherd -I -s "$socket" -c "$conf" --pid="$pid" --log="$log" &
 while ! test -f "$pid"; do sleep 0.5 ; done
 
 $herd start test
-
-if ! $herd say-hello test; then
-    echo "say-hello failed"
-    exit 1
-fi
+$herd say-hello test
+test -f "$stamp"
 
 cat > "$rconf"<<EOF
 (register-services
@@ -81,34 +78,14 @@ EOF
 
 $herd load root "$rconf"
 
-if ! $herd say-hello test; then
-    echo "say-hello failed after setting replacement"
-    exit 1
-fi
-
-if test "`cat $stamp`" != "Hello"; then
-    echo "Output file had the wrong contents! Was:"
-    cat $stamp
-    exit 1
-fi
+$herd say-hello test
+test "`cat $stamp`" = "Hello"
 
 $herd restart test
 
 $herd status test | grep running
 grep "The replacement is starting" "$log"
 
-if $herd say-hello test; then
-    echo "say-hello should have failed after stop/start"
-    exit 1
-fi
-
-if ! $herd say-goodbye test; then
-    echo "say-goodbye failed after replacement"
-    exit 1
-fi
-
-if test "`cat $stamp`" != "Goodbye"; then
-    echo "Output file had the wrong contents! Was:"
-    cat $stamp
-    exit 1
-fi
+$herd say-hello test && false	# this action should have vanished
+$herd say-goodbye test		# this one is new
+test "`cat $stamp`" = "Goodbye"
