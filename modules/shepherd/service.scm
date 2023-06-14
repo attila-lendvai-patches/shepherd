@@ -829,17 +829,19 @@ while starting ~a: ~s")
 
 (define (start-service service . args)
   "Start @var{service} and its dependencies, passing @var{args} to its
-@code{start} method."
+@code{start} method.  Return its running value, @code{#f} on failure."
   ;; It is not running; go ahead and launch it.
   (let ((problems
 	 ;; Resolve all dependencies.
 	 (start-in-parallel (service-requirement service))))
     (if (pair? problems)
-        (for-each (lambda (problem)
-	            (local-output (l10n "Service ~a depends on ~a.")
-			          (service-canonical-name service)
-			          problem))
-                  problems)
+        (begin
+          (for-each (lambda (problem)
+	              (local-output (l10n "Service ~a depends on ~a.")
+			            (service-canonical-name service)
+			            problem))
+                    problems)
+          #f)
         ;; Start the service itself.
         (let ((reply (make-channel)))
           (put-message (service-control service) `(start ,reply))

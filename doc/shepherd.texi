@@ -943,7 +943,7 @@ The procedures below let you change the state of a service.
 
 @deffn {Procedure} start-service @var{service} . @var{args}
 Start @var{service} and its dependencies, passing @var{args} to its
-@code{start} method.
+@code{start} method.  Return its running value, @code{#f} on failure.
 @end deffn
 
 @deffn {Procedure} stop-service @var{service} . @var{args}
