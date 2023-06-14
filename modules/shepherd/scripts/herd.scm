@@ -236,7 +236,10 @@ into a @code{live-service} record."
 
   (if (live-service-enabled? service)
       (format #t (l10n "  It is enabled.~%"))
-      (format #t (highlight/warn (l10n "  It is disabled.~%"))))
+      (let ((highlight (if (null? (live-service-last-respawns service))
+                           highlight/warn
+                           highlight/error)))
+        (format #t (highlight (l10n "  It is disabled.~%")))))
   (format #t (l10n "  Provides ~a.~%") (live-service-provision service))
   (format #t (l10n "  Requires ~a.~%") (live-service-requirement service))
   (if (live-service-respawn? service)
