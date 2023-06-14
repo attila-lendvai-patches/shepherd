@@ -89,3 +89,9 @@ grep "The replacement is starting" "$log"
 $herd say-hello test && false	# this action should have vanished
 $herd say-goodbye test		# this one is new
 test "`cat $stamp`" = "Goodbye"
+
+# Make sure the "disabled" flag is preserved when replacing.
+$herd stop test
+$herd disable test
+$herd load root "$rconf"
+$herd status test | grep disabled

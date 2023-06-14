@@ -872,15 +872,6 @@ while starting ~a: ~s")
 			     (service-canonical-name service))
                running)))))))
 
-(define (replace-service old-service new-service)
-  "Replace OLD-SERVICE with NEW-SERVICE in the services registry.  This
-completely removes all references to OLD-SERVICE before registering
-NEW-SERVICE."
-  (when new-service
-    (put-message (current-registry-channel)
-                 `(unregister ,(list old-service)))
-    (register-services (list new-service))))
-
 (define (required-by? service dependent)
   "Returns #t if DEPENDENT directly requires SERVICE in order to run.  Returns
 #f otherwise."
@@ -940,7 +931,7 @@ in a list."
         ;; Replace the service with its replacement, if it has one.
         (let ((replacement (service-replacement service)))
           (when replacement
-            (replace-service service replacement))
+            (register-services (list replacement)))
 
           (cons (or replacement service) stopped-dependents)))))
 
@@ -1113,8 +1104,12 @@ requests arriving on @var{channel}."
                          `(replace-if-running ,service ,reply))
             (match (get-message reply)
               (#t (loop registered))
-              (#f (loop (register service
-                                  (unregister (list old))))))))))
+              (#f
+               (unless (service-enabled? old)
+                 ;; Inherit the disabled flag.
+                 (disable-service service))
+               (loop (register service
+                               (unregister (list old))))))))))
       (('unregister services)                     ;no reply
        (match (remove service-stopped? services)
          (()

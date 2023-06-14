@@ -40,6 +40,13 @@ per-service respawn limits.
 Previously, manually running ‘herd disable SERVICE’ would not prevent SERVICE
 from being respawned or even from being started.  This is now fixed.
 
+** Disabled flag is preserved when replacing a service
+   (<https://issues.guix.gnu.org/63869>)
+
+When replacing a service, for instance by running ‘herd load root conf.scm’ or
+by running ‘guix system reconfigure’, the service replacement starts as
+disabled if the original service was disabled.
+
 ** New Bash completion
 
 A Bash completion file is now installed, providing tab completion for the
