@@ -2823,9 +2823,12 @@ we want to receive these signals."
                 (l10n "Services already running, so not daemonizing."))
                #f)
               (else
+               (local-output (l10n "Daemonizing..."))
                (if (zero? (primitive-fork))
                    (begin
                      (catch-system-error (prctl PR_SET_CHILD_SUBREAPER 1))
+                     (local-output (l10n "Now running as process ~a.")
+                                   (getpid))
                      #t)
                    (primitive-exit 0))))))
      ;; Restart it - that does not make sense, but
