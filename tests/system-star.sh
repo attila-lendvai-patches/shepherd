@@ -45,6 +45,10 @@ cat > "$conf" <<EOF
 		   (delete-file "$stamp"))
 	 #:respawn? #f)
        (service
+         '(test-system-constructor)
+         #:start (make-system-constructor "date; echo SYSTEM-START")
+         #:stop (make-system-destructor "date; echo SYSTEM-STOP"))
+       (service
 	 '(test-command-not-found)
 	 #:start (lambda _
 		   (zero? (system* "this command does not exist")))
@@ -61,6 +65,10 @@ cat > "$conf" <<EOF
 			  (delete-file "$stamp")
 			  #f)))
 	 #:respawn? #t)))
+
+;; Start this one upfront.  This ensures signal handling and the process
+;; monitor are working as expected early on.
+(start-service (lookup-service 'test-system-constructor))
 EOF
 
 rm -f "$pid"
@@ -72,6 +80,13 @@ while ! test -f "$pid" ; do sleep 0.3 ; done
 shepherd_pid="`cat $pid`"
 
 kill -0 $shepherd_pid
+
+# Did the 'make-system-destructor' start?
+until $herd start test-system-constructor | grep running; do sleep 0.3; done
+grep SYSTEM-START "$log"
+$herd stop test-system-constructor
+$herd status test-system-constructor | grep stopped
+grep SYSTEM-STOP "$log"
 
 # 'herd start' will block until the script exits...
 $herd start test &
