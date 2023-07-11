@@ -35,6 +35,7 @@
             ipv6-only
             pipe2
             SFD_CLOEXEC
+            SFD_NONBLOCK
             signalfd
             consume-signalfd-siginfo
             block-signals
@@ -234,6 +235,7 @@ sigset pointer."
   @SIZEOF_STRUCT_SIGNALFD_SIGINFO@)
 
 (define SFD_CLOEXEC @SFD_CLOEXEC@)
+(define SFD_NONBLOCK @SFD_NONBLOCK@)
 
 (define signalfd
   (let ((proc (syscall->procedure int "signalfd" `(,int * ,int))))

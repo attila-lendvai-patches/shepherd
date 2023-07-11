@@ -70,7 +70,7 @@ socket file at FILE-NAME upon exit of PROC.  Return the values of PROC."
 that is not supported."
   (catch 'system-error
     (lambda ()
-      (let ((port (non-blocking-port (signalfd -1 signals))))
+      (let ((port (signalfd -1 signals (logior SFD_CLOEXEC SFD_NONBLOCK))))
         ;; As per the signalfd(2) man page, block SIGNALS.  The tricky bit is
         ;; that SIGNALS must be blocked for all the threads; new threads will
         ;; inherit the signal mask, but we must ensure that neither Guile's
