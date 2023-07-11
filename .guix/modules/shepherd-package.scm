@@ -97,8 +97,8 @@
      ;; development tools.
      (append (map specification->package development-packages)
              (list pkg-config guile-3.0-latest
-                   guile-fibers-1.1)))            ;for cross-compilation
-    (inputs (list guile-3.0-latest guile-fibers-1.1))
+                   guile-fibers-1.3)))            ;for cross-compilation
+    (inputs (list guile-3.0-latest guile-fibers-1.3))
     (synopsis "System service manager")
     (description
      "The GNU Shepherd is a daemon-managing daemon, meaning that it supervises
