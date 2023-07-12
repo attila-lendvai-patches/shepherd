@@ -188,7 +188,7 @@ already ~a threads running, disabling 'signalfd' support")
 
 (define* (run-daemon #:key (config-file (default-config-file))
                      socket-file pid-file signal-port poll-services?)
-  (define signal-handler
+  (define (signal-thunk signal-port)
     ;; Thunk that waits for signals (particularly SIGCHLD) and handles them.
     (if signal-port
         (lambda ()
@@ -212,9 +212,24 @@ already ~a threads running, disabling 'signalfd' support")
   ;; mark them all as FD_CLOEXEC so child processes do not inherit them.
   (mark-as-close-on-exec)
 
+  (when signal-port
+    ;; When the 'daemonize' action is invoked, open a new signal port in the
+    ;; child process and spawn a new fiber reading it.  This required because
+    ;; after fork(2), epoll_wait(2), which is used by Fibers, does not signal
+    ;; that the signal FD is ready for reading--see the signalfd(2) man page.
+    (add-hook! %post-daemonize-hook
+               (lambda ()
+                 (local-output (l10n "Restarting signal handler."))
+                 (close-port signal-port)
+                 (spawn-fiber
+                  (essential-task-thunk
+                   'signal-handler
+                   (signal-thunk (maybe-signal-port %precious-signals)))))))
+
   ;; Spawn a signal handling fiber.
   (spawn-fiber
-   (essential-task-thunk 'signal-handler signal-handler))
+   (essential-task-thunk 'signal-handler
+                         (signal-thunk signal-port)))
 
   ;; Load CONFIG-FILE in another fiber.  If loading fails, report it but keep
   ;; going: the user can use 'herd load root' with a new config file if

@@ -128,6 +128,7 @@
 
             check-for-dead-services
             root-service
+            %post-daemonize-hook
 
             &service-error
             service-error?
@@ -2715,6 +2716,10 @@ where prctl/PR_SET_CHILD_SUBREAPER is unsupported."
                                         running (service-canonical-name service))
                             (respawn-service service))))))
 
+(define %post-daemonize-hook
+  ;; Hook invoked after the 'daemonize' action in the child process.
+  (make-hook))
+
 (define root-service
   (service
    '(root shepherd)
@@ -2827,6 +2832,7 @@ we want to receive these signals."
                (if (zero? (primitive-fork))
                    (begin
                      (catch-system-error (prctl PR_SET_CHILD_SUBREAPER 1))
+                     (run-hook %post-daemonize-hook)
                      (local-output (l10n "Now running as process ~a.")
                                    (getpid))
                      #t)

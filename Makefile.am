@@ -268,6 +268,7 @@ TESTS =						\
   tests/signals.sh				\
   tests/system-star.sh				\
   tests/close-on-exec.sh			\
+  tests/daemonize.sh				\
   tests/eval-load.sh				\
   tests/services/monitoring.sh			\
   tests/services/repl.sh

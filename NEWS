@@ -47,6 +47,13 @@ When replacing a service, for instance by running ‘herd load root conf.scm’ 
 by running ‘guix system reconfigure’, the service replacement starts as
 disabled if the original service was disabled.
 
+** Signals are properly handled after ‘daemonize’
+   (<https://issues.guix.gnu.org/63982>)
+
+Starting with version 0.9.0, calling the ‘daemonize’ action on the ‘root’
+service would cause shepherd to miss signals; in particular, it would miss
+SIGCHLD signals, making it hardly usable.  This is now fixed.
+
 ** New Bash completion
 
 A Bash completion file is now installed, providing tab completion for the
