@@ -804,7 +804,7 @@ that could not be started."
                                        (local-output
                                         (l10n "Exception caught \
 while starting ~a: ~s")
-                                        service
+                                        (service-canonical-name service)
                                         (cons (action-runtime-error-key c)
                                               (action-runtime-error-arguments c)))
                                        #f))
