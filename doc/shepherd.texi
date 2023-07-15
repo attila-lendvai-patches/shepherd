@@ -908,6 +908,11 @@ already been registered, arrange to have it replaced when it is next stopped.
 If it is currently stopped, replace it immediately.
 @end deffn
 
+@deffn {Procedure} unregister-services @var{services}
+Remove all of @var{services} from the registry, stopping them if they are not
+already stopped.
+@end deffn
+
 @deffn {Procedure} lookup-service @var{name}
 Return the service that provides @var{name}, @code{#f} if there is none.
 @end deffn

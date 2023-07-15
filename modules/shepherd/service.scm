@@ -95,6 +95,7 @@
             spawn-shell-command
             %precious-signals
             register-services
+            unregister-services
 
             default-respawn-limit
             default-service-termination-handler
@@ -2554,6 +2555,19 @@ If it is currently stopped, replace it immediately."
       (warn-deprecated-form)
       (register-services services)))))
 
+(define (unregister-services services)
+  "Remove all of @var{services} from the registry, stopping them if they are not
+already stopped."
+  (for-each (lambda (service)
+              (unless (service-stopped? service)
+                (stop-service service)))
+            services)
+
+  ;; Remove SERVICE from the registry.
+  (put-message (current-registry-channel)
+               `(unregister ,services))
+  #t)
+
 (define (deregister-service service-name)
   "For each string in SERVICE-NAME, stop the associated service if
 necessary and remove it from the services table.  If SERVICE-NAME is
@@ -2562,13 +2576,6 @@ the special string 'all', remove all services except of 'root'.
 This will remove a service either if it is identified by its canonical
 name, or if it is the only service providing the service that is
 requested to be removed."
-  (define (deregister service)
-    (when (service-running? service)
-      (stop-service service))
-    ;; Remove services provided by service from the hash table.
-    (put-message (current-registry-channel)
-                 `(unregister ,(list service))))
-
   (let ((name (string->symbol service-name)))
     (cond ((eq? name 'all)
            ;; Special 'remove all' case.
@@ -2587,7 +2594,7 @@ requested to be removed."
                   (local-output
                    "Removing service '~a' providing '~a'..."
                    (service-canonical-name service) name))
-              (deregister service)
+              (unregister-services (list service))
               (local-output (l10n "Done."))))))))
 
 (define (load-config file-name)

@@ -54,6 +54,11 @@ Starting with version 0.9.0, calling the ‘daemonize’ action on the ‘root�
 service would cause shepherd to miss signals; in particular, it would miss
 SIGCHLD signals, making it hardly usable.  This is now fixed.
 
+** New ‘unregister-services’ procedure
+   (<https://issues.guix.gnu.org/64365>)
+
+The (shepherd service) module now exports ‘unregister-services’.
+
 ** New Bash completion
 
 A Bash completion file is now installed, providing tab completion for the
