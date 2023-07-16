@@ -841,7 +841,7 @@ while starting ~a: ~s")
           (for-each (lambda (problem)
 	              (local-output (l10n "Service ~a depends on ~a.")
 			            (service-canonical-name service)
-			            problem))
+			            (service-canonical-name problem)))
                     problems)
           #f)
         ;; Start the service itself.
