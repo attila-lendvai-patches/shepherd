@@ -5,10 +5,10 @@
 # Yuri Chornoivan <yurchor@ukr.net>, 2018, 2019, 2020, 2022, 2023.
 msgid ""
 msgstr ""
-"Project-Id-Version: shepherd 0.10.0rc1\n"
+"Project-Id-Version: shepherd 0.10.2rc1\n"
 "Report-Msgid-Bugs-To: guix-devel@gnu.org\n"
-"POT-Creation-Date: 2023-04-28 12:44+0000\n"
-"PO-Revision-Date: 2023-04-28 21:05+0300\n"
+"POT-Creation-Date: 2023-07-12 21:14+0000\n"
+"PO-Revision-Date: 2023-07-13 19:25+0300\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "Language: uk\n"
@@ -25,22 +25,22 @@ msgstr ""
 #. See
 #. <https://www.gnu.org/software/guile/manual/html_node/Formatted-Output.html>
 #. for more info.
-#: modules/shepherd/comm.scm:225
+#: modules/shepherd/comm.scm:226
 #, scheme-format
 msgid "service '~a' could not be found"
 msgstr "не вдалося знайти службу «~a»"
 
-#: modules/shepherd/comm.scm:228
+#: modules/shepherd/comm.scm:229
 #, scheme-format
 msgid "service '~a' does not have an action '~a'"
 msgstr "для служби «~a» не знайдено дії «~a»"
 
-#: modules/shepherd/comm.scm:232
+#: modules/shepherd/comm.scm:233
 #, scheme-format
 msgid "exception caught while executing '~a' on service '~a':"
 msgstr "під час спроби виконати «~a» для служби «~a» сталося виключення:"
 
-#: modules/shepherd/comm.scm:237
+#: modules/shepherd/comm.scm:238
 #, scheme-format
 msgid "something went wrong: ~s"
 msgstr "щось пішло не так: ~s"
@@ -193,108 +193,113 @@ msgstr "  Невідомий стан «~a»~%."
 msgid "  It is enabled.~%"
 msgstr "  Увімкнено.~%"
 
-#: modules/shepherd/scripts/herd.scm:239
+#: modules/shepherd/scripts/herd.scm:242
 #, scheme-format
 msgid "  It is disabled.~%"
 msgstr "  Вимкнено.~%"
 
-#: modules/shepherd/scripts/herd.scm:240
+#: modules/shepherd/scripts/herd.scm:243
 #, scheme-format
 msgid "  Provides ~a.~%"
 msgstr "  Забезпечує роботу ~a.~%"
 
-#: modules/shepherd/scripts/herd.scm:241
+#: modules/shepherd/scripts/herd.scm:244
 #, scheme-format
 msgid "  Requires ~a.~%"
 msgstr "  Потребує ~a.~%"
 
-#: modules/shepherd/scripts/herd.scm:243
+#: modules/shepherd/scripts/herd.scm:246
 #, scheme-format
 msgid "  Will be respawned.~%"
 msgstr "  Буде перезапущено.~%"
 
-#: modules/shepherd/scripts/herd.scm:244
+#: modules/shepherd/scripts/herd.scm:247
 #, scheme-format
 msgid "  Will not be respawned.~%"
 msgstr "  Не буде перезапущено.~%"
 
-#: modules/shepherd/scripts/herd.scm:247
+#: modules/shepherd/scripts/herd.scm:250
 #, scheme-format
 msgid "  Last respawned on ~a.~%"
 msgstr "  Востаннє перезапущено ~a.~%"
 
-#: modules/shepherd/scripts/herd.scm:253
+#: modules/shepherd/scripts/herd.scm:256
 #, scheme-format
 msgid "  Failed to start at ~a.~%"
 msgstr "  Не вдалося запустити ~a.~%"
 
-#: modules/shepherd/scripts/herd.scm:298
+#: modules/shepherd/scripts/herd.scm:301
 msgid "event log is missing (shepherd is too old?)"
 msgstr "немає журналу подій (shepherd є застарілим?)"
 
-#: modules/shepherd/scripts/herd.scm:311
+#: modules/shepherd/scripts/herd.scm:314
 #, scheme-format
 msgid "service ~a is running~%"
 msgstr "служба ~a працює~%"
 
-#: modules/shepherd/scripts/herd.scm:315
+#: modules/shepherd/scripts/herd.scm:318
 #, scheme-format
 msgid "service ~a is done (one-shot)~%"
 msgstr "завдання служби ~a виконано (одноразова)~%"
 
-#: modules/shepherd/scripts/herd.scm:320
+#: modules/shepherd/scripts/herd.scm:323
 #, scheme-format
 msgid "service ~a is done (transient)~%"
 msgstr "завдання служби ~a виконано (тимчасова)~%"
 
-#: modules/shepherd/scripts/herd.scm:324
+#: modules/shepherd/scripts/herd.scm:327
 #, scheme-format
 msgid "service ~a is stopped~%"
 msgstr "роботу служби ~a зупинено~%"
 
-#: modules/shepherd/scripts/herd.scm:328
+#: modules/shepherd/scripts/herd.scm:331
 #, scheme-format
 msgid "service ~a failed to start~%"
 msgstr "не вдалося запустити службу ~a~%"
 
-#: modules/shepherd/scripts/herd.scm:331
+#: modules/shepherd/scripts/herd.scm:334
 #, scheme-format
 msgid "service ~a is being started~%"
 msgstr "запускаємо службу ~a~%"
 
-#: modules/shepherd/scripts/herd.scm:334
+#: modules/shepherd/scripts/herd.scm:337
 #, scheme-format
 msgid "service ~a is being stopped~%"
 msgstr "робота служби ~a припиняється~%"
 
-#: modules/shepherd/scripts/herd.scm:337
+#: modules/shepherd/scripts/herd.scm:340
 #, scheme-format
 msgid "service ~a is entering state '~a'~%"
 msgstr "служба ~a переходить до стану «~a»~%"
 
-#: modules/shepherd/scripts/herd.scm:355
+#: modules/shepherd/scripts/herd.scm:358
 #, scheme-format
 msgid "inconsistent graph: service '~a' not found~%"
 msgstr "несумісний графік: службу «~a» не знайдено~%"
 
-#: modules/shepherd/scripts/herd.scm:388
+#: modules/shepherd/scripts/herd.scm:391
 msgid "Service Graph"
 msgstr "Графік служби"
 
-#: modules/shepherd/scripts/herd.scm:468
+#: modules/shepherd/scripts/herd.scm:471
 #, scheme-format
 msgid "failed to start service ~a"
 msgstr "не вдалося запустити службу ~a"
 
-#: modules/shepherd/scripts/herd.scm:487
+#: modules/shepherd/scripts/herd.scm:488 modules/shepherd/scripts/herd.scm:492
+#, scheme-format
+msgid "Did you mean 'herd ~a ~a'?"
+msgstr "Ви мали на увазі «herd ~a ~a»?"
+
+#: modules/shepherd/scripts/herd.scm:502
 msgid "premature end-of-file while talking to shepherd"
 msgstr "завчасне завершення файла під час обміну даними з shepherd"
 
-#: modules/shepherd/scripts/herd.scm:502
+#: modules/shepherd/scripts/herd.scm:517
 msgid "ACTION SERVICE [ARG...]"
 msgstr "ДІЯ СЛУЖБА [АРГУМЕНТ...]"
 
-#: modules/shepherd/scripts/herd.scm:503
+#: modules/shepherd/scripts/herd.scm:518
 msgid ""
 "Apply ACTION (start, stop, status, etc.) on \\\n"
 "SERVICE with the ARGs."
@@ -302,16 +307,16 @@ msgstr ""
 "Застосувати дію ДІЯ (start, stop, status тощо) до \\\n"
 "служби СЛУЖБА з параметрами АРГУМЕНТИ."
 
-#: modules/shepherd/scripts/herd.scm:511 modules/shepherd.scm:320
-#: modules/shepherd.scm:327 modules/shepherd.scm:334 modules/shepherd.scm:341
+#: modules/shepherd/scripts/herd.scm:526 modules/shepherd.scm:364
+#: modules/shepherd.scm:371 modules/shepherd.scm:378 modules/shepherd.scm:385
 msgid "FILE"
 msgstr "ФАЙЛ"
 
-#: modules/shepherd/scripts/herd.scm:512
+#: modules/shepherd/scripts/herd.scm:527
 msgid "send commands to FILE"
 msgstr "надіслати команди до файла ФАЙЛ"
 
-#: modules/shepherd/scripts/herd.scm:526
+#: modules/shepherd/scripts/herd.scm:541
 #, scheme-format
 msgid "Usage: herd ACTION [SERVICE [OPTIONS...]]~%"
 msgstr "Користування: herd ДІЯ [СЛУЖБА [ПАРАМЕТРИ...]]~%"
@@ -386,149 +391,163 @@ msgstr ""
 msgid "~a: socket directory has insecure permissions"
 msgstr "~a: права доступу до каталогу сокетів не є безпечними"
 
-#: modules/shepherd/service.scm:239
+#: modules/shepherd/service.scm:246
 #, scheme-format
 msgid "Service ~a (PID ~a) exited with ~a."
 msgstr "Служба ~a (PID ~a) завершила роботу зі станом ~a."
 
-#: modules/shepherd/service.scm:244
+#: modules/shepherd/service.scm:251
 #, scheme-format
 msgid "Service ~a (PID ~a) terminated with signal ~a."
 msgstr "Роботу служби ~a (PID ~a) перервано сигналом ~a."
 
-#: modules/shepherd/service.scm:249
+#: modules/shepherd/service.scm:256
 #, scheme-format
 msgid "Service ~a (PID ~a) stopped with signal ~a."
 msgstr "Роботу служби ~a (PID ~a) зупинено сигналом ~a."
 
-#: modules/shepherd/service.scm:328
+#: modules/shepherd/service.scm:340
 msgid "[No description]."
 msgstr "[Немає опису]."
 
-#: modules/shepherd/service.scm:452
+#: modules/shepherd/service.scm:359
+msgid "invalid service provision list"
+msgstr "некоректний список передбачення служб"
+
+#: modules/shepherd/service.scm:470
+#, scheme-format
+msgid "Waiting for ~a to stop..."
+msgstr "Очікуємо на зупинення ~a…"
+
+#: modules/shepherd/service.scm:482
 #, scheme-format
 msgid "Service ~a started."
 msgstr "Службу ~a запущено."
 
-#: modules/shepherd/service.scm:454
+#: modules/shepherd/service.scm:484
 #, scheme-format
 msgid "Service ~a failed to start."
 msgstr "Не вдалося запустити службу ~a."
 
-#: modules/shepherd/service.scm:458
+#: modules/shepherd/service.scm:488
 #, scheme-format
 msgid "Starting service ~a..."
 msgstr "Запускаємо службу ~a..."
 
-#: modules/shepherd/service.scm:474
-#, scheme-format
-msgid "Service ~a running with value ~s."
-msgstr "Службу ~a запущено зі значенням ~s."
-
-#: modules/shepherd/service.scm:493
-#, scheme-format
-msgid "Running value of service ~a changed to ~s."
-msgstr "Проміжне значення служби ~a змінено на ~s."
-
-#: modules/shepherd/service.scm:527
-#, scheme-format
-msgid "Service ~a stopped."
-msgstr "Службу ~a зупинено."
-
-#: modules/shepherd/service.scm:530
-#, scheme-format
-msgid "Service ~a might have failed to stop."
-msgstr "Можливо, роботу служби ~a не вдалося зупинити."
-
-#: modules/shepherd/service.scm:533
-#, scheme-format
-msgid "Stopping service ~a..."
-msgstr "Зупиняємо роботу служби ~a..."
-
-#: modules/shepherd/service.scm:540
-#, scheme-format
-msgid "Service ~a is now stopped."
-msgstr "Тепер роботу служби ~a зупинено."
-
-#: modules/shepherd/service.scm:573
-#, scheme-format
-msgid "Recording replacement for ~a."
-msgstr "Записуємо заміну для ~a."
-
-#: modules/shepherd/service.scm:593
-#, scheme-format
-msgid "Attempt to terminate controller of ~a in ~a state!"
-msgstr "Спроба перервати контролер ~a у стані ~a!"
-
-#: modules/shepherd/service.scm:759
-#, scheme-format
-msgid "Exception caught while starting ~a: ~s"
-msgstr "Сталося виключення під час запуску ~a: ~s"
-
-#: modules/shepherd/service.scm:796
-#, scheme-format
-msgid "Service ~a depends on ~a."
-msgstr "Служба ~a залежить від ~a."
-
-#: modules/shepherd/service.scm:825
-#, scheme-format
-msgid "Service ~a has been started."
-msgstr "Службу ~a запущено."
-
-#: modules/shepherd/service.scm:826
-#, scheme-format
-msgid "Service ~a could not be started."
-msgstr "Не вдалося запустити службу ~a."
-
-#: modules/shepherd/service.scm:832
+#: modules/shepherd/service.scm:495
 #, scheme-format
 msgid "Service ~a is currently disabled."
 msgstr "Службу ~a зараз вимкнено."
 
-#: modules/shepherd/service.scm:863
+#: modules/shepherd/service.scm:509
+#, scheme-format
+msgid "Service ~a running with value ~s."
+msgstr "Службу ~a запущено зі значенням ~s."
+
+#: modules/shepherd/service.scm:528
+#, scheme-format
+msgid "Running value of service ~a changed to ~s."
+msgstr "Проміжне значення служби ~a змінено на ~s."
+
+#: modules/shepherd/service.scm:557
+#, scheme-format
+msgid "Waiting for ~a to start..."
+msgstr "Очікуємо на запуск ~a…"
+
+#: modules/shepherd/service.scm:573
+#, scheme-format
+msgid "Service ~a stopped."
+msgstr "Службу ~a зупинено."
+
+#: modules/shepherd/service.scm:576
+#, scheme-format
+msgid "Service ~a might have failed to stop."
+msgstr "Можливо, роботу служби ~a не вдалося зупинити."
+
+#: modules/shepherd/service.scm:579
+#, scheme-format
+msgid "Stopping service ~a..."
+msgstr "Зупиняємо роботу служби ~a..."
+
+#: modules/shepherd/service.scm:586
+#, scheme-format
+msgid "Service ~a is now stopped."
+msgstr "Тепер роботу служби ~a зупинено."
+
+#: modules/shepherd/service.scm:619
+#, scheme-format
+msgid "Recording replacement for ~a."
+msgstr "Записуємо заміну для ~a."
+
+#: modules/shepherd/service.scm:639
+#, scheme-format
+msgid "Attempt to terminate controller of ~a in ~a state!"
+msgstr "Спроба перервати контролер ~a у стані ~a!"
+
+#: modules/shepherd/service.scm:805
+#, scheme-format
+msgid "Exception caught while starting ~a: ~s"
+msgstr "Сталося виключення під час запуску ~a: ~s"
+
+#: modules/shepherd/service.scm:841
+#, scheme-format
+msgid "Service ~a depends on ~a."
+msgstr "Служба ~a залежить від ~a."
+
+#: modules/shepherd/service.scm:871
+#, scheme-format
+msgid "Service ~a has been started."
+msgstr "Службу ~a запущено."
+
+#: modules/shepherd/service.scm:872
+#, scheme-format
+msgid "Service ~a could not be started."
+msgstr "Не вдалося запустити службу ~a."
+
+#: modules/shepherd/service.scm:894
 #, scheme-format
 msgid "Service ~a is not running."
 msgstr "Службу ~a не запущено."
 
-#: modules/shepherd/service.scm:898
+#: modules/shepherd/service.scm:929
 #, scheme-format
 msgid "Transient service ~a unregistered."
 msgstr "Скасовано реєстрацію проміжної служби ~a."
 
-#: modules/shepherd/service.scm:929
+#: modules/shepherd/service.scm:961
 #, scheme-format
 msgid "Enabled service ~a."
 msgstr "Увімкнено службу ~a."
 
-#: modules/shepherd/service.scm:934
+#: modules/shepherd/service.scm:966
 #, scheme-format
 msgid "Disabled service ~a."
 msgstr "Вимкнено службу ~a."
 
-#: modules/shepherd/service.scm:1007
+#: modules/shepherd/service.scm:1039
 msgid "Unknown keyword.  Try 'doc root help'."
 msgstr "Невідоме ключове слово. Спробуйте скористатися командою «doc root help»."
 
-#: modules/shepherd/service.scm:1087
+#: modules/shepherd/service.scm:1120
 #, scheme-format
-msgid "Cannot unregister service ~a, which is still running"
+msgid "Cannot unregister service~{ ~a,~} which is still running"
 msgid_plural "Cannot unregister services~{ ~a,~} which are still running"
-msgstr[0] "Не вдалося скасувати реєстрацію ~{ ~a,~} служби, яка усе ще працює"
-msgstr[1] "Не вдалося скасувати реєстрацію ~{ ~a,~} служб, які усе ще працюють"
-msgstr[2] "Не вдалося скасувати реєстрацію ~{ ~a,~} служб, які усе ще працюють"
-msgstr[3] "Не вдалося скасувати реєстрацію служби ~{ ~a,~}, яка усе ще працює"
+msgstr[0] "Не вдалося скасувати реєстрацію~{ ~a,~} служби, яка усе ще працює"
+msgstr[1] "Не вдалося скасувати реєстрацію~{ ~a,~} служб, які усе ще працюють"
+msgstr[2] "Не вдалося скасувати реєстрацію~{ ~a,~} служб, які усе ще працюють"
+msgstr[3] "Не вдалося скасувати реєстрацію служби~{ ~a,~}, яка усе ще працює"
 
-#: modules/shepherd/service.scm:1126
+#: modules/shepherd/service.scm:1154
 #, scheme-format
 msgid "Essential task ~a exited unexpectedly."
 msgstr "Критичне завдання ~a несподівано завершило роботу."
 
-#: modules/shepherd/service.scm:1130
+#: modules/shepherd/service.scm:1158
 #, scheme-format
 msgid "Uncaught exception in essential task ~a: ~s"
 msgstr "Невідстежуване виключення у критичному завданні ~a: ~s"
 
-#: modules/shepherd/service.scm:1195
+#: modules/shepherd/service.scm:1232
 #, scheme-format
 msgid "Successfully started ~a service in the background."
 msgid_plural "Successfully started ~a services in the background."
@@ -537,7 +556,7 @@ msgstr[1] "Успішно запущено ~a служби у фоновому �
 msgstr[2] "Успішно запущено ~a служб у фоновому режимі."
 msgstr[3] "Успішно запущено ~a службу у фоновому режимі."
 
-#: modules/shepherd/service.scm:1201
+#: modules/shepherd/service.scm:1238
 #, scheme-format
 msgid "The following service could not be started in the background:~{ ~a~}."
 msgid_plural "The following services could not be started in the background:~{ ~a~}."
@@ -546,12 +565,12 @@ msgstr[1] "Ці служби не вдалося запустити у фоно�
 msgstr[2] "Ці служби не вдалося запустити у фоновому режимі:~{ ~a~}."
 msgstr[3] "Цю службу не вдалося запустити у фоновому режимі:~{ ~a~}."
 
-#: modules/shepherd/service.scm:1766
+#: modules/shepherd/service.scm:1814
 #, scheme-format
 msgid "Address ~a is in use; retrying to bind it in one second."
 msgstr "Адресу ~a вже використано; виконуємо повторну спробу прив'язатися за одну секунду."
 
-#: modules/shepherd/service.scm:1978
+#: modules/shepherd/service.scm:2027
 #, scheme-format
 msgid "~a connection still in use after ~a termination."
 msgid_plural "~a connections still in use after ~a termination."
@@ -560,73 +579,73 @@ msgstr[1] "Використання з'єднання ~a продовжуєть�
 msgstr[2] "Використання з'єднання ~a продовжується після завершення роботи ~a."
 msgstr[3] "Використання з'єднання ~a продовжується після завершення роботи ~a."
 
-#: modules/shepherd/service.scm:2019
+#: modules/shepherd/service.scm:2068
 #, scheme-format
 msgid "Maximum number of ~a clients reached; rejecting connection from ~:[~a~;~*local process~]."
 msgstr "Досягнуто максимальної кількості клієнтів, ~a; у з'єднання від ~:[~a~;~*local process~] відмовлено."
 
-#: modules/shepherd/service.scm:2028
+#: modules/shepherd/service.scm:2077
 #, scheme-format
 msgid "Accepted connection on ~a from ~:[~a~;~*local process~]."
 msgstr "Прийнято з'єднання на ~a від ~:[~a~;~*local process~]."
 
-#: modules/shepherd/service.scm:2136
+#: modules/shepherd/service.scm:2185
 #, scheme-format
 msgid "Spawning systemd-style service ~a."
 msgstr "Запускаємо службу у стилі systemd ~a."
 
-#: modules/shepherd/service.scm:2430
+#: modules/shepherd/service.scm:2479
 #, scheme-format
 msgid "Grace period of ~a seconds is over; sending ~a SIGKILL."
 msgstr "Період лояльності у ~a секунд завершено; надсилаємо ~a SIGKILL."
 
-#: modules/shepherd/service.scm:2455
+#: modules/shepherd/service.scm:2507
 #, scheme-format
 msgid "Respawning ~a."
 msgstr "Відновлюємо ~a."
 
-#: modules/shepherd/service.scm:2460
+#: modules/shepherd/service.scm:2512
 #, scheme-format
 msgid "Service ~a has been disabled."
 msgstr "Службу ~a вимкнено."
 
-#: modules/shepherd/service.scm:2463
+#: modules/shepherd/service.scm:2515
 msgid "  (Respawning too fast.)"
 msgstr "  (Надто швидке відновлення.)"
 
-#: modules/shepherd/service.scm:2468
+#: modules/shepherd/service.scm:2520
 #, scheme-format
 msgid "Transient service ~a terminated, now unregistered."
 msgstr "Роботу проміжної служби ~a перервано, зараз реєстрацію скасовано."
 
-#: modules/shepherd/service.scm:2533
+#: modules/shepherd/service.scm:2585
 #, scheme-format
 msgid "Removing service '~a'..."
 msgstr "Вилучаємо службу «~a»…"
 
-#: modules/shepherd/service.scm:2539
+#: modules/shepherd/service.scm:2591
 msgid "Done."
 msgstr "Виконано."
 
-#: modules/shepherd/service.scm:2542
+#: modules/shepherd/service.scm:2594
 #, scheme-format
 msgid "Loading ~a."
 msgstr "Завантажуємо ~a."
 
-#: modules/shepherd/service.scm:2663
+#: modules/shepherd/service.scm:2715
 #, scheme-format
 msgid "PID ~a (~a) is dead!"
 msgstr "PID ~a (~a) є непрацездатним!"
 
-#: modules/shepherd/service.scm:2671
+#: modules/shepherd/service.scm:2727
 msgid "The root service is used to operate on shepherd itself."
 msgstr "Коренева служба слугує для керування самим shepherd."
 
-#: modules/shepherd/service.scm:2679
+#: modules/shepherd/service.scm:2735
 msgid "Exiting shepherd..."
 msgstr "Виходимо з shepher…"
 
-#: modules/shepherd/service.scm:2692
+#: modules/shepherd/service.scm:2748
 msgid ""
 "This is the help message for the 'root' service of the Shepherd.  The 'root'\n"
 "service is used to control the Shepherd itself and it supports several\n"
@@ -645,28 +664,37 @@ msgstr ""
 "доступних дій. Скористайтеся командою «info shepherd, щоб ознайомитися\n"
 "з підручником користувача."
 
-#: modules/shepherd/service.scm:2715
+#: modules/shepherd/service.scm:2771
 msgid "Halting..."
 msgstr "Перериваємо роботу…"
 
-#: modules/shepherd/service.scm:2724
+#: modules/shepherd/service.scm:2780
 msgid "Shutting down..."
 msgstr "Вимикаємося…"
 
-#: modules/shepherd/service.scm:2737
+#: modules/shepherd/service.scm:2793
 #, scheme-format
 msgid "Evaluating user expression ~a."
 msgstr "Обробляємо наданий користувачем вираз ~a."
 
-#: modules/shepherd/service.scm:2765
+#: modules/shepherd/service.scm:2821
 msgid "Running as PID 1, so not daemonizing."
 msgstr "Працюємо як PID 1, отже, не переходимо у фоновий режим."
 
-#: modules/shepherd/service.scm:2772
+#: modules/shepherd/service.scm:2828
 msgid "Services already running, so not daemonizing."
 msgstr "Служби вже запущено, тому не переводимо роботу у режим фонової служби."
 
-#: modules/shepherd/service.scm:2786
+#: modules/shepherd/service.scm:2831
+msgid "Daemonizing..."
+msgstr "Переводимо у фоновий режим…"
+
+#: modules/shepherd/service.scm:2836
+#, scheme-format
+msgid "Now running as process ~a."
+msgstr "Тепер працює як процес ~a."
+
+#: modules/shepherd/service.scm:2846
 msgid "You must be kidding."
 msgstr "Ви, мабуть, жартуєте."
 
@@ -777,66 +805,95 @@ msgstr "Невідомий параметр: «-~a»."
 msgid "Argument required by `-~a'."
 msgstr "Для «-~a» потрібен аргумент."
 
-#: modules/shepherd.scm:73
+#: modules/shepherd.scm:54
 #, scheme-format
 msgid "while opening socket '~a': ~a: ~a~%"
 msgstr "під час спроби відкрити сокет «~a»: ~a: ~a~%"
 
-#: modules/shepherd.scm:106
+#: modules/shepherd.scm:90
 #, scheme-format
 msgid "warning: already ~a threads running, disabling 'signalfd' support"
 msgstr "попередження: вже запущено ~a потоків обробки; вимикаємо підтримку «signalfd»"
 
-#: modules/shepherd.scm:292
+#: modules/shepherd.scm:154
+#, scheme-format
+msgid "~s: exception thrown while loading configuration file~%"
+msgstr "~s: виявлено виключення під час завантаження файла налаштувань~%"
+
+#: modules/shepherd.scm:162
+#, scheme-format
+msgid "While loading configuration file '~a': ~a"
+msgstr "Під час завантаження файла налаштувань «~a»: ~a"
+
+#: modules/shepherd.scm:166
+#, scheme-format
+msgid "Uncaught exception while loading configuration file '~a': ~s"
+msgstr "Невідстежуване виключення під час завантаження файла налаштувань «~a»: ~s"
+
+#: modules/shepherd.scm:171
+#, scheme-format
+msgid "action '~a' on service '~a' failed: ~s"
+msgstr "не вдалося виконати дію «~a» щодо служби «~a»: ~s"
+
+#: modules/shepherd.scm:184
+#, scheme-format
+msgid "Configuration successfully loaded from '~a'."
+msgstr "Налаштування успішно завантажено з «~a»."
+
+#: modules/shepherd.scm:222
+msgid "Restarting signal handler."
+msgstr "Перезапускаємо обробник сигналів."
+
+#: modules/shepherd.scm:336
 msgid "This is a service manager for Unix and GNU."
 msgstr "Це засіб для керування службами для Unix і GNU."
 
-#: modules/shepherd.scm:297
+#: modules/shepherd.scm:341
 msgid "synonym for --silent"
 msgstr "синонім до --silent"
 
-#: modules/shepherd.scm:304
+#: modules/shepherd.scm:348
 msgid "don't do output to stdout"
 msgstr "не виводити дані до stdout"
 
-#: modules/shepherd.scm:314
+#: modules/shepherd.scm:358
 msgid "don't ensure that the setup is secure"
 msgstr "не перейматися тим, чи є налаштування безпечними"
 
-#: modules/shepherd.scm:321
+#: modules/shepherd.scm:365
 msgid "log actions in FILE"
 msgstr "записувати журнал дій до файла ФАЙЛ"
 
-#: modules/shepherd.scm:328
+#: modules/shepherd.scm:372
 msgid "when ready, write PID to FILE or stdout"
 msgstr "за готовності записати PID до файла ФАЙЛ або до stdout"
 
-#: modules/shepherd.scm:335
+#: modules/shepherd.scm:379
 msgid "read configuration from FILE"
 msgstr "прочитати налаштування з файла ФАЙЛ"
 
-#: modules/shepherd.scm:343
+#: modules/shepherd.scm:387
 msgid "get commands from socket FILE or from stdin (-)"
 msgstr "отримати команди з сокета ФАЙЛ або зі stdin (-)"
 
-#: modules/shepherd.scm:466
+#: modules/shepherd.scm:503
 msgid "Rebooting..."
 msgstr "Перезавантажуємо систему…"
 
-#: modules/shepherd.scm:469
+#: modules/shepherd.scm:506
 msgid "Exiting."
 msgstr "Завершуємо роботу."
 
-#: modules/shepherd.scm:534
+#: modules/shepherd.scm:572
 #, scheme-format
 msgid "Service ~a is already running."
 msgstr "Службу ~a вже запущено."
 
-#: modules/shepherd.scm:555
+#: modules/shepherd.scm:594
 msgid "Invalid command."
 msgstr "Некоректна команда."
 
-#: modules/shepherd.scm:574
+#: modules/shepherd.scm:613
 msgid "invalid command line"
 msgstr "некоректний рядок команди"
 
@@ -848,9 +905,6 @@ msgstr "некоректний рядок команди"
 
 #~ msgid "Service ~a could not be stopped."
 #~ msgstr "Не вдалося зупинити службу ~a."
-
-#~ msgid "No service provides ~a."
-#~ msgstr "Жодна служба не надає ~a."
 
 #~ msgid "Unloading all optional services: '~a'..."
 #~ msgstr "Вивантажуємо усі необов'язкові служби: «~a»…"

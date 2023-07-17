@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: shepherd-0.10.0rc1\n"
+"Project-Id-Version: shepherd-0.10.2rc1\n"
 "Report-Msgid-Bugs-To: guix-devel@gnu.org\n"
-"POT-Creation-Date: 2023-04-28 12:44+0000\n"
-"PO-Revision-Date: 2023-04-30 10:20+0200\n"
+"POT-Creation-Date: 2023-07-12 21:14+0000\n"
+"PO-Revision-Date: 2023-07-13 19:51+0200\n"
 "Last-Translator: Florian Pelz <pelzflorian@pelzflorian.de>\n"
 "Language-Team: German <translation-team-de@lists.sourceforge.net>\n"
 "Language: de\n"
@@ -25,22 +25,22 @@ msgstr ""
 #. See
 #. <https://www.gnu.org/software/guile/manual/html_node/Formatted-Output.html>
 #. for more info.
-#: modules/shepherd/comm.scm:225
+#: modules/shepherd/comm.scm:226
 #, scheme-format
 msgid "service '~a' could not be found"
 msgstr "Dienst »~a« konnte nicht gefunden werden"
 
-#: modules/shepherd/comm.scm:228
+#: modules/shepherd/comm.scm:229
 #, scheme-format
 msgid "service '~a' does not have an action '~a'"
 msgstr "Dienst »~a« hat keine Aktion »~a«"
 
-#: modules/shepherd/comm.scm:232
+#: modules/shepherd/comm.scm:233
 #, scheme-format
 msgid "exception caught while executing '~a' on service '~a':"
 msgstr "Ausnahmefehler während der Ausführung von »~a« mit dem Dienst »~a«:"
 
-#: modules/shepherd/comm.scm:237
+#: modules/shepherd/comm.scm:238
 #, scheme-format
 msgid "something went wrong: ~s"
 msgstr "Etwas ist schiefgegangen: ~s"
@@ -185,108 +185,113 @@ msgstr "  Unbekannter Status »~a«~%"
 msgid "  It is enabled.~%"
 msgstr "  Es ist aktiviert.~%"
 
-#: modules/shepherd/scripts/herd.scm:239
+#: modules/shepherd/scripts/herd.scm:242
 #, scheme-format
 msgid "  It is disabled.~%"
 msgstr "  Es ist deaktiviert.~%"
 
-#: modules/shepherd/scripts/herd.scm:240
+#: modules/shepherd/scripts/herd.scm:243
 #, scheme-format
 msgid "  Provides ~a.~%"
 msgstr "  Stellt ~a bereit.~%"
 
-#: modules/shepherd/scripts/herd.scm:241
+#: modules/shepherd/scripts/herd.scm:244
 #, scheme-format
 msgid "  Requires ~a.~%"
 msgstr "  Benötigt ~a.~%"
 
-#: modules/shepherd/scripts/herd.scm:243
+#: modules/shepherd/scripts/herd.scm:246
 #, scheme-format
 msgid "  Will be respawned.~%"
 msgstr "  Wird erneut gestartet.~%"
 
-#: modules/shepherd/scripts/herd.scm:244
+#: modules/shepherd/scripts/herd.scm:247
 #, scheme-format
 msgid "  Will not be respawned.~%"
 msgstr "  Wird nicht erneut gestartet.~%"
 
-#: modules/shepherd/scripts/herd.scm:247
+#: modules/shepherd/scripts/herd.scm:250
 #, scheme-format
 msgid "  Last respawned on ~a.~%"
 msgstr "  Letzter Neustart: ~a.~%"
 
-#: modules/shepherd/scripts/herd.scm:253
+#: modules/shepherd/scripts/herd.scm:256
 #, scheme-format
 msgid "  Failed to start at ~a.~%"
 msgstr "  Fehlgeschlagen ~a.~%"
 
-#: modules/shepherd/scripts/herd.scm:298
+#: modules/shepherd/scripts/herd.scm:301
 msgid "event log is missing (shepherd is too old?)"
 msgstr "Es gibt kein Ereignisprotokoll (ist Shepherd zu alt?)"
 
-#: modules/shepherd/scripts/herd.scm:311
+#: modules/shepherd/scripts/herd.scm:314
 #, scheme-format
 msgid "service ~a is running~%"
 msgstr "Dienst ~a läuft~%"
 
-#: modules/shepherd/scripts/herd.scm:315
+#: modules/shepherd/scripts/herd.scm:318
 #, scheme-format
 msgid "service ~a is done (one-shot)~%"
 msgstr "Dienst ~a ist fertig (einmalig ausgeführt)~%"
 
-#: modules/shepherd/scripts/herd.scm:320
+#: modules/shepherd/scripts/herd.scm:323
 #, scheme-format
 msgid "service ~a is done (transient)~%"
 msgstr "Dienst ~a ist fertig (vergänglicher Dienst)~%"
 
-#: modules/shepherd/scripts/herd.scm:324
+#: modules/shepherd/scripts/herd.scm:327
 #, scheme-format
 msgid "service ~a is stopped~%"
 msgstr "Dienst ~a ist gestoppt~%"
 
-#: modules/shepherd/scripts/herd.scm:328
+#: modules/shepherd/scripts/herd.scm:331
 #, scheme-format
 msgid "service ~a failed to start~%"
 msgstr "Dienst ~a konnte nicht gestartet werden~%"
 
-#: modules/shepherd/scripts/herd.scm:331
+#: modules/shepherd/scripts/herd.scm:334
 #, scheme-format
 msgid "service ~a is being started~%"
 msgstr "Dienst ~a startet gerade~%"
 
-#: modules/shepherd/scripts/herd.scm:334
+#: modules/shepherd/scripts/herd.scm:337
 #, scheme-format
 msgid "service ~a is being stopped~%"
 msgstr "Dienst ~a stoppt gerade~%"
 
-#: modules/shepherd/scripts/herd.scm:337
+#: modules/shepherd/scripts/herd.scm:340
 #, scheme-format
 msgid "service ~a is entering state '~a'~%"
 msgstr "Dienst ~a wechselt in den Status »~a«~%"
 
-#: modules/shepherd/scripts/herd.scm:355
+#: modules/shepherd/scripts/herd.scm:358
 #, scheme-format
 msgid "inconsistent graph: service '~a' not found~%"
 msgstr "Graph ist inkonsistent: Dienst »~a« nicht gefunden~%"
 
-#: modules/shepherd/scripts/herd.scm:388
+#: modules/shepherd/scripts/herd.scm:391
 msgid "Service Graph"
 msgstr "Dienstgraph"
 
-#: modules/shepherd/scripts/herd.scm:468
+#: modules/shepherd/scripts/herd.scm:471
 #, scheme-format
 msgid "failed to start service ~a"
 msgstr "Dienst ~a konnte nicht gestartet werden"
 
-#: modules/shepherd/scripts/herd.scm:487
+#: modules/shepherd/scripts/herd.scm:488 modules/shepherd/scripts/herd.scm:492
+#, scheme-format
+msgid "Did you mean 'herd ~a ~a'?"
+msgstr "Meinten Sie „herd ~a ~a“?"
+
+#: modules/shepherd/scripts/herd.scm:502
 msgid "premature end-of-file while talking to shepherd"
 msgstr "vorzeitiges Dateiende bei der Kommunikation mit Shepherd"
 
-#: modules/shepherd/scripts/herd.scm:502
+#: modules/shepherd/scripts/herd.scm:517
 msgid "ACTION SERVICE [ARG...]"
 msgstr "AKTION DIENST [ARGUMENT …]"
 
-#: modules/shepherd/scripts/herd.scm:503
+#: modules/shepherd/scripts/herd.scm:518
 msgid ""
 "Apply ACTION (start, stop, status, etc.) on \\\n"
 "SERVICE with the ARGs."
@@ -294,16 +299,16 @@ msgstr ""
 "AKTION (start, stop, status, usw.) auf den \\\n"
 "DIENST mit den ARGUMENTEN anwenden."
 
-#: modules/shepherd/scripts/herd.scm:511 modules/shepherd.scm:320
-#: modules/shepherd.scm:327 modules/shepherd.scm:334 modules/shepherd.scm:341
+#: modules/shepherd/scripts/herd.scm:526 modules/shepherd.scm:364
+#: modules/shepherd.scm:371 modules/shepherd.scm:378 modules/shepherd.scm:385
 msgid "FILE"
 msgstr "DATEI"
 
-#: modules/shepherd/scripts/herd.scm:512
+#: modules/shepherd/scripts/herd.scm:527
 msgid "send commands to FILE"
 msgstr "Befehle an DATEI senden"
 
-#: modules/shepherd/scripts/herd.scm:526
+#: modules/shepherd/scripts/herd.scm:541
 #, scheme-format
 msgid "Usage: herd ACTION [SERVICE [OPTIONS...]]~%"
 msgstr "Aufruf: herd AKTION [DIENST [OPTIONEN …]]~%"
@@ -379,239 +384,253 @@ msgstr ""
 msgid "~a: socket directory has insecure permissions"
 msgstr "~a: Das Socket-Verzeichnis hat unsichere Berechtigungen"
 
-#: modules/shepherd/service.scm:239
+#: modules/shepherd/service.scm:246
 #, scheme-format
 msgid "Service ~a (PID ~a) exited with ~a."
 msgstr "Dienst ~a (PID ~a) beendet mit ~a."
 
-#: modules/shepherd/service.scm:244
+#: modules/shepherd/service.scm:251
 #, scheme-format
 msgid "Service ~a (PID ~a) terminated with signal ~a."
 msgstr "Dienst ~a (PID ~a) abgewürgt durch Signal ~a."
 
-#: modules/shepherd/service.scm:249
+#: modules/shepherd/service.scm:256
 #, scheme-format
 msgid "Service ~a (PID ~a) stopped with signal ~a."
 msgstr "Dienst ~a (PID ~a) angehalten durch Signal ~a."
 
-#: modules/shepherd/service.scm:328
+#: modules/shepherd/service.scm:340
 msgid "[No description]."
 msgstr "[Ohne Beschreibung]."
 
-#: modules/shepherd/service.scm:452
+#: modules/shepherd/service.scm:359
+msgid "invalid service provision list"
+msgstr "Dienst hat ungültige provision-Liste"
+
+#: modules/shepherd/service.scm:470
+#, scheme-format
+msgid "Waiting for ~a to stop..."
+msgstr "Warten, bis ~a stoppt …"
+
+#: modules/shepherd/service.scm:482
 #, scheme-format
 msgid "Service ~a started."
 msgstr "Dienst ~a hat gestartet."
 
-#: modules/shepherd/service.scm:454
+#: modules/shepherd/service.scm:484
 #, scheme-format
 msgid "Service ~a failed to start."
 msgstr "Dienst ~a konnte nicht starten."
 
-#: modules/shepherd/service.scm:458
+#: modules/shepherd/service.scm:488
 #, scheme-format
 msgid "Starting service ~a..."
 msgstr "Dienst ~a wird gestartet …"
 
-#: modules/shepherd/service.scm:474
-#, scheme-format
-msgid "Service ~a running with value ~s."
-msgstr "Dienst ~a hat den »running«-Wert ~s."
-
-#: modules/shepherd/service.scm:493
-#, scheme-format
-msgid "Running value of service ~a changed to ~s."
-msgstr "Der neue »running«-Wert von Dienst ~a ist ~s."
-
-#: modules/shepherd/service.scm:527
-#, scheme-format
-msgid "Service ~a stopped."
-msgstr "Dienst ~a hat gestoppt."
-
-#: modules/shepherd/service.scm:530
-#, scheme-format
-msgid "Service ~a might have failed to stop."
-msgstr "Dienst ~a konnte vielleicht nicht stoppen."
-
-#: modules/shepherd/service.scm:533
-#, scheme-format
-msgid "Stopping service ~a..."
-msgstr "Dienst ~a wird gestoppt …"
-
-#: modules/shepherd/service.scm:540
-#, scheme-format
-msgid "Service ~a is now stopped."
-msgstr "Dienst ~a ist jetzt gestoppt."
-
-#: modules/shepherd/service.scm:573
-#, scheme-format
-msgid "Recording replacement for ~a."
-msgstr "Eine Ersetzung wird verzeichnet für ~a."
-
-#: modules/shepherd/service.scm:593
-#, scheme-format
-msgid "Attempt to terminate controller of ~a in ~a state!"
-msgstr "Versuch, die Steuerung von ~a abzubrechen im Status ~a!"
-
-#: modules/shepherd/service.scm:759
-#, scheme-format
-msgid "Exception caught while starting ~a: ~s"
-msgstr "Ausnahmefehler beim Starten von ~a: ~s"
-
-#: modules/shepherd/service.scm:796
-#, scheme-format
-msgid "Service ~a depends on ~a."
-msgstr "Dienst ~a hängt von ~a ab."
-
-#: modules/shepherd/service.scm:825
-#, scheme-format
-msgid "Service ~a has been started."
-msgstr "Dienst ~a wurde gestartet."
-
-#: modules/shepherd/service.scm:826
-#, scheme-format
-msgid "Service ~a could not be started."
-msgstr "Dienst ~a konnte nicht gestartet werden."
-
-#: modules/shepherd/service.scm:832
+#: modules/shepherd/service.scm:495
 #, scheme-format
 msgid "Service ~a is currently disabled."
 msgstr "Dienst ~a ist gegenwärtig deaktiviert."
 
-#: modules/shepherd/service.scm:863
+#: modules/shepherd/service.scm:509
+#, scheme-format
+msgid "Service ~a running with value ~s."
+msgstr "Dienst ~a hat den »running«-Wert ~s."
+
+#: modules/shepherd/service.scm:528
+#, scheme-format
+msgid "Running value of service ~a changed to ~s."
+msgstr "Der neue »running«-Wert von Dienst ~a ist ~s."
+
+#: modules/shepherd/service.scm:557
+#, scheme-format
+msgid "Waiting for ~a to start..."
+msgstr "Warten, bis ~a startet …"
+
+#: modules/shepherd/service.scm:573
+#, scheme-format
+msgid "Service ~a stopped."
+msgstr "Dienst ~a hat gestoppt."
+
+#: modules/shepherd/service.scm:576
+#, scheme-format
+msgid "Service ~a might have failed to stop."
+msgstr "Dienst ~a konnte vielleicht nicht stoppen."
+
+#: modules/shepherd/service.scm:579
+#, scheme-format
+msgid "Stopping service ~a..."
+msgstr "Dienst ~a wird gestoppt …"
+
+#: modules/shepherd/service.scm:586
+#, scheme-format
+msgid "Service ~a is now stopped."
+msgstr "Dienst ~a ist jetzt gestoppt."
+
+#: modules/shepherd/service.scm:619
+#, scheme-format
+msgid "Recording replacement for ~a."
+msgstr "Eine Ersetzung wird verzeichnet für ~a."
+
+#: modules/shepherd/service.scm:639
+#, scheme-format
+msgid "Attempt to terminate controller of ~a in ~a state!"
+msgstr "Versuch, die Steuerung von ~a abzubrechen im Status ~a!"
+
+#: modules/shepherd/service.scm:805
+#, scheme-format
+msgid "Exception caught while starting ~a: ~s"
+msgstr "Ausnahmefehler beim Starten von ~a: ~s"
+
+#: modules/shepherd/service.scm:841
+#, scheme-format
+msgid "Service ~a depends on ~a."
+msgstr "Dienst ~a hängt von ~a ab."
+
+#: modules/shepherd/service.scm:871
+#, scheme-format
+msgid "Service ~a has been started."
+msgstr "Dienst ~a wurde gestartet."
+
+#: modules/shepherd/service.scm:872
+#, scheme-format
+msgid "Service ~a could not be started."
+msgstr "Dienst ~a konnte nicht gestartet werden."
+
+#: modules/shepherd/service.scm:894
 #, scheme-format
 msgid "Service ~a is not running."
 msgstr "Dienst ~a läuft nicht."
 
-#: modules/shepherd/service.scm:898
+#: modules/shepherd/service.scm:929
 #, scheme-format
 msgid "Transient service ~a unregistered."
 msgstr "Vergänglicher Dienst ~a nicht mehr registriert."
 
-#: modules/shepherd/service.scm:929
+#: modules/shepherd/service.scm:961
 #, scheme-format
 msgid "Enabled service ~a."
 msgstr "Dienst ~a wurde aktiviert."
 
-#: modules/shepherd/service.scm:934
+#: modules/shepherd/service.scm:966
 #, scheme-format
 msgid "Disabled service ~a."
 msgstr "Dienst ~a wurde deaktiviert."
 
-#: modules/shepherd/service.scm:1007
+#: modules/shepherd/service.scm:1039
 msgid "Unknown keyword.  Try 'doc root help'."
 msgstr "Unbekanntes Schlüsselwort.  Versuchen Sie »doc root help«."
 
-#: modules/shepherd/service.scm:1087
+#: modules/shepherd/service.scm:1120
 #, scheme-format
-msgid "Cannot unregister service ~a, which is still running"
+msgid "Cannot unregister service~{ ~a,~} which is still running"
 msgid_plural "Cannot unregister services~{ ~a,~} which are still running"
 msgstr[0] "Der Dienst~{ ~a,~} bleibt registriert, weil er noch läuft"
 msgstr[1] "Die Dienste~{ ~a,~} bleiben registriert, weil sie noch laufen"
 
-#: modules/shepherd/service.scm:1126
+#: modules/shepherd/service.scm:1154
 #, scheme-format
 msgid "Essential task ~a exited unexpectedly."
 msgstr "Der essenzielle Vorgang ~a hat unerwartet geendet."
 
-#: modules/shepherd/service.scm:1130
+#: modules/shepherd/service.scm:1158
 #, scheme-format
 msgid "Uncaught exception in essential task ~a: ~s"
 msgstr "Unbehandelte Ausnahme im essenziellen Vorgang ~a: ~s"
 
-#: modules/shepherd/service.scm:1195
+#: modules/shepherd/service.scm:1232
 #, scheme-format
 msgid "Successfully started ~a service in the background."
 msgid_plural "Successfully started ~a services in the background."
 msgstr[0] "~a Dienst wurde erfolgreich im Hintergrund gestartet."
 msgstr[1] "~a Dienste wurden erfolgreich im Hintergrund gestartet."
 
-#: modules/shepherd/service.scm:1201
+#: modules/shepherd/service.scm:1238
 #, scheme-format
 msgid "The following service could not be started in the background:~{ ~a~}."
 msgid_plural "The following services could not be started in the background:~{ ~a~}."
 msgstr[0] "Folgender Dienst konnte nicht im Hintergrund gestartet werden:~{ ~a~}."
 msgstr[1] "Folgende Dienste konnten nicht im Hintergrund gestartet werden:~{ ~a~}."
 
-#: modules/shepherd/service.scm:1766
+#: modules/shepherd/service.scm:1814
 #, scheme-format
 msgid "Address ~a is in use; retrying to bind it in one second."
 msgstr "Addresse ~a wird benutzt; erneutes Binden in einer Sekunde."
 
-#: modules/shepherd/service.scm:1978
+#: modules/shepherd/service.scm:2027
 #, scheme-format
 msgid "~a connection still in use after ~a termination."
 msgid_plural "~a connections still in use after ~a termination."
 msgstr[0] "~a Verbindung wird noch benutzt, nachdem ~a beendet wurde."
 msgstr[1] "~a Verbindungen werden noch benutzt, nachdem ~a beendet wurde."
 
-#: modules/shepherd/service.scm:2019
+#: modules/shepherd/service.scm:2068
 #, scheme-format
 msgid "Maximum number of ~a clients reached; rejecting connection from ~:[~a~;~*local process~]."
 msgstr "Höchstzahl von ~a Clients wird bedient; Verbindung abgelehnt von ~:[~a~;~*lokalem Prozess~]."
 
-#: modules/shepherd/service.scm:2028
+#: modules/shepherd/service.scm:2077
 #, scheme-format
 msgid "Accepted connection on ~a from ~:[~a~;~*local process~]."
 msgstr "Verbindung auf ~a akzeptiert von ~:[~a~;~*lokalem Prozess~]."
 
-#: modules/shepherd/service.scm:2136
+#: modules/shepherd/service.scm:2185
 #, scheme-format
 msgid "Spawning systemd-style service ~a."
 msgstr "systemd-artiger Dienst ~a wird gestartet."
 
-#: modules/shepherd/service.scm:2430
+#: modules/shepherd/service.scm:2479
 #, scheme-format
 msgid "Grace period of ~a seconds is over; sending ~a SIGKILL."
 msgstr "Schonfrist von ~a Sekunden ist abgelaufen; an ~a wird SIGKILL geschickt."
 
-#: modules/shepherd/service.scm:2455
+#: modules/shepherd/service.scm:2507
 #, scheme-format
 msgid "Respawning ~a."
 msgstr "~a wird erneut gestartet."
 
-#: modules/shepherd/service.scm:2460
+#: modules/shepherd/service.scm:2512
 #, scheme-format
 msgid "Service ~a has been disabled."
 msgstr "Dienst ~a wurde deaktiviert."
 
-#: modules/shepherd/service.scm:2463
+#: modules/shepherd/service.scm:2515
 msgid "  (Respawning too fast.)"
 msgstr "  (Neustart war zu schnell.)"
 
-#: modules/shepherd/service.scm:2468
+#: modules/shepherd/service.scm:2520
 #, scheme-format
 msgid "Transient service ~a terminated, now unregistered."
 msgstr "Vergänglicher Dienst ~a beendet und nicht mehr registriert."
 
-#: modules/shepherd/service.scm:2533
+#: modules/shepherd/service.scm:2585
 #, scheme-format
 msgid "Removing service '~a'..."
 msgstr "Dienst »~a« wird entfernt …"
 
-#: modules/shepherd/service.scm:2539
+#: modules/shepherd/service.scm:2591
 msgid "Done."
 msgstr "Erledigt."
 
-#: modules/shepherd/service.scm:2542
+#: modules/shepherd/service.scm:2594
 #, scheme-format
 msgid "Loading ~a."
 msgstr "~a wird geladen."
 
-#: modules/shepherd/service.scm:2663
+#: modules/shepherd/service.scm:2715
 #, scheme-format
 msgid "PID ~a (~a) is dead!"
 msgstr "PID ~a (~a) ist tot!"
 
-#: modules/shepherd/service.scm:2671
+#: modules/shepherd/service.scm:2727
 msgid "The root service is used to operate on shepherd itself."
 msgstr "Mit Shepherds Wurzeldienst können Sie Aktionen an Shepherd selbst vornehmen."
 
-#: modules/shepherd/service.scm:2679
+#: modules/shepherd/service.scm:2735
 msgid "Exiting shepherd..."
 msgstr "Shepherd wird beendet …"
 
-#: modules/shepherd/service.scm:2692
+#: modules/shepherd/service.scm:2748
 msgid ""
 "This is the help message for the 'root' service of the Shepherd.  The 'root'\n"
 "service is used to control the Shepherd itself and it supports several\n"
@@ -629,28 +648,37 @@ msgstr ""
 "Versuchen Sie „herd doc root list-actions“, um eine Liste der verfügbaren\n"
 "Aktionen zu sehen. Führen Sie „info shepherd“ aus für das Benutzerhandbuch."
 
-#: modules/shepherd/service.scm:2715
+#: modules/shepherd/service.scm:2771
 msgid "Halting..."
 msgstr "Wird angehalten …"
 
-#: modules/shepherd/service.scm:2724
+#: modules/shepherd/service.scm:2780
 msgid "Shutting down..."
 msgstr "Herunterfahren …"
 
-#: modules/shepherd/service.scm:2737
+#: modules/shepherd/service.scm:2793
 #, scheme-format
 msgid "Evaluating user expression ~a."
 msgstr "Benutzerausdruck ~a wird ausgewertet."
 
-#: modules/shepherd/service.scm:2765
+#: modules/shepherd/service.scm:2821
 msgid "Running as PID 1, so not daemonizing."
 msgstr "Wird als PID 1 ausgeführt, daher nicht daemonisiert."
 
-#: modules/shepherd/service.scm:2772
+#: modules/shepherd/service.scm:2828
 msgid "Services already running, so not daemonizing."
 msgstr "Es laufen bereits Dienste, daher nicht daemonisiert."
 
-#: modules/shepherd/service.scm:2786
+#: modules/shepherd/service.scm:2831
+msgid "Daemonizing..."
+msgstr "Wird daemonisiert …"
+
+#: modules/shepherd/service.scm:2836
+#, scheme-format
+msgid "Now running as process ~a."
+msgstr "Läuft jetzt als Prozess ~a."
+
+#: modules/shepherd/service.scm:2846
 msgid "You must be kidding."
 msgstr "Sie machen wohl Witze …"
 
@@ -763,66 +791,95 @@ msgstr "Unbekannte Option: »-~a«."
 msgid "Argument required by `-~a'."
 msgstr "Argument ist für »-~a« erforderlich."
 
-#: modules/shepherd.scm:73
+#: modules/shepherd.scm:54
 #, scheme-format
 msgid "while opening socket '~a': ~a: ~a~%"
 msgstr "Beim Öffnen von Socket „~a“: ~a: ~a~%"
 
-#: modules/shepherd.scm:106
+#: modules/shepherd.scm:90
 #, scheme-format
 msgid "warning: already ~a threads running, disabling 'signalfd' support"
 msgstr "Warnung: Es sind schon ~a Threads am Laufen; „signalfd“-Unterstützung deaktiviert"
 
-#: modules/shepherd.scm:292
+#: modules/shepherd.scm:154
+#, scheme-format
+msgid "~s: exception thrown while loading configuration file~%"
+msgstr "~s: Ausnahme ausgelöst beim Laden der Konfigurationsdatei~%"
+
+#: modules/shepherd.scm:162
+#, scheme-format
+msgid "While loading configuration file '~a': ~a"
+msgstr "Beim Laden der Konfigurationsdatei „~a“: ~a"
+
+#: modules/shepherd.scm:166
+#, scheme-format
+msgid "Uncaught exception while loading configuration file '~a': ~s"
+msgstr "Unbehandelte Ausnahme beim Laden der Konfigurationsdatei „~a“: ~s"
+
+#: modules/shepherd.scm:171
+#, scheme-format
+msgid "action '~a' on service '~a' failed: ~s"
+msgstr "Aktion »~a« mit dem Dienst »~a« ist fehlgeschlagen: ~s"
+
+#: modules/shepherd.scm:184
+#, scheme-format
+msgid "Configuration successfully loaded from '~a'."
+msgstr "Konfiguration wurde erfolgreich aus „~a“ geladen."
+
+#: modules/shepherd.scm:222
+msgid "Restarting signal handler."
+msgstr "Signal-Handler wird neu gestartet."
+
+#: modules/shepherd.scm:336
 msgid "This is a service manager for Unix and GNU."
 msgstr "Hiermit verwalten Sie Dienste für Unix und GNU."
 
-#: modules/shepherd.scm:297
+#: modules/shepherd.scm:341
 msgid "synonym for --silent"
 msgstr "gleichbedeutend mit --silent"
 
-#: modules/shepherd.scm:304
+#: modules/shepherd.scm:348
 msgid "don't do output to stdout"
 msgstr "schreibt nicht in die Standardausgabe"
 
-#: modules/shepherd.scm:314
+#: modules/shepherd.scm:358
 msgid "don't ensure that the setup is secure"
 msgstr "überprüft nicht, ob die Einrichtung sicher ist"
 
-#: modules/shepherd.scm:321
+#: modules/shepherd.scm:365
 msgid "log actions in FILE"
 msgstr "protokolliert Aktionen in DATEI"
 
-#: modules/shepherd.scm:328
+#: modules/shepherd.scm:372
 msgid "when ready, write PID to FILE or stdout"
 msgstr "schreibt PID, wenn fertig, in DATEI oder Standardausgabe"
 
-#: modules/shepherd.scm:335
+#: modules/shepherd.scm:379
 msgid "read configuration from FILE"
 msgstr "Konfiguration aus DATEI lesen"
 
-#: modules/shepherd.scm:343
+#: modules/shepherd.scm:387
 msgid "get commands from socket FILE or from stdin (-)"
 msgstr "erhält Befehle aus der Socket-DATEI oder der Standardeingabe (-)"
 
-#: modules/shepherd.scm:466
+#: modules/shepherd.scm:503
 msgid "Rebooting..."
 msgstr "Neustart …"
 
-#: modules/shepherd.scm:469
+#: modules/shepherd.scm:506
 msgid "Exiting."
 msgstr "Wird beendet."
 
-#: modules/shepherd.scm:534
+#: modules/shepherd.scm:572
 #, scheme-format
 msgid "Service ~a is already running."
 msgstr "Dienst ~a läuft bereits."
 
-#: modules/shepherd.scm:555
+#: modules/shepherd.scm:594
 msgid "Invalid command."
 msgstr "Ungültiger Befehl."
 
-#: modules/shepherd.scm:574
+#: modules/shepherd.scm:613
 msgid "invalid command line"
 msgstr "ungültige Befehlszeile"
 
@@ -834,9 +891,6 @@ msgstr "ungültige Befehlszeile"
 
 #~ msgid "Service ~a could not be stopped."
 #~ msgstr "Dienst ~a konnte nicht gestoppt werden."
-
-#~ msgid "No service provides ~a."
-#~ msgstr "Kein Dienst stellt ~a bereit."
 
 #~ msgid "Unloading all optional services: '~a'..."
 #~ msgstr "Alle optionalen Dienste werden entladen: ~a …"
