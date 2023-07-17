@@ -68,6 +68,14 @@ A Bash completion file is now installed, providing tab completion for the
 
 The hint is printed for instance when typing ‘herd foobar start’.
 
+** Updated translations: de, ro, sv, uk
+
+This release is fully translated to German, Romanian, Swedish, and Ukrainian;
+partial translations are available for a dozen of languages.  To help make the
+Shepherd speak your language, check out the Translation Project:
+
+  https://translationproject.org/domain/shepherd.html
+
 * Changes in 0.10.1
 
 ** Configurable number of ‘bind’ attempts for endpoints
