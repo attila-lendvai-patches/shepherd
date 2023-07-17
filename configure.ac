@@ -177,7 +177,7 @@ AM_CONDITIONAL([BUILD_CRASH_HANDLER], [test "x$build_crash_handler" = "xyes"])
 dnl Bash completion file.
 
 AC_ARG_WITH([bash-completion-dir],
-  AC_HELP_STRING([--with-bash-completion-dir=DIR],
+  AS_HELP_STRING([--with-bash-completion-dir=DIR],
     [name of the Bash completion directory]),
   [bashcompletiondir="$withval"],
   [bashcompletiondir='${sysconfdir}/bash_completion.d'])
