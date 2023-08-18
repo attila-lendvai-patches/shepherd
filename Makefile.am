@@ -196,6 +196,7 @@ instantiate =						\
   -e 's,%modsrcdir%,${abs_top_srcdir}/modules,g'	\
   -e 's,%modbuilddir%,${abs_top_builddir}/modules,g'	\
   -e 's,%localstatedir%,${localstatedir},g'		\
+  -e 's,%runstatedir%,${runstatedir},g'			\
   -e 's,%pkglibdir%,${pkglibdir},g'			\
   -e 's,%sysconfdir%,${sysconfdir},g'			\
   -e 's,%localedir%,${localedir},g'			\

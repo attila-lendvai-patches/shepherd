@@ -437,7 +437,7 @@ create a template configuration file if non exists."
 
 ;; Socket directory for the system's instance (PID 1).
 (define %system-socket-dir
-  (string-append %localstatedir "/run/shepherd"))
+  (string-append %runstatedir "/shepherd"))
 
 ;; The directory where the socket resides.
 (define default-socket-dir

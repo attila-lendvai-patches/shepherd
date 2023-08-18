@@ -4,6 +4,7 @@
   #:export (Version
             Prefix-dir
             %localstatedir
+            %runstatedir
             %sysconfdir
             %localedir
             %pkglibdir
@@ -14,6 +15,7 @@
 (define Version "%VERSION%")
 (define Prefix-dir "%PREFIX%")
 (define %localstatedir "%localstatedir%")
+(define %runstatedir "%runstatedir%")
 (define %sysconfdir "%sysconfdir%")
 (define %localedir "%localedir%")
 (define %pkglibdir "%pkglibdir%")
