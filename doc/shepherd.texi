@@ -242,7 +242,7 @@ herd start foo
 But there is far more you can do than just that.  Services can not
 only simply depend on other services, they can also depend on
 @emph{virtual} services.  A virtual service is a service that is
-provided by one or more service additionally.  For instance, a service
+provided by one or more services additionally.  For instance, a service
 called @code{exim} might provide the virtual service
 @code{mailer-daemon}.  That could as well be provided by a service
 called @code{smail}, as both are mailer-daemons.  If a service needs
