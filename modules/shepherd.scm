@@ -460,12 +460,14 @@ fork in the child process."
                ;; Replace the default 'system*' binding with one that
                ;; cooperates instead of blocking on 'waitpid'.  Replace
                ;; 'primitive-load' (in C as of 3.0.9) with one that does
-               ;; not introduce a continuation barrier.
+               ;; not introduce a continuation barrier.  Replace 'sleep' to
+               ;; avoid blocking in user code such as 'start' methods.
                (replace-core-bindings!
                 (system* (lambda command
                            (spawn-command command)))
                 (system spawn-shell-command)
-                (primitive-load primitive-load*))
+                (primitive-load primitive-load*)
+                (sleep (@ (fibers) sleep)))
 
                (run-daemon #:socket-file socket-file
                            #:config-file (or config-file (default-config-file))

@@ -11,6 +11,15 @@ Copyright © 2013-2014, 2016, 2018-2020, 2022-2023 Ludovic Courtès <ludo@gnu.or
 
 Please send Shepherd bug reports to bug-guix@gnu.org.
 
+* Changes in 0.10.3
+
+** Non-blocking ‘sleep’ replacement provided
+
+Until now, user code could call (@ (guile) sleep), the core Guile binding for
+‘sleep’, instead of ‘sleep’ as provided by (fibers).  The former would have
+caused ‘shepherd’ to actually sleep for that time, instead of performing other
+on-going tasks.  ‘sleep’ is now replaced by (@ (fibers) sleep) to avoid that.
+
 * Changes in 0.10.2
 
 ** ‘shepherd’ loads configuration file asynchronously
