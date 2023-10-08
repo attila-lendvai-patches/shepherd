@@ -95,7 +95,11 @@ TARGET."
 (define (system-test->manifest-entry test)
   "Return a manifest entry for @var{test}, a system test."
   (manifest-entry
-    (name (system-test-name test))
+    ;; The system test on x86_64 is relatively expensive; run it on x86_64
+    ;; only.
+    (name (with-parameters ((%current-system "x86_64-linux")
+                            (%current-target-system #f))
+            (system-test-name test)))
     (version "0")
     (item test)))
 
