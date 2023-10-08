@@ -97,11 +97,11 @@ TARGET."
   (manifest-entry
     ;; The system test on x86_64 is relatively expensive; run it on x86_64
     ;; only.
-    (name (with-parameters ((%current-system "x86_64-linux")
-                            (%current-target-system #f))
-            (system-test-name test)))
+    (name (system-test-name test))
     (version "0")
-    (item test)))
+    (item (with-parameters ((%current-system "x86_64-linux")
+                            (%current-target-system #f))
+            test))))
 
 (define system-tests
   (manifest
