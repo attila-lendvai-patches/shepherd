@@ -62,6 +62,19 @@
   (and (eq? 'stopped (live-service-status service))
        (pair? (live-service-startup-failures service))))
 
+(define (live-service-last-status-change-time service)
+  "Return the time @var{service} last changed statuses."
+  (match (live-service-status-changes service)
+    (((_ . time) . _) time)
+    (() #f)))
+
+(define (live-service-status-duration service)
+  "Return the duration @var{service} has been in its current status."
+  (match (live-service-last-status-change-time service)
+    (#f 0)
+    (time
+     (- (time-second (current-time time-utc)) time))))
+
 (define (live-service-status-predicate status)
   "Return a predicate that returns true when passed a service with the given
 @var{status}."
@@ -95,6 +108,16 @@ into a @code{live-service} record."
                      (or last-respawns '())
                      (or startup-failures '()))))))
 
+(define (highlight-if-long-transient-status service)
+  "Return a procedure to highlight @var{service} if it's been stuck in a
+transient status for too long."
+  (if (memq (live-service-status service) '(starting stopping))
+      (let ((duration (live-service-status-duration service)))
+        (cond ((>= duration 30) highlight/warn)
+              ((>= duration 60) highlight/error)
+              (else identity)))
+      identity))
+
 (define (display-status-summary services)
   "Display a summary of the status of all of SERVICES."
   (define (service<? service1 service2)
@@ -105,8 +128,13 @@ into a @code{live-service} record."
     (unless (null? services)
       (display header)
       (for-each (lambda (service)
+                  (define highlight
+                    (highlight-if-long-transient-status service))
+
                   (format #t " ~a ~a~%" bullet
-                          (live-service-canonical-name service)))
+                          (highlight
+                           (symbol->string
+                            (live-service-canonical-name service)))))
                 (sort services service<?))))      ;get deterministic output
 
   (let* ((started  (filter (live-service-status-predicate 'running) services))
@@ -228,9 +256,11 @@ into a @code{live-service} record."
                 (format #t (highlight/warn
                             (l10n "  It is stopped.~%"))))))))
     ('starting
-     (format #t (l10n "  It is starting.~%")))
+     (let ((highlight (highlight-if-long-transient-status service)))
+       (format #t (highlight (l10n "  It is starting.~%")))))
     ('stopping
-     (format #t (l10n "  It is being stopped.~%")))
+     (let ((highlight (highlight-if-long-transient-status service)))
+       (format #t (highlight (l10n "  It is being stopped.~%")))))
     (x
      (format #t (l10n "  Unknown status '~a'~%.") x)))
 
