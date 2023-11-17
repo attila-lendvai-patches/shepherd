@@ -80,7 +80,7 @@ root_service_sexp="
       (status running)
       (one-shot? #f)
       (transient? #f)
-      (respawn-limit (5 . 7))
+      (respawn-limit (5 . 30))
       (respawn-delay 0.1))"
 
 # Define a helper procedure that resets timestamps in the 'status-changes'
@@ -121,7 +121,7 @@ $define_reset_timestamps
                (startup-failures ())
                (status running)
                (one-shot? #f) (transient? #f)
-               (respawn-limit (5 . 7)) (respawn-delay 1))
+               (respawn-limit (5 . 30)) (respawn-delay 1))
              (service (version 0)
                (provides (bar)) (requires (foo))
                (respawn? #f) (docstring \"Bar!\")
@@ -131,7 +131,7 @@ $define_reset_timestamps
                (startup-failures ())
                (status stopped)
                (one-shot? #f) (transient? #f)
-               (respawn-limit (5 . 7)) (respawn-delay 1)))))))
+               (respawn-limit (5 . 30)) (respawn-delay 1)))))))
 "
 
 # The 'start' command should return the service sexp on success.
@@ -159,7 +159,7 @@ $define_reset_timestamps
                (startup-failures ())
                (status running)
                (one-shot? #f) (transient? #f)
-               (respawn-limit (5 . 7)) (respawn-delay 1))))))
+               (respawn-limit (5 . 30)) (respawn-delay 1))))))
 "
 
 # Make sure we get an 'error' sexp when querying a nonexistent service.

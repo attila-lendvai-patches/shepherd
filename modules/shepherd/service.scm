@@ -223,7 +223,7 @@ use 'actions' instead.")
   ;; unreliable SIGCHLD delivery means that it might take up to 1 second for
   ;; SIGCHLD to be delivered.  Thus, arrange for the car to be lower than the
   ;; cdr.
-  (make-parameter '(5 . 7)))
+  (make-parameter '(5 . 30)))
 
 (define (respawn-limit-hit? respawns times seconds)
   "Return true of RESPAWNS, the list of times at which a given service was
