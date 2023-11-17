@@ -2555,29 +2555,33 @@ then disable it."
   (define respawn-limit
     (service-respawn-limit serv))
 
-  (if (and (respawn-service? serv)
-           (or (not respawn-limit)
-               (not (respawn-limit-hit? (service-respawn-times serv)
-                                        (car respawn-limit)
-                                        (cdr respawn-limit)))))
-      (begin
-        ;; Everything is okay, wait for a bit and restart it.
-        (sleep (service-respawn-delay serv))
-        (local-output (l10n "Respawning ~a.")
-                      (service-canonical-name serv))
-        (record-service-respawn-time serv)
-        (start-service serv))
-      (begin
-        (local-output (l10n "Service ~a has been disabled.")
-                      (service-canonical-name serv))
-        (when (respawn-service? serv)
-          (local-output (l10n "  (Respawning too fast.)")))
-        (disable-service serv)
+  (cond
+   ((not (service-enabled? serv))
+    (values))
 
-        (when (transient-service? serv)
-          (put-message (current-registry-channel) `(unregister (,serv)))
-          (local-output (l10n "Transient service ~a terminated, now unregistered.")
-                        (service-canonical-name serv))))))
+   ((and (respawn-service? serv)
+         (or (not respawn-limit)
+             (not (respawn-limit-hit? (service-respawn-times serv)
+                                      (car respawn-limit)
+                                      (cdr respawn-limit)))))
+    ;; Everything is okay, wait for a bit and restart it.
+    (sleep (service-respawn-delay serv))
+    (local-output (l10n "Respawning ~a.")
+                  (service-canonical-name serv))
+    (record-service-respawn-time serv)
+    (start-service serv))
+
+   (else
+    (disable-service serv)
+    (local-output (l10n "Service ~a has been disabled.")
+                  (service-canonical-name serv))
+    (when (respawn-service? serv)
+      (local-output (l10n "  (Respawning too fast.)")))
+
+    (when (transient-service? serv)
+      (put-message (current-registry-channel) `(unregister (,serv)))
+      (local-output (l10n "Transient service ~a terminated, now unregistered.")
+                    (service-canonical-name serv))))))
 
 ;; Add NEW-SERVICES to the list of known services.
 (define register-services
