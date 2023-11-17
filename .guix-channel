@@ -3,4 +3,5 @@
 (channel
   (version 0)
   (directory ".guix/modules")
+  (keyring-reference "attila-keyring")
   (url "https://git.savannah.gnu.org/git/shepherd.git")) ;the primary URL
