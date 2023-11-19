@@ -54,7 +54,19 @@ packages with higher version numbers:
 
   guix package -A shepherd
 
-You can then install it with ‘guix install shepherd’ or similar.
+You can then install it with ‘guix install shepherd’, or e.g. use it in an
+operating-system configuration:
+
+  (operating-system
+    ...
+    (essential-services
+     (modify-services (operating-system-default-essential-services
+                       this-operating-system)
+       (shepherd-root-service-type
+        config =>
+        (shepherd-configuration
+         (inherit config)
+         (shepherd (@ (shepherd-package) shepherd)))))))
 
 ** More information
 
