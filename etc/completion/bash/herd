@@ -33,7 +33,7 @@ _herd_complete_subcommand()
             ;;
         *)
             local services
-            services="$(herd status | grep '^ +\|^ -\| \*' | cut -d ' ' -f3)"
+            services="$(herd status 2> /dev/null | grep '^ +\|^ -\| \*' | cut -d ' ' -f3)"
             mapfile -t COMPREPLY < <(compgen -W "$services" -- "${COMP_WORDS[$COMP_CWORD]}")
             ;;
     esac
