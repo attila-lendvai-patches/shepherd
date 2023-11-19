@@ -64,7 +64,7 @@
 
 (define development-packages
   ;; Packages needed when building from Git.
-  '("autoconf" "automake" "gettext" "texinfo" "help2man"))
+  '("autoconf" "automake" "gettext-minimal" "texinfo" "help2man"))
 
 (define-public shepherd
   (package
@@ -157,7 +157,7 @@ interface and is based on GNU Guile.")
                   (chdir directory))))))))
     (native-inputs
      (modify-inputs (package-native-inputs shepherd)
-       (delete "autoconf" "automake" "gettext" "texinfo" "help2man")))))
+       (delete "autoconf" "automake" "gettext-minimal" "texinfo" "help2man")))))
 
 (define-public guile2.2-shepherd
   (package
