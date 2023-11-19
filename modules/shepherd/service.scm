@@ -2903,4 +2903,3 @@ we want to receive these signals."
       "This does not work for the 'root' service."
       (lambda (running)
 	(local-output (l10n "You must be kidding.")))))))
-

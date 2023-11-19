@@ -168,7 +168,6 @@ connect_to_server ()
 {
     rm -f "$fd_count"
     guile -c "(use-modules (ice-9 match))
-      (define IN6ADDR_LOOPBACK 1)
       (define address (make-socket-address AF_INET INADDR_LOOPBACK $1))
       (define sock (socket (sockaddr:fam address) SOCK_STREAM 0))
       (connect sock address)"
