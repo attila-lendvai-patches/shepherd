@@ -7,6 +7,9 @@
 (set! %load-compiled-path
       (append '("%modbuilddir%" "%FIBERS_OBJECT_DIRECTORY%") %load-compiled-path))
 
+;; TODO KLUDGE
+(debug-enable 'warn-deprecated)
+
 ;; On AArch64, work around <https://github.com/wingo/fibers/issues/83> by
 ;; disabling JIT (needed with Guile 3.0.9).
 (if (and (string-prefix? "aarch64-" %host-type)
