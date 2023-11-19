@@ -2556,9 +2556,10 @@ then disable it."
     (service-respawn-limit serv))
 
   (if (and (respawn-service? serv)
-           (not (respawn-limit-hit? (service-respawn-times serv)
-                                    (car respawn-limit)
-                                    (cdr respawn-limit))))
+           (or (not respawn-limit)
+               (not (respawn-limit-hit? (service-respawn-times serv)
+                                        (car respawn-limit)
+                                        (cdr respawn-limit)))))
       (begin
         ;; Everything is okay, wait for a bit and restart it.
         (sleep (service-respawn-delay serv))
