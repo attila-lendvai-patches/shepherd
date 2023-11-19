@@ -1037,7 +1037,7 @@ the action."
 		     (action-list service)))
       (else
        ;; FIXME: Implement doc-help.
-       (local-output (l10n "Unknown keyword.  Try 'doc root help'."))))))
+       (local-output (l10n "Unknown keyword.  Try 'herd help'."))))))
 
 (define-record-type-serializer (service->sexp (service <service>))
   "Return a representation of SERVICE as an sexp meant to be consumed by
