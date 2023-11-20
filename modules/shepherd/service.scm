@@ -2329,6 +2329,44 @@ otherwise by updating its state."
     (('exception args)
      (apply throw args))))
 
+(define (linux-process-flags pid)
+  "Return the process flags of @var{pid} (or'd @code{PF_} constants), assuming
+the Linux /proc file system is mounted; raise a @code{system-error} exception
+otherwise."
+  (call-with-input-file (string-append "/proc/" (number->string pid)
+                                       "/stat")
+    (lambda (port)
+      (define line
+        (get-string-all port))
+
+      ;; Parse like systemd's 'is_kernel_thread' function.
+      (let ((offset (string-index line #\))))     ;offset past 'tcomm' field
+        (match (and offset
+                    (string-tokenize (string-drop line (+ offset 1))))
+          ((state ppid pgrp sid tty-nr tty-pgrp flags . _)
+           (or (string->number flags) 0))
+          (_
+           0))))))
+
+;; Per-process flag defined in <linux/sched.h>.
+(define PF_KTHREAD #x00200000)                    ;I am a kernel thread
+
+(define (linux-kernel-thread? pid)
+  "Return true if @var{pid} is a Linux kernel thread."
+  (= PF_KTHREAD (logand (linux-process-flags pid) PF_KTHREAD)))
+
+(define pseudo-process?
+  (if (string-contains %host-type "linux")
+      (lambda (pid)
+        "Return true if @var{pid} denotes a \"pseudo-process\" such as a Linux
+kernel thread rather than a \"regular\" process.  A pseudo-process is one that
+may never terminate, even after sending it SIGKILL---e.g., kthreadd on Linux."
+        (catch 'system-error
+          (lambda ()
+            (linux-kernel-thread? pid))
+          (const #f)))
+      (const #f)))
+
 (define (process-monitor channel)
   "Run a process monitor that handles requests received over @var{channel}."
   (let loop ((waiters vlist-null))
@@ -2365,9 +2403,10 @@ otherwise by updating its state."
 
       (('await pid reply)
        ;; Await the termination of PID and send its status on REPLY.
-       (if (catch-system-error (kill pid 0))
+       (if (and (catch-system-error (kill pid 0))
+                (not (pseudo-process? pid)))
            (loop (vhash-consv pid reply waiters))
-           (begin                                 ;PID is gone
+           (begin                             ;PID is gone or a pseudo-process
              (put-message reply 0)
              (loop waiters)))))))
 
