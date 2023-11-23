@@ -60,9 +60,25 @@
             non-blocking-port
             blocking-port
 
-            user-homedir
+            log-output-port
             user-default-log-file
             default-logfile-date-format
+            %current-logfile-date-format
+            log-with-backtrace
+            log.fatal
+            log.error
+            log.warning
+            log.info
+            log.debug
+            log.dribble
+            log-level.fatal
+            log-level.error
+            log-level.warning
+            log-level.info
+            log-level.debug
+            log-level.dribble
+
+            user-homedir
             default-config-file
             default-socket-dir
             default-socket-file
@@ -453,14 +469,81 @@ TARGET should be a string representing a filepath + name."
         "(for-each start '())\n")))))
 
 ;; Logging.
+(define log-output-port
+  ;; Port for logging.  This must always be a valid port, never `#f'.
+  (make-parameter (%make-void-port "w")))
+
+(define default-logfile-date-format
+  ;; 'strftime' format string to prefix each entry in the log.
+  "%Y-%m-%d %H:%M:%S ")
+
+(define %current-logfile-date-format
+  ;; 'strftime' format strings for entries in the log file.
+  (make-parameter default-logfile-date-format))
+
 (define (user-default-log-file)
   "Return the file name of the user's default log file."
   (mkdir-p %user-log-dir #o700)
   (string-append %user-log-dir "/shepherd.log"))
 
-(define default-logfile-date-format
-  ;; 'strftime' format string to prefix each entry in the log.
-  "%Y-%m-%d %H:%M:%S ")
+(eval-when (expand load eval)
+  (define log-level.fatal   0)
+  (define log-level.error   1)
+  (define log-level.warning 2)
+  (define log-level.info    3)
+  (define log-level.debug   4)
+  (define log-level.dribble 5)
+
+  ;; This can be used to drop entire log levels at compile time.  Dropping
+  ;; dribble by default sounds like a good idea.  It can be enabled locally by
+  ;; developers while debugging an elusive bug.
+  (define %log-level-at-compile-time log-level.dribble)
+
+  (define (logger-body-expander level)
+    (lambda (s)
+      (if (<= level %log-level-at-compile-time)
+          (syntax-case s (level)
+            ((_ format-string args ...)
+             #`(%handle-log-entry #,level format-string args ...))
+            ((_ format-string)
+             #`(%handle-log-entry #,level format-string)))
+          #'(values)))))
+
+(define %log-level-at-runtime log-level.debug)
+
+(define-syntax log.fatal   (logger-body-expander log-level.fatal))
+(define-syntax log.error   (logger-body-expander log-level.error))
+(define-syntax log.warning (logger-body-expander log-level.warning))
+(define-syntax log.info    (logger-body-expander log-level.info))
+(define-syntax log.debug   (logger-body-expander log-level.debug))
+(define-syntax log.dribble (logger-body-expander log-level.dribble))
+
+(define (%handle-log-entry level format-string . args)
+  (when (<= level %log-level-at-runtime)
+    (call-with-error-handling
+     (lambda ()
+       (let* ((prefix (strftime (%current-logfile-date-format)
+                                (localtime (current-time))))
+              (msg (apply format #f format-string args)))
+         ;; NOTE when format was directed into the log-output-port directly,
+         ;; then in some situations (e.g. kernel early log output) each char
+         ;; was printed on a separate line.
+         (display (string-append prefix msg "\n") (log-output-port))))
+
+     (lambda (error . error-args)
+       (log-with-backtrace
+        log-level.error error error-args
+        "An error from inside the logging infrastructure \
+is being ignored:~% ~A: ~S~%" error error-args))))
+  (values))
+
+(define (log-with-backtrace log-level error-key error-args format-string . args)
+  (apply %handle-log-entry log-level format-string args)
+  (let ((port (log-output-port)))
+    (display-backtrace (make-stack #t) port)
+    (print-exception port
+                     (stack-ref (make-stack #t) 1)
+                     error-key error-args)))
 
 ;; Configuration file.
 (define (default-config-file)

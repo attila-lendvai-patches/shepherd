@@ -51,12 +51,10 @@
             result->sexp
             report-command-error
 
-            log-output-port
             syslog-output-port
             make-shepherd-output-port
 
             %current-client-socket
-            %current-logfile-date-format
             %current-service-output-port))
 
 
@@ -242,17 +240,9 @@ on service '~a':")
 
 
 
-(define log-output-port
-  ;; Port for logging.  This must always be a valid port, never `#f'.
-  (make-parameter (%make-void-port "w")))
-
 (define %current-client-socket
   ;; Socket of the client currently talking to the daemon.
   (make-parameter #f))
-
-(define %current-logfile-date-format
-  ;; 'strftime' format strings for entries in the log file.
-  (make-parameter default-logfile-date-format))
 
 (define call-with-syslog-port
   (let ((port #f))                                ;connection to /dev/log
