@@ -63,6 +63,7 @@ cat > "$conf" <<EOF
 	 '(test-systemd-unix)
 	 #:start (make-systemd-constructor %command %endpoints)
 	 #:stop  (make-systemd-destructor)
+         #:respawn-delay 0  ;make the test slightly faster
 	 #:respawn? #t)
        (service
 	 '(test-systemd-unix-eager)

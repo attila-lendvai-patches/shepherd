@@ -30,6 +30,8 @@ trap "rm -f $socket $conf $stamp $log;
       test -f $pid && kill \`cat $pid\` || true; rm -f $pid" EXIT
 
 cat > "$conf"<<EOF
+(default-respawn-delay 1)
+
 (register-services
  (list (service
          '(foo)
@@ -78,7 +80,8 @@ root_service_sexp="
       (status running)
       (one-shot? #f)
       (transient? #f)
-      (respawn-limit (5 . 7)))"
+      (respawn-limit (5 . 7))
+      (respawn-delay 0.1))"
 
 # Define a helper procedure that resets timestamps in the 'status-changes'
 # property to make it easier to compare them.
@@ -117,7 +120,8 @@ $define_reset_timestamps
                (status-changes ((running . 0) (starting . 0)))
                (startup-failures ())
                (status running)
-               (one-shot? #f) (transient? #f) (respawn-limit (5 . 7)))
+               (one-shot? #f) (transient? #f)
+               (respawn-limit (5 . 7)) (respawn-delay 1))
              (service (version 0)
                (provides (bar)) (requires (foo))
                (respawn? #f) (docstring \"Bar!\")
@@ -126,7 +130,8 @@ $define_reset_timestamps
                (status-changes ())
                (startup-failures ())
                (status stopped)
-               (one-shot? #f) (transient? #f) (respawn-limit (5 . 7))))))))
+               (one-shot? #f) (transient? #f)
+               (respawn-limit (5 . 7)) (respawn-delay 1)))))))
 "
 
 # The 'start' command should return the service sexp on success.
@@ -153,7 +158,8 @@ $define_reset_timestamps
                (status-changes ((running . 0) (starting . 0)))
                (startup-failures ())
                (status running)
-               (one-shot? #f) (transient? #f) (respawn-limit (5 . 7)))))))
+               (one-shot? #f) (transient? #f)
+               (respawn-limit (5 . 7)) (respawn-delay 1))))))
 "
 
 # Make sure we get an 'error' sexp when querying a nonexistent service.

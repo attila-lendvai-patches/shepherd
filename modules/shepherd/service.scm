@@ -98,6 +98,7 @@
             unregister-services
 
             default-respawn-limit
+            default-respawn-delay
             default-service-termination-handler
             default-environment-variables
             make-forkexec-constructor
@@ -211,6 +212,10 @@
 use 'actions' instead.")
     (actions rest ...)))
 
+(define default-respawn-delay
+  ;; Delay in seconds (exact or inexact) before respawning a service.
+  (make-parameter 0.1))
+
 (define default-respawn-limit
   ;; Respawning CAR times in CDR seconds will disable the service.
   ;;
@@ -289,6 +294,10 @@ Log abnormal termination reported by @var{status}."
   (respawn-limit #:init-keyword #:respawn-limit
                  #:init-thunk default-respawn-limit
                  #:getter service-respawn-limit)
+  ;; Delay in seconds before respawning a service.
+  (respawn-delay #:init-keyword #:respawn-delay
+                 #:init-thunk default-respawn-delay
+                 #:getter service-respawn-delay)
   ;; The action to perform to start the service.  This must be a
   ;; procedure and may take an arbitrary amount of arguments, but it
   ;; must be possible to call it without any argument.  If the
@@ -334,6 +343,7 @@ Log abnormal termination reported by @var{status}."
                   (transient? #f)
                   (respawn? #f)
                   (respawn-limit (default-respawn-limit))
+                  (respawn-delay (default-respawn-delay))
                   (start (lambda () #t))
                   (stop (lambda (running) #f))
                   (actions (actions))
@@ -350,6 +360,7 @@ denoting what the service provides."
        #:transient? transient?
        #:respawn? respawn?
        #:respawn-limit respawn-limit
+       #:respawn-delay respawn-delay
        #:start start
        #:stop stop
        #:actions actions
@@ -1060,7 +1071,8 @@ clients."
             (status ,(service-status service))
             (one-shot? ,(one-shot-service? service))
             (transient? ,(transient-service? service))
-            (respawn-limit ,(service-respawn-limit service))))
+            (respawn-limit ,(service-respawn-limit service))
+            (respawn-delay ,(service-respawn-delay service))))
 
 
 ;;;
@@ -2543,7 +2555,8 @@ then disable it."
                                     (car respawn-limit)
                                     (cdr respawn-limit))))
       (begin
-        ;; Everything is okay, start it.
+        ;; Everything is okay, wait for a bit and restart it.
+        (sleep (service-respawn-delay serv))
         (local-output (l10n "Respawning ~a.")
                       (service-canonical-name serv))
         (record-service-respawn-time serv)

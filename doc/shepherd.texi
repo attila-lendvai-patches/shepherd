@@ -721,6 +721,13 @@ There is a limit to avoid endless respawning: when the service gets
 respawned ``too fast'', it is @dfn{disabled}---see
 @code{#:respawn-limit} below.
 
+@cindex respawn delay
+@item #:respawn-delay
+Specify the delay before a service is respawned, in seconds (including a
+fraction), for services marked with @code{#:respawn? #t}.  Its default
+value is @code{(default-respawn-delay)} (@pxref{Service De- and
+Constructors}).
+
 @cindex respawn limit
 @item #:respawn-limit
 Specify the limit that prevents @command{shepherd} from respawning too
@@ -868,6 +875,11 @@ Return true if @var{service} is a one-shot/transient service.
 @deffn {Procedure} respawn-service? @var{service}
 Return true if @var{service} is meant to be respawned if its associated
 process terminates prematurely.
+@end deffn
+
+@deffn {Procedure} service-respawn-delay @var{service}
+Return the respawn delay of @var{service}, in seconds (an integer or a
+fraction or inexact number).  See @code{#:respawn-delay} above.
 @end deffn
 
 @deffn {Procedure} service-respawn-limit @var{service}
@@ -1152,6 +1164,13 @@ specifies the ``grace period'' (in seconds) after which a process that
 has been sent @code{SIGTERM} or some other signal to gracefully exit is
 sent @code{SIGKILL} for immediate termination.  It defaults to 5
 seconds.
+@end defvar
+
+@cindex respawn delay
+@defvar default-respawn-delay
+This parameter specifies the default value of the @code{#:respawn-delay}
+parameter of @code{service} (@pxref{Defining Services}).  It defaults to
+@code{0.1}, meaning a 100ms delay before respawning a service.
 @end defvar
 
 @cindex respawn limit

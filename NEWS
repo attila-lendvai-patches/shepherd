@@ -13,6 +13,13 @@ Please send Shepherd bug reports to bug-guix@gnu.org.
 
 * Changes in 0.10.3
 
+** New #:respawn-delay parameter to ‘service’
+   (<https://issues.guix.gnu.org/64665>)
+
+This specifies a delay before a service is respawned.  Its default value is
+given by ‘default-respawn-delay’ and defaults to 100ms.  Until now, services
+were respawned immediately.
+
 ** Non-blocking ‘sleep’ replacement provided
 
 Until now, user code could call (@ (guile) sleep), the core Guile binding for
