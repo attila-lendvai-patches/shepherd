@@ -100,6 +100,12 @@ for i in $(seq 1 3)
 do
     converse_with_echo_server \
 	"(make-socket-address AF_UNIX \"$service_socket\")"
+
+    # Wait until the service has been respawned.
+    until $herd status test-systemd-unix | grep running
+    do
+	sleep 0.1
+    done
 done
 
 $herd stop test-systemd-unix
