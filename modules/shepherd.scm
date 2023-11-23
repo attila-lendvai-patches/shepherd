@@ -188,6 +188,8 @@ already ~a threads running, disabling 'signalfd' support")
 
 (define* (run-daemon #:key (config-file (default-config-file))
                      socket-file pid-file signal-port poll-services?)
+  (log.debug "run-daemon speaking, config-file is ~S, socket-file is ~S, pid-file is ~S" config-file socket-file pid-file)
+
   (define (signal-thunk signal-port)
     ;; Thunk that waits for signals (particularly SIGCHLD) and handles them.
     (if signal-port
@@ -248,6 +250,8 @@ already ~a threads running, disabling 'signalfd' support")
        socket-file
        (lambda (sock)
 
+         (log.debug "Will receive commands on socket ~S" sock)
+
          ;; Possibly write out our PID, which means we're ready to accept
          ;; connections.  XXX: What if we daemonized already?
          (match pid-file
@@ -261,6 +265,7 @@ already ~a threads running, disabling 'signalfd' support")
          (let next-command ()
            (match (accept sock (logior SOCK_NONBLOCK SOCK_CLOEXEC))
              ((command-source . client-address)
+              (log.debug "Received next-command from client ~A" client-address)
               (setvbuf command-source 'block 1024)
               (spawn-fiber
                (lambda ()
@@ -417,10 +422,13 @@ fork in the child process."
                          (%make-void-port "w")
                          (current-output-port)))))
 
+      (log.debug "Shepherd is starting up, logging has been initialized")
+
       (parameterize ((current-output-port (%current-service-output-port)))
         (set-port-encoding! (log-output-port) "UTF-8")
 
         (when (= 1 (getpid))
+          (log.debug "Running as PID 1")
           ;; When running as PID 1, disable hard reboots upon ctrl-alt-del.
           ;; Instead, the kernel will send us SIGINT so that we can gracefully
           ;; shut down.  See ctrlaltdel(8) and kernel/reboot.c.
@@ -446,11 +454,15 @@ fork in the child process."
                     (sigaction signal (signal-handler signal)))
                   (delete SIGCHLD %precious-signals))
 
+        (log.debug "Signal handlers installed, about to call run-fibers")
+
         ;; Run Fibers in such a way that it does not create any POSIX thread,
         ;; because POSIX threads and 'fork' cannot be used together.
         (run-fibers
          (lambda ()
            (with-service-registry
+
+             (log.debug "Registering and starting root-service")
 
              ;; Register and start the 'root' service.
              (register-services (list root-service))
@@ -479,6 +491,7 @@ fork in the child process."
 
 (define (process-connection sock)
   "Process client connection SOCK, reading and processing commands."
+  (log.dribble "process-connection, from socket ~A" sock)
   (catch 'system-error
     (lambda ()
       (match (read-command sock)
@@ -545,6 +558,7 @@ while evaluating @var{command}."
 (define (process-command command port)
   "Interpret COMMAND, a command sent by the user, represented as a
 <shepherd-command> object.  Send the reply to PORT."
+  (log.debug "process-command; command ~A, port ~A" command port)
   (match command
     (($ <shepherd-command> version the-action service-symbol (args ...)
                            directory)             ;ignored
@@ -555,6 +569,7 @@ while evaluating @var{command}."
        (lambda ()
          (with-command-message-port command get-messages
            (guard (c ((service-error? c)
+                      (log.debug "process-command is replying error ~A" c)
                       (write-reply (command-reply command #f
                                                   (condition->sexp c)
                                                   (get-messages))

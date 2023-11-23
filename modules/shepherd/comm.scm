@@ -122,6 +122,7 @@ wrong---premature end-of-file, invalid sexp, etc."
                             ('service service)
                             ('arguments (args ...))
                             ('directory directory))
+         (log.debug "read-command: version ~A, action ~A, service ~A, args ~A, directory ~A" version action service args directory)
          (match version
            ((0 _ ...)
             (shepherd-command action service
@@ -129,11 +130,16 @@ wrong---premature end-of-file, invalid sexp, etc."
                               #:arguments args
                               #:directory directory))
            (_
+            (log.warning "read-command is ignoring command with an unexpected version ~A" version)
             #f)))
-        (_                                        ;EOF or unmatched sexp
+        (value
+         (log.debug "Unexpected input for read-command: ~S" value)
+         (log.warning "Ignoring unexpected input for read-command")
+         #f)
+        ((? eof-object?)
          #f)))
-    (lambda _
-      ;; Invalid sexp.
+    (lambda (key . args)
+      (log.warning "read-command is ignoring a reader error; key ~A, args ~A" key args)
       #f)))
 
 (define (write-command command port)

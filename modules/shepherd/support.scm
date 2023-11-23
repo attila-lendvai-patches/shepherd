@@ -600,7 +600,9 @@ which has essential bindings pulled in."
 
 (define (load-in-user-module file)
   "Load FILE in a fresh user module that has essential bindings pulled in."
+  (log.debug "load-in-user-module for file '~a'" file)
   (let ((user-module (make-user-module)))
+    (log.dribble "load-in-user-module for file '~a' created module ~a" file user-module)
     (save-module-excursion
      (lambda ()
        (set-current-module user-module)

@@ -852,6 +852,7 @@ while starting ~a: ~s")
 (define (start-service service . args)
   "Start @var{service} and its dependencies, passing @var{args} to its
 @code{start} method.  Return its running value, @code{#f} on failure."
+  (log.debug "Starting service ~a with args ~a" service args)
   ;; It is not running; go ahead and launch it.
   (let ((problems
 	 ;; Resolve all dependencies.
@@ -940,7 +941,9 @@ in a list."
                  ;; Special case: 'root' may quit.
                  (and (eq? root-service service)
                       (eq? key 'quit)
-                      (apply quit args))
+                      (begin
+                        (log.info "root-service threw 'quit with args ~a, exiting..." args)
+                        (apply quit args)))
                  (put-message notification #f)
                  (caught-error key args))))))
 
@@ -961,6 +964,7 @@ in a list."
   "Perform @var{the-action} (a symbol such as @code{'restart} or @code{'status})
 on @var{service}, passing it @var{args}.  The meaning of @var{args} depends on
 the action."
+  (log.debug "perform-service-action for action ~a, service '~a', with args ~a" the-action service args)
   (define default-action
     ;; All actions which are handled here might be called even if the
     ;; service is not running, so they have to take this into account.
@@ -1008,16 +1012,23 @@ the action."
         ;; single value.  Deal with it gracefully.
         (call-with-values
             (lambda ()
-              (apply proc (service-running-value service) args))
-          (case-lambda
-            (() *unspecified*)
-            ((first . rest) first))))
+              (let ((running-value (service-running-value service)))
+                (log.debug "Calling the action's proc ~a, action ~a, running-value ~a, args ~a" proc the-action running-value args)
+                (apply proc running-value args)))
+          (lambda result
+            (log.debug "Received ~a from the action's proc ~a, action ~a, args ~a" result proc the-action args)
+            (match result
+              (() *unspecified*)
+              ((first . _) first)))))
       (lambda (key . args)
         ;; Special case: 'root' may quit.
         (and (eq? root-service service)
              (eq? key 'quit)
-             (apply quit args))
+             (begin
+               (log.info "root-service threw 'quit with args ~a, exiting..." args)
+               (apply quit args)))
 
+        (log.error "Calling the action's proc threw ~a ~a; proc ~a, action ~a" key args proc the-action)
         ;; Re-throw SRFI-34 exceptions that the caller will handle.
         (cond ((eq? key 'srfi-34)                 ;Guile 2.x
                (apply throw key args))
@@ -1488,6 +1499,7 @@ invoking COMMAND.  USER may be a string, indicating a user name, or a
 number, indicating a user ID.  Likewise, COMMAND will be run under the
 current group, unless the GROUP keyword argument is present and not
 false."
+  (log.debug "exec-command for ~a, user ~a, group ~a, supplementary-groups ~a" command user group supplementary-groups)
   (match command
     ((program args ...)
      (when create-session?
@@ -1604,6 +1616,9 @@ false."
 return its PID.  When @var{listen-pid-variable?} is true, augment
 @var{environment-variables} with a definition of the @env{LISTEN_PID}
 environment variable used for systemd-style \"socket activation\"."
+
+  (log.debug "fork+exec-command for ~a, user ~a, group ~a, supplementary-groups ~a" command user group supplementary-groups)
+
   ;; Install the SIGCHLD handler if this is the first fork+exec-command call.
   (unless %sigchld-handler-installed?
     (sigaction SIGCHLD handle-SIGCHLD SA_NOCLDSTOP)
@@ -2744,7 +2759,9 @@ Used by `start'."
      (raise (condition (&missing-service-error (name name)))))
     (service
      (if (eq? 'running (service-status service))
-         service
+         (begin
+           (log.debug "Service already running, not starting it: ~a" service)
+           service)
          (apply start service args)))))
 (define-deprecated-method/rest (stop (service <service>))
   stop-service)
