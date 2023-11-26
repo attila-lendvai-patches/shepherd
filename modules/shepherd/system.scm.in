@@ -234,6 +234,7 @@ sigset pointer."
   ;; case on GNU/Hurd.
   @SIZEOF_STRUCT_SIGNALFD_SIGINFO@)
 
+;; The following constants are set to zero on non-Linux systems.
 (define SFD_CLOEXEC @SFD_CLOEXEC@)
 (define SFD_NONBLOCK @SFD_NONBLOCK@)
 

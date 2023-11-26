@@ -35,6 +35,12 @@ separate PID namespace, shepherd could end up waiting for the termination of
 what’s actually a Linux kernel thread, such as PID 2 (“kthreadd”).  This
 situation is now recognized and avoided.
 
+** Fix cross-compilation to non-Linux operating systems
+
+Since 0.10.2, when cross-compiling to systems such as GNU/Hurd, the value of
+‘SFD_CLOEXEC’ and ‘SFD_NONBLOCK’ in (shepherd system) would be left undefined,
+leading to a type error when starting shepherd.  This is now fixed.
+
 * Changes in 0.10.2
 
 ** ‘shepherd’ loads configuration file asynchronously

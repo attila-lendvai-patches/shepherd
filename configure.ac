@@ -144,6 +144,15 @@ AC_COMPUTE_INT([SIG_UNBLOCK], [SIG_UNBLOCK], [#include <sys/signal.h>])
 AC_COMPUTE_INT([SIG_SETMASK], [SIG_SETMASK], [#include <sys/signal.h>])
 AC_MSG_RESULT([done])
 
+dnl These constants are undefined on non-Linux systems; set them to zero
+dnl instead of the empty string.
+if test -z "$SFD_CLOEXEC"; then
+  SFD_CLOEXEC=0
+fi
+if test -z "$SFD_NONBLOCK"; then
+  SFD_NONBLOCK=0
+fi
+
 SIZEOF_STRUCT_SIGNALFD_SIGINFO="$ac_cv_sizeof_struct_signalfd_siginfo"
 SIZEOF_SIGSET_T="$ac_cv_sizeof_sigset_t"
 AC_SUBST([SIZEOF_STRUCT_SIGNALFD_SIGINFO])
