@@ -604,8 +604,9 @@ while evaluating @var{command}."
                  (else (list (apply perform-service-action
                                     service the-action args)))))
 
-             (write-reply (command-reply command result #f (get-messages))
-                          port))))
+             (let ((reply (command-reply command result #f (get-messages))))
+               (log.debug "Sending reply ~A" reply)
+               (write-reply reply port)))))
        quit-exception-handler))
     (_
      (local-output (l10n "Invalid command.")))))

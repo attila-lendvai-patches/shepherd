@@ -101,7 +101,7 @@ done
 $herd stop test
 test -f "$stamp" && false
 
-test $(grep "Starting service test" "$log" | wc -l) = 1
+test $(grep "Starting service test...$" "$log" | wc -l) = 1
 
 # Now, once 'test' is stopped, start it.  While it is being started, attempt
 # to stop it: this should do nothing until it has started.  Cause it to start,
