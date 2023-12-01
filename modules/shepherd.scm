@@ -263,14 +263,23 @@ already ~a threads running, disabling 'signalfd' support")
 
          ;; Enter some sort of a REPL for commands.
          (let next-command ()
-           (match (accept sock (logior SOCK_NONBLOCK SOCK_CLOEXEC))
-             ((command-source . client-address)
-              (log.debug "Received next-command from client ~A" client-address)
-              (setvbuf command-source 'block 1024)
-              (spawn-fiber
-               (lambda ()
-                 (process-connection command-source))))
-             (_ #f))
+
+           (call-with-error-handling
+            (lambda ()
+              (match (accept sock (logior SOCK_NONBLOCK SOCK_CLOEXEC))
+                ((command-source . client-address)
+                 (log.debug "Received next-command from client ~A" client-address)
+                 (setvbuf command-source 'block 1024)
+                 (spawn-fiber
+                  (lambda ()
+                    (process-connection command-source))))
+                (_ #f)))
+
+            (lambda (error . error-args)
+              (log-with-backtrace
+               log-level.error
+               error error-args
+               "An error has reached the socket listener loop.")))
 
            (next-command))))))
 
@@ -621,14 +630,23 @@ would write them on the 'herd' command line."
         (stop-service root-service)
 
         (begin
-          (match (string-tokenize line)
-            ((action service arguments ...)
-             (process-command (shepherd-command (string->symbol action)
-                                                (string->symbol service)
-                                                #:arguments arguments)
-                              (current-output-port)))
-            (_
-             (local-output (l10n "invalid command line") line)))
+          (call-with-error-handling
+           (lambda ()
+             (match (string-tokenize line)
+               ((action service arguments ...)
+                (process-command (shepherd-command (string->symbol action)
+                                                   (string->symbol service)
+                                                   #:arguments arguments)
+                                 (current-output-port)))
+               (_
+                (local-output (l10n "invalid command line") line))))
+
+           (lambda (error . error-args)
+             (log-with-backtrace
+              log-level.fatal
+              error error-args
+              "An error has reached the text listener loop.")))
+
           (loop (read-line port))))))
 
 ;; Local Variables:
