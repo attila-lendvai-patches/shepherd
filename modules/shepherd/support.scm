@@ -27,6 +27,9 @@
   #:use-module (ice-9 format)
   #:autoload   (srfi srfi-1) (take)
   #:use-module (srfi srfi-9)
+  #:use-module ((system repl error-handling)
+                #:select (call-with-error-handling)
+                #:prefix guile:)
   #:export (caught-error
             assert
             let-loop
@@ -40,6 +43,7 @@
             buffering
             catch-system-error
             with-system-error-handling
+            call-with-error-handling
             with-atomic-file-output
             mkdir-p
             with-directory-excursion
@@ -321,6 +325,42 @@ error format."
        (string? (syntax->datum #'message))
 
        #'(print-error-message (format #f (l10n message) args ...))))))
+
+(define* (call-with-error-handling thunk error-handler)
+  "Calls thunk and makes sure no exeptions are leaving this call.  If any error
+happens inside thunk, then it calls the user supplied error-handler.  In case
+of nested errors it tries to supply information in the log that helps
+debugging the issue."
+  (guile:call-with-error-handling
+   thunk
+   #:on-error
+   (lambda args
+     (guile:call-with-error-handling
+      (lambda ()
+        ;; Level 1: call the user's error handler.
+        (apply error-handler args))
+      #:on-error
+      (lambda (error-key . error-args)
+        (guile:call-with-error-handling
+         (lambda ()
+           ;; Level 2: by default we attempt to log a backtrace and the error
+           ;; coming from the level 1 handler.
+           (log-with-backtrace
+            log-level.error
+            error-key error-args
+            "call-with-error-handling: nested error in the level 1 handler."))
+         #:on-error
+         (lambda _
+           ;; Level 3: let's guard against any errors here, but still try to
+           ;; emit some info that is useful for debugging.
+           (let ((message "Shepherd: call-with-error-handling has reached level 3, giving up."))
+             (unless (false-if-exception
+                      (begin
+                        (display message)
+                        #t))
+               (false-if-exception
+                (warn message)))
+             (values)))))))))
 
 (define (call-with-system-error-handling thunk)
   "Call THUNK, catching any 'system-error' exception."
