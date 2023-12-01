@@ -251,6 +251,7 @@ TESTS =						\
   tests/starting-status.sh			\
   tests/stopping-status.sh			\
   tests/startup-failure.sh			\
+  tests/startup-error.sh			\
   tests/replacement.sh				\
   tests/respawn.sh				\
   tests/respawn-throttling.sh			\
