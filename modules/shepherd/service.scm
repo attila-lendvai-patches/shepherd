@@ -391,7 +391,14 @@ denoting what the service provides."
        ;; 'local-output' call raised an exception.
        (parameterize ((current-output-port (%current-service-output-port))
                       (current-error-port (%current-service-output-port)))
-         (service-controller service channel))))
+         (call-with-error-handling
+          (lambda ()
+            (service-controller service channel))
+          (lambda (key . args)
+            (log-with-backtrace
+             log-level.fatal key args
+             "Exception came from service-controller call for service ~A, channel ~A"
+             service channel))))))
     channel))
 
 (define %max-recorded-status-changes
@@ -1180,15 +1187,18 @@ or throws."
     ;; PROC should never return.  If it does, log the problem and
     ;; desperately attempt to restart it.
     (let loop ()
-      (catch #t
-        (lambda ()
-          (apply proc args)
-          (local-output (l10n "Essential task ~a exited unexpectedly.")
-                        name))
-        (lambda args
-          (local-output
-           (l10n "Uncaught exception in essential task ~a: ~s")
-           name args)))
+
+      (call-with-error-handling
+       (lambda ()
+         (apply proc args)
+         (log.fatal "Essential task ~a exited unexpectedly.  Shepherd may have become unstable." name))
+
+       (lambda (error-key . error-args)
+         (log-with-backtrace
+          log-level.fatal
+          error-key error-args
+          "Uncaught exception in essential task ~a.  Shepherd may have become unstable."
+          name)))
 
       ;; Restarting is not enough to recover because all state has been
       ;; lost, but it might be enough to halt the system.
