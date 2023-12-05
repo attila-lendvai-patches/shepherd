@@ -682,8 +682,7 @@ denoting what the service provides."
   (key       action-runtime-error-key)
   (arguments action-runtime-error-arguments))
 
-
-(define (report-exception action service key args)
+(define (report-action-error service action key args)
   "Report an exception of type KEY in user code ACTION of SERVICE."
   (log-with-backtrace
    log-level.error
@@ -887,7 +886,7 @@ while starting ~a: ~s")
                           (apply (service-start service) args)))
                       (lambda (key . args)
                         (put-message notification #f)
-                        (report-exception 'start service key args)))))
+                        (report-action-error service 'start key args)))))
                (put-message notification running)
                (local-output (if running
 			         (l10n "Service ~a has been started.")
@@ -1035,7 +1034,7 @@ the action."
               ((eq? key '%exception)              ;Guile 3.x
                (raise-exception (car args)))
               (else
-               (report-exception the-action service key args)))))))
+               (report-action-error service the-action key args)))))))
 
 ;; Display documentation about the service.
 (define (display-service-documentation service . args)
